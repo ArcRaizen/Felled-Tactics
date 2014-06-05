@@ -80,7 +80,7 @@ int Level::Update(float dt, HWND hWnd)
 				movementBeginning = selectedTile;
 				selectedTile.x = -1;
 				MarkTiles(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, 0);
-				
+
 				currentPhase = SelectMove; // Jump to next phase
 			}
 
@@ -316,7 +316,7 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 		index = -1, minF = 1000000;
 		for(int i = 0; i < openList.size(); i++)
 		{
-			if(openList[i]->f < minF)
+			if(openList[i]->f <= minF)
 			{
 				minF = openList[i]->f;
 				index = i;
@@ -556,8 +556,10 @@ void Level::SetHoveredTile(Position p)
 				// Test newPath for doubling back and remove redundant tile in both paths
 				if(currentMovementPath.size() != 1)
 				{
+					map[currentMovementPath.back().x][currentMovementPath.back().y]->TileMark = Tile::Mark::AllyMove;
 					currentMovementPath.pop_back();		// delete last tile in path (it already exists in newPath)
 						
+					bool finished = false;
 					cpIT = currentMovementPath.begin(); cpIT++;
 					for(; cpIT != currentMovementPath.end(); cpIT++)
 					{
@@ -565,10 +567,17 @@ void Level::SetHoveredTile(Position p)
 						{
 							if(*cpIT == *npIT)
 							{
-								currentMovementPath.erase(cpIT);
-								newPath.erase(++npIT);
+								// Reset Mark for tiles no longer in the path
+								for(list<Position>::iterator it = cpIT; it != currentMovementPath.end(); it++)
+									map[it->x][it->y]->TileMark = Tile::Mark::AllyMove;
+								
+								currentMovementPath.erase(cpIT, currentMovementPath.end());	// remove tiles from path
+								newPath.erase(newPath.begin(), npIT);
+								finished = true;
+								break;
 							}
 						}
+						if(finished) break;
 					}
 				}
 				else	// newPath is exactly what we want currentMovementPath to be, so clear it now before we combine them

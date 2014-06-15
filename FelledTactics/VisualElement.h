@@ -33,14 +33,21 @@ public:
 	virtual int		Update(float dt);
 	virtual bool	Draw();
 
-	__declspec(property(put=SetLayer, get=GetLayer)) int Layer;			void SetLayer(int l);			int GetLayer();
-	__declspec(property(get=GetMouseDown)) bool IsMouseDown;											bool GetMouseDown();
-	__declspec(property(get=GetMouseEntered)) bool MouseEntered;										bool GetMouseEntered();
-	__declspec(property(put=SetWidth, get=GetWidth)) int Width;			void SetWidth(int w);			int GetWidth();
-	__declspec(property(put=SetHeight, get=GetHeight)) int Height;		void SetHeight(int h);			int GetHeight();
-	__declspec(property(put=SetCenter, get=GetCenter)) Position Center;	void SetCenter(Position p);		Position GetCenter();
-	__declspec(property(put=SetCorner, get=GetCorner)) Position Corner;	void SetCorner(Position p);		Position GetCorner();
-	__declspec(property(get=GetTexture)) ID3D10ShaderResourceView* Texture;								ID3D10ShaderResourceView* GetTexture();
+	virtual void	DisableDraw();
+	virtual void	EnableDraw();
+	void			Delete();
+
+	__declspec(property(put=SetLayer, get=GetLayer)) int Layer;				void SetLayer(int l);			int GetLayer();
+	__declspec(property(get=GetMouseDown)) bool IsMouseDown;												bool GetMouseDown();
+	__declspec(property(get=GetMouseEntered)) bool MouseEntered;											bool GetMouseEntered();
+	__declspec(property(put=SetWidth, get=GetWidth)) int Width;				void SetWidth(int w);			int GetWidth();
+	__declspec(property(put=SetHeight, get=GetHeight)) int Height;			void SetHeight(int h);			int GetHeight();
+	__declspec(property(put=SetCenter, get=GetCenter)) Position Center;		void SetCenter(Position p);		Position GetCenter();
+	__declspec(property(put=SetCorner, get=GetCorner)) Position Corner;		void SetCorner(Position p);		Position GetCorner();
+	__declspec(property(put=SetEnabled, get=GetEnabled)) bool DrawEnabled;	void SetEnabled(bool e);		bool GetEnabled();
+	__declspec(property(get=GetTexture)) ID3D10ShaderResourceView* Texture;									ID3D10ShaderResourceView* GetTexture();
+
+	bool		deleted;	// Mark element for deletion
 
 protected:
 	void	Translate(D3DXVECTOR3 t);
@@ -57,6 +64,8 @@ protected:
 	int			width, height, tileSize;
 	Position	leftCorner;
 	Position	center;
+	bool		drawEnabled;	// Is this element being draw?
+	float		alpha;			// space to hold alpha of element when disabling/enabling it
 
 	D3DXVECTOR4	highlightColor;
 	D3DXVECTOR2 uvScale;

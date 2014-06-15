@@ -16,6 +16,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	// Test stats
 	health = maximumHealth = 100;
 	abilityPoints = maximumAbilityPoints = 50;
+	attackRange = 4;
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -355,6 +356,8 @@ int   Unit::GetResistance() { return resistance; }
 void  Unit::SetResistance(int r) { resistance = r; }
 int   Unit::GetMovement() { return movement; }
 void  Unit::SetMovement(int m) { movement = m; }
+int   Unit::GetAttackRange() { return attackRange; }
+void  Unit::SetAttackRange(int r) { attackRange = r; }
 Unit::Phylum Unit::GetPhylum() { return phylum; }
 void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }

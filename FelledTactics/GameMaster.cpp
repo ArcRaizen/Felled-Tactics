@@ -4,6 +4,17 @@
 GameMaster::GameMaster(void){}
 GameMaster::~GameMaster(void){}
 
+int GameMaster::Update(float dt, HWND hWnd)
+{
+	UpdateKeyboardEvents();
+	UpdateMouseEvents(hWnd);
+
+	if(deletionRequired)
+		DeleteElements();
+
+	return 1;
+}
+
 // Track the mouse
 void GameMaster::UpdateMouseEvents(HWND hWnd)
 {
@@ -25,10 +36,25 @@ void GameMaster::UpdateMouseEvents(HWND hWnd)
 
 		// MouseOver and MouseOut - Logic handled on Visual Element side, just tell them where the mouse is
 		VisualElements[i]->SetCurrentMousePosition(mousePosition);
+
+		// Set-up process to delete necessary elements
+		if(VisualElements[i]->deleted)
+			deletionRequired = true;
 	}
 }
 
 void GameMaster::UpdateKeyboardEvents(){}
+
+void GameMaster::DeleteElements()
+{
+	for(int i = 0; i < VisualElements.size(); i++)
+	{
+		if(VisualElements[i]->deleted)
+			VisualElements.erase(VisualElements.begin() + i--);
+	}
+
+	deletionRequired = false;
+}
 
 // Use a simple Insertion Sort to order the game's current Visual Elements for drawing
 // Once sorted by Layer, sorts all elements in each layer by vertical position on screen

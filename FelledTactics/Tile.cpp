@@ -8,6 +8,7 @@ D3DXVECTOR4 Tile::highlightAllyMoveAlly = D3DXVECTOR4(0.0f, 1.0f, 1.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllySkillRange = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllySkillAoE = D3DXVECTOR4(1.0f, 0.647f, 0.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightEnemyMove = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
+D3DXVECTOR4 Tile::highlightAttack = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 #pragma endregion
 
 Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, Position gp) :
@@ -99,6 +100,9 @@ void Tile::SetMark(Tile::Mark m)
 			break;
 		case Tile::Mark::EnemyMove:
 			highlightColor = highlightEnemyMove;
+			break;
+		case Tile::Mark::Attack:
+			highlightColor = highlightAttack;
 			break;
 		case Tile::Mark::None:
 			highlightColor = highlightNone;

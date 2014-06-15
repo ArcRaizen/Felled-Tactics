@@ -11,11 +11,11 @@
 
 #include <vector>
 
-class Level;
+//class Level;
 class MenuBox : public VisualElement
 {
 public:
-	MenuBox(WCHAR* filename, int layer, int width, int height, int posX, int posY);
+	MenuBox(Level* l, WCHAR* filename, int layer, int width, int height, int posX, int posY);
 	MenuBox(void);
 	~MenuBox(void);
 
@@ -28,10 +28,13 @@ public:
 
 	//int		Update(float dt);
 	bool	Draw();
+	void	DisableDraw();
+	void	EnableDraw();
 
 private:
 	vector<MenuElement*>	elements;
 	D3DXVECTOR3				mousePosition;
+	Level* level;
 };
 #endif
 

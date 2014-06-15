@@ -10,17 +10,25 @@
 
 #include <vector>
 
+// Layers for each Visual Element
+#define TILE_LAYER			1
+#define TILE_EFFECT_LAYER	2
+#define UNIT_LAYER			3
+#define ACTION_MENU_LAYER	4
+
 class GameMaster
 {
 public:
 	GameMaster(void);
 	~GameMaster(void);
 
+	virtual int		Update(float dt, HWND hWnd);
 	virtual void	Draw() = 0;
 
 protected:
 	void			UpdateMouseEvents(HWND hWnd);
 	void			UpdateKeyboardEvents();
+	void			DeleteElements();
 	void			SortVisualElements();
 	void			SortVisualElementsInLayer(int layer);
 	void			AddActiveLayer(int l);
@@ -28,5 +36,6 @@ protected:
 
 	vector<VisualElement*>	VisualElements;
 	int						activeLayers; // Only VisualElements on the ActiveLayers can be interacted with
+	bool					deletionRequired;
 };
 #endif

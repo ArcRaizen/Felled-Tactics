@@ -19,8 +19,7 @@ Level::~Level(void)
 
 int Level::Update(float dt, HWND hWnd)
 {
-	UpdateKeyboardEvents();
-	UpdateMouseEvents(hWnd);
+	GameMaster::Update(dt, hWnd);
 	if(InputManager::RightMouseUpEvent())
 		HandleRightClick();
 
@@ -33,31 +32,31 @@ int Level::Update(float dt, HWND hWnd)
 		// Move unit on map - If during movement it enters an active hazard, we resolve that now
 		if(result == 1)
 		{
-			bool unitMoved = MoveUnit(movementBeginning, currentMovementPath.back());
+			actionBeginning = currentMovementPath.back();
+			bool unitMoved = DoMovementEnd(movementBeginning, currentMovementPath.back());
 			currentPhase = SelectUnit;
 			selectedTile.x = -1;
 		}
 	}
 
-	// Determine if the user is trying to draw a movement path for one of his units (no selected tile yet since user must be holding LMB down)
-	if(currentPhase == Phase::SelectMove && !pathDrawEnabled)
-	{
-		if(map[movementBeginning.x][movementBeginning.y]->IsMouseDown)
-		{
-			currentMovementPath.clear();
-			currentMovementPath.push_back(movementBeginning);
-			pathDrawEnabled = true;
-		}
-	}
-
-	// If no tile is selected, no further update
-	if(selectedTile.x == -1)
-		return 1;
-
 	// Do different updates depending on the current phase
 	switch(currentPhase)
 	{
 /**/	case Phase::SelectUnit:
+			// Turn on/off HP/AP bars on hovered units
+			if(lastHoveredTile != hoveredTile)
+			{	// Turn off drawing HP/AP bars on old tile
+				if(unitMap[lastHoveredTile.x][lastHoveredTile.y] != NULL)
+					unitMap[lastHoveredTile.x][lastHoveredTile.y]->DrawBars = false;
+	
+				// Turn on drawing HP/AP bars on new tile
+				if(unitMap[hoveredTile.x][hoveredTile.y] != NULL)
+					unitMap[hoveredTile.x][hoveredTile.y]->DrawBars = true;
+			}
+
+			// If no tile is selected yet, we have nothing more to do
+			if(selectedTile.x == -1)	break;
+
 			if(map[selectedTile.x][selectedTile.y]->TileStatus == Tile::Status::Empty ||
 				map[selectedTile.x][selectedTile.y]->TileStatus == Tile::Status::AllyFelled)
 			{ 
@@ -86,6 +85,26 @@ int Level::Update(float dt, HWND hWnd)
 
 			break;
 /**/	case Phase::SelectMove:
+			// Determine if the user is starting to try to draw a movement path for one of his units
+			if(!pathDrawEnabled && map[movementBeginning.x][movementBeginning.y]->IsMouseDown)
+			{
+				currentMovementPath.clear();						// Clear last player-drawn movement path
+				currentMovementPath.push_back(movementBeginning);	// Start the new one
+				pathDrawEnabled = true;
+			}
+
+			// Update path once mouse moves to hover over new tile
+			if(lastHoveredTile != hoveredTile)
+			{
+				if(pathDrawEnabled)		// Player drawing own path?
+					PlayerDrawPath();
+				else					// or not?
+					AutoDrawPath();
+			}
+
+			// If no tile is selected yet, we have nothing more to do
+			if(selectedTile.x == -1)	break;
+
 			if(selectedTile != movementBeginning && (map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllyMovePathFail || 
 				map[selectedTile.x][selectedTile.y]->TileStatus == Tile::Status::AllyUnit))
 			{
@@ -122,18 +141,15 @@ int Level::Update(float dt, HWND hWnd)
 				currentPhase = ExecuteMove;	// Go to next phase
 			}
 			break;
-/**/	case Phase::ExecuteMove:
-			// A unit has finished move, prepare for...idk, something that comes after that
-			if(unitMap[movementBeginning.x][movementBeginning.y] == NULL)
-			{
-				currentPhase = SelectUnit;
-				selectedTile.x = -1;
-			}
+/**/	case Phase::ExecuteMove: 
+			if(selectedTile.x == -1)	break;
 			break;
 /**/	case Phase::SelectAction:
+			if(selectedTile.x == -1)	break;
 			/* Activate/Create UI for actions */
 			break;
 /**/	case Phase::SelectTarget:
+			if(selectedTile.x == -1)	break;
 			MarkTiles(false, hoveredTile, 0 /*get range of skill selected*/, 2 /*get aoe of skill selected*/);
 
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillRange)
@@ -143,11 +159,15 @@ int Level::Update(float dt, HWND hWnd)
 			}
 			break;
 /**/	case Phase::ExecuteAction:
+			if(selectedTile.x == -1)	break;
 			break;
 /**/	case Phase::EnemyTurn:
+			if(selectedTile.x == -1)	break;
 			break;
 	}
 
+	lastSelectedTile = selectedTile;
+	lastHoveredTile = hoveredTile;
 	selectedTile.x = -1;
 	return 1;
 }
@@ -200,18 +220,18 @@ void Level::GenerateLevel()
 	{
 		for(j = 0; j < mapHeight; j++)
 		{
-			map[i][j] = new Tile(L"../FelledTactics/Textures/Tile.png", 1, tileSize, tileSize, i*tileSize, j*tileSize, this, Position(i,j));
+			map[i][j] = new Tile(L"../FelledTactics/Textures/Tile.png", TILE_LAYER, tileSize, tileSize, i*tileSize, j*tileSize, this, Position(i,j));
 			unitMap[i][j] = NULL;
 			VisualElements.push_back(map[i][j]);
 		}
 	}
 
 	// Create units
-	unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", 2, tileSize, tileSize,0,0);
-	unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", 2, tileSize, tileSize,50,50);
-	unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", 2, tileSize, tileSize,100,100);
-	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", 2, tileSize, tileSize,150,150);
-	unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", 2, tileSize, tileSize,200,200);
+	unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,0,0);
+	unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,50,50);
+	unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
+	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,150,150);
+	unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
 	unitList.push_back(unitMap[0][0]);
 	unitList.push_back(unitMap[1][1]);
 	unitList.push_back(unitMap[2][2]);
@@ -220,7 +240,7 @@ void Level::GenerateLevel()
 	map[0][0]->TileStatus = Tile::Status::AllyUnit;
 	map[1][1]->TileStatus = Tile::Status::AllyUnit;
 	map[2][2]->TileStatus = Tile::Status::AllyUnit;
-	map[3][3]->TileStatus = Tile::Status::AllyUnit;
+	map[3][3]->TileStatus = Tile::Status::EnemyUnit;
 	map[4][4]->TileStatus = Tile::Status::AllyUnit;
 
 	// Add units to the VisualElements list
@@ -228,7 +248,7 @@ void Level::GenerateLevel()
 		VisualElements.push_back(unitList[i]);
 
 	SortVisualElements();
-	AddActiveLayer(1);
+	AddActiveLayer(TILE_LAYER);
 }
 
 bool Level::CheckWin()
@@ -258,6 +278,118 @@ bool Level::CheckLoss()
 	}
 
 	return hasLost;
+}
+
+// Allow player to draw a custom movement path for the selected Unit to follow for their movement phase
+void Level::PlayerDrawPath()
+{
+	// If the selected tile (new tile the mouse is hovering over) being added is valid
+	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMove)
+	{
+		list<Position> newPath;		// Path being added to currentMovementPath this turn
+		list<Position>::iterator npIT, cpIT;// Iterator for later
+
+		// Next tile is not adjacent to the last tile, we moved diagonally or around something. Account for that and make a path between the two
+		if(hoveredTile.DistanceTo(currentMovementPath.back()) > 1)
+		{	// Calc the new path between the last tile in the path and the destination tile 
+			CalcShortestPathAStar(currentMovementPath.back(), hoveredTile, unitMap[movementBeginning.x][movementBeginning.y]->Movement - (currentMovementPath.size() - 1),
+				newPath, TEST_OBSTRUCTION_ALLY_UNITS);
+					
+			// Test newPath for doubling back and remove redundant tile in both paths
+			if(currentMovementPath.size() != 1)
+			{
+				map[currentMovementPath.back().x][currentMovementPath.back().y]->TileMark = Tile::Mark::AllyMove;
+				currentMovementPath.pop_back();		// delete last tile in path (it already exists in newPath)
+						
+				bool finished = false;
+				cpIT = currentMovementPath.begin(); cpIT++;
+				for(; cpIT != currentMovementPath.end(); cpIT++)
+				{
+					for(npIT = newPath.begin(); npIT != newPath.end(); npIT++)
+					{
+						if(*cpIT == *npIT)
+						{
+							// Reset Mark for tiles no longer in the path
+							for(list<Position>::iterator it = cpIT; it != currentMovementPath.end(); it++)
+								map[it->x][it->y]->TileMark = Tile::Mark::AllyMove;
+								
+							currentMovementPath.erase(cpIT, currentMovementPath.end());	// remove tiles from path
+							newPath.erase(newPath.begin(), npIT);
+							finished = true;
+							break;
+						}
+					}
+					if(finished) break;
+				}
+			}
+			else	// newPath is exactly what we want currentMovementPath to be, so clear it now before we combine them
+				currentMovementPath.clear();
+		}
+		else // Add tile to path
+			newPath.push_back(hoveredTile);
+
+
+		// Mark the new path
+		for(npIT = newPath.begin(); npIT != newPath.end(); npIT++)
+		{
+			currentMovementPath.push_back(*npIT);
+
+			if(*npIT == selectedTile)
+				continue;
+
+			// Change color to show player the path he has drawn (red if the path is too large for the unit moving)
+			if(currentMovementPath.size() <= unitMap[movementBeginning.x][movementBeginning.y]->Movement+1)
+				map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePath;
+			else
+				map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePathFail;
+		}
+	}// Selected tile already in the path (overlap) - find it in the list and remove all entries after it
+	else if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePath || map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePathFail)
+	{
+		for(std::list<Position>::const_iterator i = currentMovementPath.begin(); i != currentMovementPath.end(); ++i)
+		{	
+			if(hoveredTile == *i)
+			{	// Reset the color of the tiles being removed
+				for(std::list<Position>::const_iterator j = ++i; j != currentMovementPath.end(); j++)
+					map[(*j).x][(*j).y]->TileMark = Tile::Mark::AllyMove;
+
+				// Remove tiles
+				currentMovementPath.erase(i, currentMovementPath.end());
+				break;
+			}
+		}
+	}	
+}	
+
+// Draw pre-calculated path between Moving Unit's tile and the tile the mouse is currently hovering over
+void Level::AutoDrawPath()
+{
+	// Only change path if mouse is hovering over a tile that can be moved too
+	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMove || map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePath)
+	{
+		// Un-color the path to the previous hovered tile
+		Position j;
+		if(currentMovementPath.size() > 1)
+		{
+			int size = currentMovementPath.size()-1;
+			for(int i = 0; i < size; i++)
+			{
+				currentMovementPath.pop_front();
+				j = currentMovementPath.front();
+				map[j.x][j.y]->TileMark = Tile::Mark::AllyMove;
+			}
+		}
+		currentMovementPath.clear();
+		
+		// Retrieve pre-calculated shortest path
+		currentMovementPath = movementMap[hoveredTile.x][hoveredTile.y];
+		
+		// Color the new path
+		list<Position>::const_iterator it = currentMovementPath.begin();
+		it++;
+		for(; it != currentMovementPath.end(); it++)
+			map[it->x][it->y]->TileMark = Tile::Mark::AllyMovePath;
+	}
 }
 
 // Return a path between 'start' and 'end' that can be traversed
@@ -491,7 +623,7 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 
 
 // Move a unit from the start to end, change all properties and statuses to reflect
-bool Level::MoveUnit(Position start, Position end)
+bool Level::DoMovementEnd(Position start, Position end)
 {
 	// Attempting to move unit to occupied space
 	if(unitMap[end.x][end.y] != NULL || map[end.x][end.y]->TileStatus != Tile::Status::Empty)
@@ -514,9 +646,69 @@ bool Level::MoveUnit(Position start, Position end)
 
 	// DO EFFECTS FROM TILES MOVED THROUGH OR STOPPED ON VIA CURRENTMOVEMENTPATH
 
-
 	currentMovementPath.clear();
+
+	// Create Action Menu
+	CreateActionMenu();
+
 	return true;
+}
+
+void Level::CreateActionMenu()
+{
+	MenuBox* actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, 1000, 100);
+	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145, "Attack");
+	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100, "Skills");
+	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55, "Items");
+	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10, "End");
+	
+	menus.push_back(actionMenu);
+	VisualElements.push_back(actionMenu);
+	SortVisualElements();
+
+	// Set active layers to ignore everything but this Menu
+	RemoveActiveLayer(TILE_LAYER);
+	AddActiveLayer(ACTION_MENU_LAYER);
+}
+
+// Player has selected for a Unit to attack
+void Level::ActivateAttack()
+{
+	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
+	int range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
+	for(int i = actionBeginning.x - range; i <= actionBeginning.x + range; i++)
+	{
+		for(int j = actionBeginning.y - range; j <= actionBeginning.y + range; j++)
+		{
+			if(i < 0 || j < 0) continue;
+
+			if(Position(i,j).DistanceTo(actionBeginning) <= range && map[i][j]->TileStatus == Tile::Status::EnemyUnit)
+				map[i][j]->TileMark = Tile::Mark::Attack;
+		}
+	}
+
+	// Go to Next Phase - Select Target for attack
+	currentPhase = SelectTarget;
+	menus[0]->DisableDraw();				// Temporarily turn off the menu
+	RemoveActiveLayer(ACTION_MENU_LAYER);	// Change active layers
+	AddActiveLayer(TILE_LAYER);				//	to the tiles to allow player to select a target
+}
+
+void Level::ActivateSkill()
+{
+}
+
+void Level::ActivateItem()
+{
+}
+
+void Level::ActivateEndTurn()
+{
+	currentPhase = SelectUnit;
+	menus[0]->Delete();
+	menus.clear();
+	RemoveActiveLayer(ACTION_MENU_LAYER);
+	AddActiveLayer(TILE_LAYER);
 }
 
 bool Level::IsObstructed(Position p) { 	return map[p.x][p.y]->IsObstructed(); }
@@ -539,121 +731,8 @@ void Level::SetSelectedTile(Position p)
 // Save the hovered tile (called from the tile itself)
 void Level::SetHoveredTile(Position p)
 {
-	// Allow player to draw a path they want
-	if(pathDrawEnabled)
-	{	// If they are adding a valid tile
-		if(map[p.x][p.y]->TileMark == Tile::Mark::AllyMove)
-		{
-			list<Position> newPath;		// Path being added to currentMovementPath this turn
-			list<Position>::iterator npIT, cpIT;// Iterator for later
-
-			// Next tile is not adjacent to the last tile, we moved diagonally or around something. Account for that and make a path between the two
-			if(p.DistanceTo(currentMovementPath.back()) > 1)
-			{	// Calc the new path between the last tile in the path and the destination tile 
-				CalcShortestPathAStar(currentMovementPath.back(), p, unitMap[movementBeginning.x][movementBeginning.y]->Movement - (currentMovementPath.size() - 1),
-					newPath, TEST_OBSTRUCTION_ALLY_UNITS);
-					
-				// Test newPath for doubling back and remove redundant tile in both paths
-				if(currentMovementPath.size() != 1)
-				{
-					map[currentMovementPath.back().x][currentMovementPath.back().y]->TileMark = Tile::Mark::AllyMove;
-					currentMovementPath.pop_back();		// delete last tile in path (it already exists in newPath)
-						
-					bool finished = false;
-					cpIT = currentMovementPath.begin(); cpIT++;
-					for(; cpIT != currentMovementPath.end(); cpIT++)
-					{
-						for(npIT = newPath.begin(); npIT != newPath.end(); npIT++)
-						{
-							if(*cpIT == *npIT)
-							{
-								// Reset Mark for tiles no longer in the path
-								for(list<Position>::iterator it = cpIT; it != currentMovementPath.end(); it++)
-									map[it->x][it->y]->TileMark = Tile::Mark::AllyMove;
-								
-								currentMovementPath.erase(cpIT, currentMovementPath.end());	// remove tiles from path
-								newPath.erase(newPath.begin(), npIT);
-								finished = true;
-								break;
-							}
-						}
-						if(finished) break;
-					}
-				}
-				else	// newPath is exactly what we want currentMovementPath to be, so clear it now before we combine them
-					currentMovementPath.clear();
-			}
-			else // Add tile to path
-				newPath.push_back(p);
-
-
-			// Mark the new path
-			for(npIT = newPath.begin(); npIT != newPath.end(); npIT++)
-			{
-				currentMovementPath.push_back(*npIT);
-
-				if(*npIT == selectedTile)
-					continue;
-
-				// Change color to show player the path he has drawn (red if the path is too large for the unit moving)
-				if(currentMovementPath.size() <= unitMap[movementBeginning.x][movementBeginning.y]->Movement+1)
-					map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePath;
-				else
-					map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePathFail;
-			}
-		} // Selected tile already in the path (overlap) - find it in the list and remove all entries after it
-		else if(map[p.x][p.y]->TileMark == Tile::Mark::AllyMovePath || map[p.x][p.y]->TileMark == Tile::Mark::AllyMovePathFail)
-		{
-			for(std::list<Position>::const_iterator i = currentMovementPath.begin(); i != currentMovementPath.end(); ++i)
-			{	
-				if(p == *i)
-				{	// Reset the color of the tiles being removed
-					for(std::list<Position>::const_iterator j = ++i; j != currentMovementPath.end(); j++)
-						map[(*j).x][(*j).y]->TileMark = Tile::Mark::AllyMove;
-
-					// Remove tiles
-					currentMovementPath.erase(i, currentMovementPath.end());
-					break;
-				}
-			}
-		}	
-	}// During movement selection, Draw the Path from the selected Unit to the tile the mouse is hovering over
-	else if(currentPhase == Phase::SelectMove && (map[p.x][p.y]->TileMark == Tile::Mark::AllyMove || map[p.x][p.y]->TileMark == Tile::Mark::AllyMovePath))
-	{
-		// Un-color the path to the previous hovered tile
-		Position j;
-		if(currentMovementPath.size() > 1)
-		{
-			int size = currentMovementPath.size()-1;
-			for(int i = 0; i < size; i++)
-			{
-				currentMovementPath.pop_front();
-				j = currentMovementPath.front();
-				map[j.x][j.y]->TileMark = Tile::Mark::AllyMove;
-			}
-		}
-		currentMovementPath.clear();
-		
-		// Retrieve pre-calculated shortest path
-		currentMovementPath = movementMap[p.x][p.y];
-		
-		// Color the new path
-		list<Position>::const_iterator it = currentMovementPath.begin();
-		it++;
-		for(; it != currentMovementPath.end(); it++)
-			map[it->x][it->y]->TileMark = Tile::Mark::AllyMovePath;
-	}
-
-	// Stop drawning HP/AP bars on tile mouse left
-	if(currentPhase == Phase::SelectUnit && unitMap[hoveredTile.x][hoveredTile.y] != NULL)
-		unitMap[hoveredTile.x][hoveredTile.y]->DrawBars = false;
-	
 	// Set new hovered tile
 	hoveredTile = p;
-
-	// Turn on drawing HP/AP bars on new tile
-	if(currentPhase == Phase::SelectUnit && unitMap[p.x][p.y] != NULL)
-		unitMap[p.x][p.y]->DrawBars = true;
 }
 
 // Utility Function - Is Position P on the Map?

@@ -8,6 +8,8 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 	mouseEntered = false;
 	mouseDown = false;
 	texture = 0;
+	drawEnabled = true;
+	deleted = false;
 	highlightColor.x = highlightColor.y = highlightColor.z = highlightColor.w = 1.0f;
 	uvScale.x = uvScale.y = 1.0f;
 
@@ -160,6 +162,26 @@ bool VisualElement::Draw()
 	return true;
 }
 
+// Turn off this element drawing by making it invisible
+void VisualElement::DisableDraw()
+{
+	drawEnabled = false;
+	alpha = highlightColor.w;
+	highlightColor.w = 0.0f;
+}
+
+// Restore original visibility to the element
+void VisualElement::EnableDraw()
+{
+	drawEnabled = true;
+	highlightColor.w = alpha;
+}
+
+void VisualElement::Delete()
+{
+	deleted = true;
+}
+
 #pragma region Properties
 int  VisualElement::GetLayer() { return layer; }
 void VisualElement::SetLayer(int l) { layer = l; }
@@ -171,5 +193,7 @@ int  VisualElement::GetHeight() { return height; }
 void VisualElement::SetHeight(int h) { height = h; }
 Position VisualElement::GetCorner() { return leftCorner; }
 void VisualElement::SetCorner(Position p) { leftCorner = p; }
+bool VisualElement::GetEnabled() { return drawEnabled; }
+void VisualElement::SetEnabled(bool e) { drawEnabled = e; }
 ID3D10ShaderResourceView* VisualElement::GetTexture() { return texture; }
 #pragma endregion

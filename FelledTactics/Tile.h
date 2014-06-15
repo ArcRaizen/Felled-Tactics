@@ -17,7 +17,7 @@ public:
 	~Tile(void);
 
 	enum	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
-	enum	Mark	{ None, AllyMove, AllyMovePath, AllyMovePathFail, AllySkillRange, AllySkillAoE, EnemyMove };	// What markings the tile has / how is the tile being drawn
+	enum	Mark	{ None, AllyMove, AllyMovePath, AllyMovePathFail, AllySkillRange, AllySkillAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
 
 	bool	IsObstructed();			// is this spot passable by all units?
 	bool	IsObstructedPlayer();	// is this spot passable by a player-owned unit?
@@ -45,6 +45,7 @@ private:
 	static D3DXVECTOR4 highlightAllySkillRange;
 	static D3DXVECTOR4 highlightAllySkillAoE;
 	static D3DXVECTOR4 highlightEnemyMove;
+	static D3DXVECTOR4 highlightAttack;
 };
 #endif
 

@@ -2,9 +2,10 @@
 #include "MenuElement.h"
 
 
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, void (Level::*func)()) :
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, Level* l, void (Level::*func)()) :
 	VisualElement(filename, layer, width, height, posX, posY)
 {
+	level = l;
 	text = t;
 	activateFunction = func;
 }
@@ -27,13 +28,3 @@ void MenuElement::Activate()
 {
 	((level)->*(activateFunction))();
 }
-
-/*
-bool (Level::*ObstructedFunction)(Position) = &Level::IsObstructed;
-if(options & TEST_OBSTRUCTION_ALLY_UNITS)
-	ObstructedFunction = &Level::IsObstructedPlayer;
-else if(options & TEST_OBSTRUCTION_ENEMY_UNITS)
-	ObstructedFunction = &Level::IsObstructedEnemy;
-
-(*this.*ObstructedFunction)(p)
-*/

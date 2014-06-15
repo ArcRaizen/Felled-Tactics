@@ -12,6 +12,9 @@
 #ifndef UNIT_H
 #include "Unit.h"
 #endif
+#ifndef MENU_H
+#include "MenuBox.h"
+#endif
 #ifndef TRAVELNODE_H
 #include "TravelNode.h"
 #endif
@@ -26,6 +29,7 @@
 #define TEST_OBSTRUCTION_ENEMY_UNITS	(1<<3)
 
 class Tile; // forward declaration
+//class MenuBox;
 class Level : public GameMaster
 {
 public:
@@ -54,11 +58,18 @@ private:
 
 #pragma region Map Functions
 private:
+	void	PlayerDrawPath();
+	void	AutoDrawPath();
 	void	CalcShortestPathAStar(Position start, Position end, int unitMove, list<Position> &path, int options);
 	int		CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove);
 	int 	CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* node);
 	void	MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange = vector<Position>());
-	bool	MoveUnit(Position start, Position end);
+	bool	DoMovementEnd(Position start, Position end);
+	void	CreateActionMenu();
+	void	ActivateAttack();
+	void	ActivateSkill();
+	void	ActivateItem();
+	void	ActivateEndTurn();
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);
 	bool	IsObstructedEnemy(Position p);
@@ -94,12 +105,15 @@ private:
 	int**					grid;			// array of ints used in determining shortest paths. declared here for simplicity
 	Unit***					unitMap;		// 2D-Array of all Units (mirrors map - empty tiles are NULL)
 	vector<Unit*>			unitList;		// List of all units
+	vector<MenuBox*>		menus;			// List of all menus open (used only to delete when finished)
 	int						mapWidth;		// Width of map (in tiles)
 	int						mapHeight;		// Height of map (in tiles)
 	int						tileSize;		// Dimmension of tiles
 	Position				movementBeginning;
+	Position				actionBeginning;
 	Position				selectedTile;	// Tile clicked this frame
 	Position				hoveredTile;	// Tile the mouse is currently hovering over
+	Position				lastSelectedTile, lastHoveredTile;
 	Position				target;			// Target location of a skill to be cast
 	list<Position>			currentMovementPath;
 	list<Position>**		movementMap;

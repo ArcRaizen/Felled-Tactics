@@ -47,6 +47,7 @@ public:
 	__declspec(property(put=SetDefence, get=GetDefence)) int Defence;					void SetDefence(int d);				int GetDefence();
 	__declspec(property(put=SetResistance, get=GetResistance)) int Resistance;			void SetResistance(int r);			int GetResistance();
 	__declspec(property(put=SetMovement, get=GetMovement)) int Movement;				void SetMovement(int m);			int GetMovement();
+	__declspec(property(put=SetAttackRange, get=GetAttackRange)) int AttackRange;		void SetAttackRange(int r);			int GetAttackRange();
 	__declspec(property(get=GetPhylum)) Phylum UnitPhylum;																	Phylum GetPhylum();
 	__declspec(property(get=GetMovementFinished)) bool MovementFinished;													bool GetMovementFinished();
 	__declspec(property(put=SetFinished, get=GetFinished)) bool FinishedTurn;			void SetFinished(bool f);			bool GetFinished();
@@ -72,6 +73,7 @@ protected:
 	int		defence;
 	int		resistance;
 	int		movement;
+	int		attackRange;
 	Phylum	phylum;
 
 	// Growth Rates

@@ -3,7 +3,7 @@
 #define MENUELEMENT_H
 
 #ifndef LEVEL_H
-#include "Level.h"
+//#include "Level.h"
 #endif
 #ifndef VISAUL_H
 #include "VisualElement.h"
@@ -16,7 +16,7 @@ class Level;
 class MenuElement : public VisualElement
 {
 public:
-	MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, void (Level::*func)());
+	MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, Level* l, void (Level::*func)());
 	MenuElement(void);
 	~MenuElement(void);
 

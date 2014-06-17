@@ -11,10 +11,11 @@
 #include <vector>
 
 // Layers for each Visual Element
-#define TILE_LAYER			1
-#define TILE_EFFECT_LAYER	2
-#define UNIT_LAYER			3
-#define ACTION_MENU_LAYER	4
+#define TILE_LAYER				1
+#define TILE_EFFECT_LAYER		2
+#define UNIT_LAYER				3
+#define ACTION_MENU_LAYER		4
+#define SECONDARY_MENU_LAYER	5
 
 class GameMaster
 {

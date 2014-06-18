@@ -46,12 +46,15 @@ void Unit::InitProficiency()
 	enchanterProficiency = enforcerProficiency = -1.0f;
 }
 
-int Unit::CalculateCombatDamage(int range = 0)
+void Unit::CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range = 0)
 {
 	// Non-bow weapons cannot do damage at range
 	Weapon* equippedWeapon = inventory[0]->Class == Item::Weapon ? dynamic_cast<Weapon*>(inventory[0]) : NULL;
 	if(range > 1 && equippedWeapon->GetWeaponClass() != Weapon::Bow)
-		return 0;
+	{
+		physicalDamage = magicalDamage = 0;
+		return;
+	}
 
 	// Calculate base damage
 	int baseDamage = strength + inventory[0]->CalculateBaseDamage();
@@ -80,8 +83,9 @@ int Unit::CalculateCombatDamage(int range = 0)
 
 	// Factor in bonus damage/effects here
 
-
-	return baseDamage;
+	// Set final damages
+	physicalDamage = baseDamage;
+	magicalDamage = 0;
 }
 
 void Unit::Revive(int health)
@@ -136,8 +140,8 @@ void Unit::LevelUp()
 				agility++;
 			break;
 		case 5:			// Dexterity
-			if(result < dexGrowth)
-				dexterity++;
+			if(result < sklGrowth)
+				skill++;
 			break;
 		case 6:			// Defence
 			if(result < defGrowth)
@@ -339,7 +343,7 @@ void  Unit::SetName(char* n) { strcpy(name, n); }
 int	  Unit::GetExperience() { return experience; }
 void  Unit::SetExperience(int xp) { experience = xp; }
 int	  Unit::GetHealth() { return health; }
-void  Unit::SetHealth(int h) { health = h; }
+void  Unit::SetHealth(int h) { health = h; if(health < 0) health = 0; }
 int   Unit::GetAbilityPoints() { return abilityPoints; }
 void  Unit::SetAbilityPoints(int ap) { abilityPoints = ap; }
 int   Unit::GetStrength() { return strength; }
@@ -348,8 +352,8 @@ int   Unit::GetMagic() { return magic; }
 void  Unit::SetMagic(int m) { magic = m; }
 int   Unit::GetAgility() { return agility; }
 void  Unit::SetAgility(int a) { agility = a; }
-int   Unit::GetDexterity() { return dexterity; }
-void  Unit::SetDexterity(int d) { dexterity = d; }
+int   Unit::GetSkill() { return skill; }
+void  Unit::SetSkill(int s) { skill = s; }
 int   Unit::GetDefence() { return defence; }
 void  Unit::SetDefence(int d) { defence = d; }
 int   Unit::GetResistance() { return resistance; }

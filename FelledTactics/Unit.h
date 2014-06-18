@@ -18,7 +18,7 @@ public:
 
 	enum Phylum		{Martial, Mystical, Support};
 
-	virtual int		CalculateCombatDamage(int range);		// Damage done by unit to enemy before enemy defences are factored in
+	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
 	virtual void	Revive(int health);						// Revived by an ally
 	virtual void	Die();									// Defeated in combat - Felled
 	void			GainExperience();
@@ -43,7 +43,7 @@ public:
 	__declspec(property(put=SetStrength, get=GetStrength)) int Strength;				void SetStrength(int s);			int GetStrength();
 	__declspec(property(put=SetMagic, get=GetMagic)) int Magic;							void SetMagic(int m);				int GetMagic();
 	__declspec(property(put=SetAgility, get=GetAgility)) int Agility;					void SetAgility(int a);				int GetAgility();
-	__declspec(property(put=SetDexterity, get=GetDexterity)) int Dexterity;				void SetDexterity(int d);			int GetDexterity();
+	__declspec(property(put=SetSkill, get=GetSkill)) int Skill;							void SetSkill(int s);				int GetSkill();
 	__declspec(property(put=SetDefence, get=GetDefence)) int Defence;					void SetDefence(int d);				int GetDefence();
 	__declspec(property(put=SetResistance, get=GetResistance)) int Resistance;			void SetResistance(int r);			int GetResistance();
 	__declspec(property(put=SetMovement, get=GetMovement)) int Movement;				void SetMovement(int m);			int GetMovement();
@@ -69,7 +69,7 @@ protected:
 	int		strength;
 	int		magic;
 	int		agility;
-	int		dexterity;
+	int		skill;
 	int		defence;
 	int		resistance;
 	int		movement;
@@ -82,7 +82,7 @@ protected:
 	float	strGrowth;
 	float	magGrowth;
 	float	aglGrowth;
-	float	dexGrowth;
+	float	sklGrowth;
 	float	defGrowth;
 	float	resGrowth;
 

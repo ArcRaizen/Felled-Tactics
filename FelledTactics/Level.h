@@ -15,10 +15,15 @@
 #ifndef MENU_H
 #include "MenuBox.h"
 #endif
+#ifndef COMBATCAL_H
+#include "CombatCalculator.h"
+#endif
 #ifndef TRAVELNODE_H
 #include "TravelNode.h"
 #endif
+#ifndef GAMETIMER_H
 #include "GameTimer.h"
+#endif
 
 #include <list>
 #include <queue>
@@ -97,6 +102,7 @@ private:
 	int						numAllyDeaths;
 	int						maximumDeaths;
 	int						maximumTurns;
+	CombatCalculator*		combatCalculator;
 
 	// ~~~~ Map ~~~~
 	Tile***					map;			// 2D-Array of all tiles that make up this level
@@ -124,8 +130,6 @@ private:
 #pragma region Utility Functions
 private:
 	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x > mapWidth || p.y > mapWidth) { return false;	} return true; }
-	//Tile::Status Level::GetSelectedTileStatus() { return map[selectedTile.x][selectedTile.y]->TileStatus; }
-	//inline Tile::Mark Level::GetSelectedTileMark() { return map[selectedTile.x][selectedTile.y]->TileMark; }
 #pragma endregion
 };
 #endif

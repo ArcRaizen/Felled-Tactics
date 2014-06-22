@@ -44,7 +44,7 @@ public:
 	__declspec(property(put=SetMagic, get=GetMagic)) int Magic;							void SetMagic(int m);				int GetMagic();
 	__declspec(property(put=SetAgility, get=GetAgility)) int Agility;					void SetAgility(int a);				int GetAgility();
 	__declspec(property(put=SetSkill, get=GetSkill)) int Skill;							void SetSkill(int s);				int GetSkill();
-	__declspec(property(put=SetDefence, get=GetDefence)) int Defence;					void SetDefence(int d);				int GetDefence();
+	__declspec(property(put=SetDefense, get=GetDefense)) int Defense;					void SetDefense(int d);				int GetDefense();
 	__declspec(property(put=SetResistance, get=GetResistance)) int Resistance;			void SetResistance(int r);			int GetResistance();
 	__declspec(property(put=SetMovement, get=GetMovement)) int Movement;				void SetMovement(int m);			int GetMovement();
 	__declspec(property(put=SetAttackRange, get=GetAttackRange)) int AttackRange;		void SetAttackRange(int r);			int GetAttackRange();
@@ -70,7 +70,7 @@ protected:
 	int		magic;
 	int		agility;
 	int		skill;
-	int		defence;
+	int		defense;
 	int		resistance;
 	int		movement;
 	int		attackRange;

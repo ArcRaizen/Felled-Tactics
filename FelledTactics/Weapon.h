@@ -6,10 +6,11 @@
 class Weapon : public Item
 {
 public:
+	enum WeaponClass {Sword, Lance, Axe, Bow, Shield, Scythe};
+
+	Weapon(WeaponClass c, int s, int cr, int r);
 	Weapon(void);
 	~Weapon(void);
-
-	enum WeaponClass {Sword, Lance, Axe, Bow, Shield, Scythe};
 
 	int			CalculateBaseDamage();
 	WeaponClass	GetWeaponClass();

@@ -20,10 +20,10 @@ MenuBox::~MenuBox(void)
 }
 
 
-void MenuBox::CreateElement(void (Level::*func)(), WCHAR* filename, int width, int height, int offsetX, int offsetY, const char* t)
+void MenuBox::CreateElement(void (Level::*func)(), WCHAR* filename, int width, int height, int offsetX, int offsetY, const char* t/*=""*/)
 {
 	elements.push_back(new MenuElement(filename, layer, width, height, 
-		leftCorner.x + offsetX, leftCorner.y + offsetY, t, level, func));
+		leftCorner.x + offsetX, leftCorner.y + offsetY, level, func, t));
 }
 
 // Save the mouse position for MouseDown/MouseUp checks on its Elements, check MouseOver/MouseOut events

@@ -19,7 +19,7 @@ public:
 	MenuBox(void);
 	~MenuBox(void);
 
-	void	CreateElement(void (Level::*func)(), WCHAR* filename, int width, int height, int offsetX, int offsetY, const char* t);
+	void	CreateElement(void (Level::*func)(), WCHAR* filename, int width, int height, int offsetX, int offsetY, const char* t="");
 	
 	// MenuBox manages all Mouse Events for its Elements/components, but has no MouseEvents of its own
 	void	SetCurrentMousePosition(D3DXVECTOR3 mousePos);

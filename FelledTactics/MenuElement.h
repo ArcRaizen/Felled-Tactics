@@ -16,7 +16,7 @@ class Level;
 class MenuElement : public VisualElement
 {
 public:
-	MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, Level* l, void (Level::*func)());
+	MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, void (Level::*func)(), const char* t="");
 	MenuElement(void);
 	~MenuElement(void);
 

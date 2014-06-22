@@ -148,12 +148,48 @@ int Level::Update(float dt, HWND hWnd)
 /**/	case Phase::SelectSecondaryAction:
 			break;
 /**/	case Phase::SelectTarget:
+			if(lastHoveredTile != hoveredTile)
+			{
+				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::Attack)
+				{
+					target = hoveredTile;
+					combatCalculator->Defender = unitMap[target.x][target.y];
+					combatCalculator->Range = actionBeginning.DistanceTo(target);
+					combatCalculator->CalculateCombat();
+
+					// CREATE COMBAT RESULTS UI
+				}
+				else
+				{
+					combatCalculator->ResetDefender();
+					// REMOVE COMBAT AI
+				}
+			}
+
+			// If no tile is selected yet, we have nothing more to do
 			if(selectedTile.x == -1)	break;
 
 			// Selected valid target - FIGHT!
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::Attack)
 			{
-				
+				combatCalculator->DoCombat();
+
+				// Unmark all enemies in range of unit
+				int range; range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
+				for(int i = actionBeginning.x - range; i <= actionBeginning.x + range; i++)
+				{
+					for(int j = actionBeginning.y - range; j <= actionBeginning.y + range; j++)
+					{
+						if(i < 0 || j < 0) continue;
+
+						if(map[i][j]->TileMark == Tile::Mark::Attack)
+							map[i][j]->TileMark = Tile::Mark::None;
+					}
+				}
+
+				delete combatCalculator;
+				actionMenu->Delete();
+				currentPhase = SelectUnit;
 			}
 			break;
 /**/	case Phase::SelectSkillTarget:
@@ -698,10 +734,10 @@ bool Level::DoMovementEnd(Position start, Position end)
 void Level::CreateActionMenu()
 {
 	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, 1000, 100);
-	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145, "Attack");
-	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100, "Skills");
-	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55, "Items");
-	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10, "End");
+	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145, "");
+	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100, "");
+	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55, "");
+	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10, "");
 	
 	VisualElements.push_back(actionMenu);
 //	SortVisualElements();
@@ -726,6 +762,9 @@ void Level::ActivateAttack()
 				map[i][j]->TileMark = Tile::Mark::Attack;
 		}
 	}
+
+	// Create Combat Calculator
+	combatCalculator = new CombatCalculator(unitMap[actionBeginning.x][actionBeginning.y]);
 
 	// Go to Next Phase - Select Target for attack
 	currentPhase = SelectTarget;
@@ -764,6 +803,11 @@ void Level::ActivateEndTurn()
 	actionMenu->Delete();
 	RemoveActiveLayer(ACTION_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
+}
+
+void Level::CreateCombatUI()
+{
+
 }
 
 bool Level::IsObstructed(Position p) { 	return map[p.x][p.y]->IsObstructed(); }

@@ -16,7 +16,9 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	// Test stats
 	health = maximumHealth = 100;
 	abilityPoints = maximumAbilityPoints = 50;
-	attackRange = 4;
+	strength = magic = skill = agility = defense = resistance = 10;
+	attackRange = 5;
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 10, 0, 5);
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -145,7 +147,7 @@ void Unit::LevelUp()
 			break;
 		case 6:			// Defence
 			if(result < defGrowth)
-				defence++;
+				defense++;
 			break;
 		case 7:			// Resistance
 			if(result < resGrowth)
@@ -242,9 +244,9 @@ bool Unit::CheckStatus(int s) { return status & s; }
 
 bool Unit::UpdateHPAPBuffers()
 {
-	float left, right, bottom, top;							// Boarders of each bard
-	float hpRatio = health / maximumHealth;					// Ratio of HP determines how filled HP Bar is	
-	float apRatio = abilityPoints / maximumAbilityPoints;	// Ratio of AP determines how filled AP Bar is
+	float left, right, bottom, top;										// Boarders of each bard
+	float hpRatio = (float)health / (float)maximumHealth;				// Ratio of HP determines how filled HP Bar is	
+	float apRatio = (float)abilityPoints / (float)maximumAbilityPoints;	// Ratio of AP determines how filled AP Bar is
 	void* vertsPtr = 0;
 
 	// Update HP Vertex Buffer
@@ -343,7 +345,7 @@ void  Unit::SetName(char* n) { strcpy(name, n); }
 int	  Unit::GetExperience() { return experience; }
 void  Unit::SetExperience(int xp) { experience = xp; }
 int	  Unit::GetHealth() { return health; }
-void  Unit::SetHealth(int h) { health = h; if(health < 0) health = 0; }
+void  Unit::SetHealth(int h) { health = h; updateHPAPBuffers = true; if(health < 0) health = 0; }
 int   Unit::GetAbilityPoints() { return abilityPoints; }
 void  Unit::SetAbilityPoints(int ap) { abilityPoints = ap; }
 int   Unit::GetStrength() { return strength; }
@@ -354,8 +356,8 @@ int   Unit::GetAgility() { return agility; }
 void  Unit::SetAgility(int a) { agility = a; }
 int   Unit::GetSkill() { return skill; }
 void  Unit::SetSkill(int s) { skill = s; }
-int   Unit::GetDefence() { return defence; }
-void  Unit::SetDefence(int d) { defence = d; }
+int   Unit::GetDefense() { return defense; }
+void  Unit::SetDefense(int d) { defense = d; }
 int   Unit::GetResistance() { return resistance; }
 void  Unit::SetResistance(int r) { resistance = r; }
 int   Unit::GetMovement() { return movement; }

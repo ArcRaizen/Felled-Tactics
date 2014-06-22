@@ -2,7 +2,7 @@
 #include "MenuElement.h"
 
 
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, const char* t, Level* l, void (Level::*func)()) :
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, void (Level::*func)(), const char* t/*=""*/) :
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	level = l;

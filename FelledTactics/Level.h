@@ -75,6 +75,7 @@ private:
 	void	ActivateSkill();
 	void	ActivateItem();
 	void	ActivateEndTurn();
+	void	CreateCombatUI();
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);
 	bool	IsObstructedEnemy(Position p);

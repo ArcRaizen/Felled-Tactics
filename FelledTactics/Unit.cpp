@@ -8,17 +8,19 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	InitProficiency();
 	felled = false;
 	finishedTurn = false;
-	movement = 8;
+	position.x = posX / width;		// width and height are set to TileSize
+	position.y = posY / height;		// PosX and PosY are units from origin to bottom-left corner of tile they are at
 	secBetweenTiles = 0.25f;
 	movementTimer = 0;
 	movementFinished = true;
 
 	// Test stats
+	movement = 8;
 	health = maximumHealth = 100;
 	abilityPoints = maximumAbilityPoints = 50;
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
-	inventory += new Weapon(Weapon::WeaponClass::Bow, 10, 0, 5);
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 30, 0, 5);
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -212,7 +214,6 @@ int Unit::Update(float dt)
 		{
 			Position newPos = (*currentTile) + ((*nextTile - *currentTile) * (movementTimer / secBetweenTiles));
 			Translate(D3DXVECTOR3(newPos.x - leftCorner.x, newPos.y - leftCorner.y, 0));
-			leftCorner = newPos;
 		}
 		else  // 2nd tile is reached, prepare to move to next tile
 		{
@@ -340,6 +341,8 @@ bool Unit::Draw()
 }
 
 #pragma region Properties
+Position Unit::GetPosition() { return position; }
+void  Unit::SetPosition(Position p) { position = p; }
 char* Unit::GetName() { return name; }
 void  Unit::SetName(char* n) { strcpy(name, n); }
 int	  Unit::GetExperience() { return experience; }

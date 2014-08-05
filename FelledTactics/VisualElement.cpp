@@ -33,13 +33,10 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 	D3DXMatrixIdentity(&world);
 	D3DXMATRIX translation, scale;
 	D3DXMatrixScaling(&scale, width, height, 0);
-
 	D3DXMatrixTranslation(&translation, posX - (int)screenWidth/2 + width/2, posY - (int)screenHeight/2 + height/2, 0);
 	world = world * scale;
 	world = world * translation;
-
-	int x = 5;
-	x++;
+	CalcRect();
 }
 
 VisualElement::VisualElement(){}
@@ -59,6 +56,9 @@ void VisualElement::Translate(D3DXVECTOR3 t)
 	D3DXMATRIX translate;
 	D3DXMatrixTranslation(&translate, t.x, t.y, t.z);
 	world *= translate;
+
+	leftCorner += t;
+	CalcRect();
 }
 
 // Rotate Visual Element
@@ -78,6 +78,14 @@ void VisualElement::Scale(D3DXVECTOR3 s)
 }
 void VisualElement::SetPosition(D3DXVECTOR3 p)
 {
+}
+
+void VisualElement::CalcRect()	// get rekt, scrub
+{
+	rect.left = leftCorner.x;
+	rect.right = rect.left + width;
+	rect.bottom = screenHeight - leftCorner.y;
+	rect.top = rect.bottom - height;
 }
 
 // Is a point in the world contained inside this visual element?
@@ -196,4 +204,5 @@ void VisualElement::SetCorner(Position p) { leftCorner = p; }
 bool VisualElement::GetEnabled() { return drawEnabled; }
 void VisualElement::SetEnabled(bool e) { drawEnabled = e; }
 ID3D10ShaderResourceView* VisualElement::GetTexture() { return texture; }
+Position VisualElement::GetWorldPosition() { return Position(world._41, world._42); }
 #pragma endregion

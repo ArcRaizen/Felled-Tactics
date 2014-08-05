@@ -4,17 +4,22 @@
 #ifndef UNIT_H
 #include "Unit.h"
 #endif
+#include "TextElement.h"
+#include <vector>
 
 class CombatCalculator
 {
 public:
-	CombatCalculator(Unit* a, Unit* d, int ra);
 	CombatCalculator(void);
 	~CombatCalculator(void);
 
 	void	CalculateCombat();
-	int		DoCombat();
-	void	Reset();
+	void	DoCombat();
+	void	Reset(bool onlyDefender = false);
+	void	ResetDefender();
+
+	int		Update(float dt);
+	void	Draw();
 
 #pragma region Properties
 	__declspec(property(put=SetAttacker)) Unit* Attacker;	void	SetAttacker(Unit* a);
@@ -27,9 +32,31 @@ public:
 #pragma endregion
 
 private:
-	Unit*	attacker;
-	Unit*	defender;
+	Unit*	attacker;		// attacking unit
+	Unit*	defender;		// defending unit
+	bool	doCombat;		// is combat occuring right now? (do update function?)
 
+	// Combat Text displays
+	vector<TextElement*> combatText;	// list of text to print to screen to show combat results
+	char	battleText[10];				// buffer to hold text form of damage numbers during combat
+	D3DXVECTOR3	combatTextMove;			// temp vector to hold distance for each combat text to move each frame
+	float		alphaChange;			// temp float to hold value change in each combat text's alpha each frame
+
+	// Combat timer values
+	static const float  COMBAT_TEXT_LIFE;	// how long each combat text entry lasts / is displayed
+	static const float  PRE_COMBAT_WAIT;	// time after combat is initiated before attacker first strikes
+	static const float	MID_COMBAT_WAIT;	// time after attacker first strikes before defender retaliates
+	static const float	POST_COMBAT_WAIT;	// time after final attack before combat completely ends
+	static const D3DXVECTOR3 COMBAT_TEXT_MOVE;	// direction combat text moves during its life
+
+	// Combat Phase + timer
+	float combatTimer;	// timer to keep track of when each combat phase initiates/ends
+	int	  combatPhase;	// keep track of which combat phase we're in during update (for a switch statement)
+	
+	// Combat results (for return values)
+	bool defenderDied;
+	bool attackerDied;
+	
 	// Battle Statistics
 	int		basePhysicalDamageA, basePhysicalDamageD;		// Physical Damage delt by attacker
 	int		baseMagicalDamageA, baseMagicalDamageD;			// Magical damage delt by attacker

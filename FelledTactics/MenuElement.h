@@ -25,9 +25,12 @@ public:
 	void	MouseOver();
 	void	MouseOut();
 	void	Activate();
+	bool	Draw();
 
 protected:
 	const char*		text;
+	wchar_t			lpcwText[20];
+	D3DXCOLOR		fontColor;
 	Level*			level;
 	void (Level::*activateFunction)();
 };

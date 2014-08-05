@@ -3,6 +3,7 @@
 #define UNIT_H
 #include "VisualElement.h"
 #include "Inventory.h"
+#include "Position.h"
 
 #include <list>
 
@@ -36,6 +37,7 @@ public:
 	bool			CheckStatus(int s);
 
 #pragma region Property Declaration
+	__declspec(property(put=SetPosition, get=GetPosition)) Position UnitPosition;		void SetPosition(Position p);		Position GetPosition();
 	__declspec(property(put=SetName, get=GetName)) char* Name;							void SetName(char* n);				char* GetName();
 	__declspec(property(put=SetExperience, get=GetExperience)) int Experience;			void SetExperience(int xp);			int	GetExperience();
 	__declspec(property(put=SetHealth, get=GetHealth)) int Health;						void SetHealth(int h);				int GetHealth();
@@ -58,6 +60,8 @@ private:
 	void			InitProficiency();
 
 protected:
+	Position	position;
+
 #pragma region Stats and Stuff
 	// Base Stats
 	char	name[15];

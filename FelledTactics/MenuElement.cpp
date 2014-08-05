@@ -7,7 +7,10 @@ MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int 
 {
 	level = l;
 	text = t;
+	mbstowcs(lpcwText, t, 20);
 	activateFunction = func;
+	fontColor.r = fontColor.g = fontColor.b = 0.0f;
+	fontColor.a = 1.0f;
 }
 
 MenuElement::MenuElement(void)
@@ -26,5 +29,17 @@ void MenuElement::MouseOut(){ mouseEntered = false; }
 
 void MenuElement::Activate()
 {
-	((level)->*(activateFunction))();
+	if(level != NULL)
+		((level)->*(activateFunction))();
+}
+
+bool MenuElement::Draw()
+{
+	VisualElement::Draw();
+
+	// If we have unique text to draw, do so
+	if(strcmp(text, ""))
+		Direct3D::GetFont()->DrawText(NULL, lpcwText, -1, &rect, DT_CENTER | DT_VCENTER, fontColor);
+
+	return true;
 }

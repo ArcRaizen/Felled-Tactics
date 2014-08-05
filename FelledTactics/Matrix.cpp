@@ -458,6 +458,38 @@ Matrix Matrix::Inverse4() const
 	return m * (1/determinent);
 }
 
+Matrix Matrix::InverseRotation() const
+{
+	float mat[4][4] = {0};
+
+	mat[0][0] = matArray[0];	mat[0][1] = matArray[4];	mat[0][2] = matArray[8];
+	mat[1][0] = matArray[1];	mat[1][1] = matArray[5];	mat[1][2] = matArray[9];
+	mat[2][0] = matArray[2];	mat[2][1] = matArray[6];	mat[2][2] = matArray[10];
+
+	return Matrix(mat);
+}
+
+Matrix Matrix::InverseTranslation() const
+{
+	float mat[4][4] = {0};
+	mat[0][3] = -matArray[3];
+	mat[1][3] = -matArray[7];
+	mat[2][3] = -matArray[11];
+	mat[3][3] = 1;
+
+	return Matrix(mat);
+}
+
+Matrix Matrix::InverseScale() const
+{
+	float mat[4][4] = {0};
+	mat[0][0] = 1 / matArray[0];
+	mat[1][1] = 1 / matArray[5];
+	mat[2][2] = 1 / matArray[10];
+
+	return Matrix(mat);
+}
+
 //	0	1	2	3
 //	4	5	6	7
 //	8	9	10	11
@@ -466,10 +498,10 @@ Matrix Matrix::Transposed() const
 {
 	float mat[4][4] = {0};
 
-								mat[0][1] = matArray[4];	mat[0][2] = matArray[8];	mat[0][3] = matArray[12];
-	mat[1][0] = matArray[1];								mat[1][2] = matArray[9];	mat[1][3] = matArray[13];
-	mat[2][0] = matArray[2];	mat[2][1] = matArray[3];								mat[2][3] = matArray[14];
-	mat[3][0] = matArray[3];	mat[3][1] = matArray[7];	mat[3][2] = matArray[11];
+	mat[0][0] = matArray[0];	mat[0][1] = matArray[4];	mat[0][2] = matArray[8];	mat[0][3] = matArray[12];
+	mat[1][0] = matArray[1];	mat[0][0] = matArray[5];	mat[1][2] = matArray[9];	mat[1][3] = matArray[13];
+	mat[2][0] = matArray[2];	mat[2][1] = matArray[6];	mat[0][0] = matArray[10];	mat[2][3] = matArray[14];
+	mat[3][0] = matArray[3];	mat[3][1] = matArray[7];	mat[3][2] = matArray[11];	mat[0][0] = matArray[15];
 
 	return Matrix(mat);
 }
@@ -478,7 +510,7 @@ Matrix& Matrix::TransposeInPlace()
 {
 								matrix[0][1] = matArray[4];	matrix[0][2] = matArray[8];	matrix[0][3] = matArray[12];
 	matrix[1][0] = matArray[1];								matrix[1][2] = matArray[9];	matrix[1][3] = matArray[13];
-	matrix[2][0] = matArray[2]; matrix[2][1] = matArray[3];								matrix[2][3] = matArray[14];
+	matrix[2][0] = matArray[2]; matrix[2][1] = matArray[6];								matrix[2][3] = matArray[14];
 	matrix[3][0] = matArray[3];	matrix[3][1] = matArray[7]; matrix[3][2] = matArray[11];
 
 	this->SetArray();
@@ -1018,6 +1050,25 @@ Matrix Matrix::LookAt(Vector eye, Vector target, Vector up, bool lh = true)
 
 	float mat[] = {xAxis.x, yAxis.x, zAxis.x, 0, xAxis.y, yAxis.y, zAxis.y, 0, xAxis.z, yAxis.z, zAxis.z, 0,
 		-xAxis.DotProduct(eye), -yAxis.DotProduct(eye), -zAxis.DotProduct(eye), 1};
+
+	return Matrix(mat);
+}
+
+Matrix Matrix::Perspective(float fieldOfView, float aspect, float zNear, float zFar)
+{
+	float yScale = tanf(fieldOfView < PI ? PI/2 - fieldOfView : PI/2 - (fieldOfView*DEG2RAD));
+	float xScale = yScale / aspect;
+
+	float mat[] = {xScale, 0, 0, 0, 0, yScale, 0, 0, 0, 0, zFar/(zFar-zNear), 1, 
+		0, 0, (-zNear*zFar)/(zFar-zNear), 0};
+
+	return Matrix(mat);
+}
+
+Matrix Matrix::Ortho(float width, float height, float zNear, float zFar)
+{
+	float mat[] = {2.0f/width, 0, 0, 0, 0, 2.0f/height, 0, 0, 0, 0, 1/(zFar-zNear), 0,
+		0, 0, zNear/(zNear-zFar), 1};
 
 	return Matrix(mat);
 }

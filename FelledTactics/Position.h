@@ -22,6 +22,12 @@ struct Position
 		y += other.y;
 		return *this;
 	}
+	Position operator+=(const D3DXVECTOR3 other)
+	{
+		x += other.x;
+		y += other.y;
+		return *this;
+	}
 	Position operator*(float scalar) const
 	{
 		return Position(x * scalar, y * scalar);

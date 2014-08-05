@@ -60,6 +60,9 @@ public:
 	Matrix& InvertGeneral();
 	Matrix  Inverse3() const;
 	Matrix	Inverse4() const;
+	Matrix	InverseRotation() const;
+	Matrix	InverseTranslation() const;
+	Matrix	InverseScale() const;
 	Matrix	Transposed() const;
 	Matrix& TransposeInPlace();
 	float	GetCofactor(float m0, float m1, float m2, float m3, float m4, float m5, float m6, float m7, float m8) const;
@@ -94,6 +97,8 @@ public:
 	static Matrix MatrixFromRotationAboutOrigin(float angle, const Vector* vec);
 	static Matrix MatrixFromArbitraryAxisRotation(float angle, const Vector& start, const Vector& end);
 	static Matrix LookAt(Vector eye, Vector target, Vector up, bool lh);
+	static Matrix Perspective(float fieldOfView, float aspect, float zNear, float zFar);
+	static Matrix Ortho(float width, float height, float zNear, float zFar);
 
 private:
 	float matArray[16];

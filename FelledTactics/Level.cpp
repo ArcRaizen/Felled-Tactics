@@ -110,11 +110,15 @@ int Level::Update(float dt, HWND hWnd)
 				map[selectedTile.x][selectedTile.y]->TileStatus == Tile::Status::AllyUnit))
 			{
 				// Reset player drawn movement path
-				std::list<Position>::const_iterator i = currentMovementPath.begin();
-				i++;
-				for(; i != currentMovementPath.end(); i++)
-					map[i->x][i->y]->TileMark = Tile::Mark::AllyMove;
-				
+				std::list<Position>::const_iterator i;
+				if(currentMovementPath.size() > 0)
+				{
+					i = currentMovementPath.begin();
+					i++;
+					for(; i != currentMovementPath.end(); i++)
+						map[i->x][i->y]->TileMark = Tile::Mark::AllyMove;
+				}
+
 				// Activate pre-calculated movement path
 				currentMovementPath.clear();
 				currentMovementPath = movementMap[selectedTile.x][selectedTile.y];
@@ -153,15 +157,14 @@ int Level::Update(float dt, HWND hWnd)
 				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::Attack)
 				{
 					target = hoveredTile;
-					combatCalculator->Defender = unitMap[target.x][target.y];
-					combatCalculator->Range = actionBeginning.DistanceTo(target);
-					combatCalculator->CalculateCombat();
+					combatCalculator.Defender = unitMap[target.x][target.y];
+					combatCalculator.CalculateCombat();
 
 					// CREATE COMBAT RESULTS UI
 				}
 				else
 				{
-					combatCalculator->ResetDefender();
+					combatCalculator.ResetDefender();
 					// REMOVE COMBAT AI
 				}
 			}
@@ -172,7 +175,7 @@ int Level::Update(float dt, HWND hWnd)
 			// Selected valid target - FIGHT!
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::Attack)
 			{
-				combatCalculator->DoCombat();
+				combatCalculator.DoCombat();
 
 				// Unmark all enemies in range of unit
 				int range; range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
@@ -187,9 +190,8 @@ int Level::Update(float dt, HWND hWnd)
 					}
 				}
 
-				delete combatCalculator;
 				actionMenu->Delete();
-				currentPhase = SelectUnit;
+				currentPhase = ExecuteAction;
 			}
 			break;
 /**/	case Phase::SelectSkillTarget:
@@ -203,7 +205,15 @@ int Level::Update(float dt, HWND hWnd)
 			}
 			break;
 /**/	case Phase::ExecuteAction:
-			if(selectedTile.x == -1)	break;
+			int combatResult; combatResult = combatCalculator.Update(dt);		
+
+			// Combat has ended
+			if(combatResult != 0)
+			{
+				if(combatResult == 3)
+					currentPhase = SelectUnit;
+			}
+
 			break;
 /**/	case Phase::EnemyTurn:
 			if(selectedTile.x == -1)	break;
@@ -521,7 +531,7 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 	while(openList.size() > 0)
 	{
 		// Get node with lowest F (total travel cost) in open list
-		index = -1, minF = 1000000;
+		index = -1; minF = 1000000;
 		for(int i = 0; i < openList.size(); i++)
 		{
 			if(openList[i]->f <= minF)
@@ -573,8 +583,7 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 
 		// Add current node to closed list now that we explored all options from it
 		closedList.push_back(curNode);
-		index = 0;
-		for(; index < openList.size(); index++)
+		for(index = 0; index < openList.size(); index++)
 		{
 			if(openList[index] == curNode)
 				break;
@@ -584,11 +593,8 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 
 	// Construct actual path
 	path.push_front(curNode->p);
-	while(true)
+	while(curNode->parent != NULL)
 	{
-		if(curNode->parent == NULL)
-			break;
-
 		curNode = curNode->parent;
 		path.push_front(curNode->p);
 	}
@@ -712,6 +718,7 @@ bool Level::DoMovementEnd(Position start, Position end)
 	// Move unit from start to end
 	unitMap[end.x][end.y] = unitMap[start.x][start.y];
 	unitMap[start.x][start.y] = NULL;
+	unitMap[end.x][end.y]->UnitPosition = end;
 
 	// Change tile statuses to reflect
 	map[end.x][end.y]->TileStatus = map[start.x][start.y]->TileStatus;
@@ -734,10 +741,10 @@ bool Level::DoMovementEnd(Position start, Position end)
 void Level::CreateActionMenu()
 {
 	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, 1000, 100);
-	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145, "");
-	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100, "");
-	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55, "");
-	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10, "");
+	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145);
+	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100);
+	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55);
+	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10);
 	
 	VisualElements.push_back(actionMenu);
 //	SortVisualElements();
@@ -764,7 +771,7 @@ void Level::ActivateAttack()
 	}
 
 	// Create Combat Calculator
-	combatCalculator = new CombatCalculator(unitMap[actionBeginning.x][actionBeginning.y]);
+	combatCalculator.SetAttacker(unitMap[actionBeginning.x][actionBeginning.y]);
 
 	// Go to Next Phase - Select Target for attack
 	currentPhase = SelectTarget;
@@ -838,6 +845,8 @@ void Level::Draw()
 {
 	for(int i = 0; i < VisualElements.size(); i++)
 		VisualElements[i]->Draw();
+
+	combatCalculator.Draw();
 }
 
 #pragma region Properties

@@ -100,6 +100,7 @@ private:
 	int						turn;			// Current Turn of the level (Player Phase + Enemy Phase = 1 turn)
 
 	Unit*					boss;
+	int						numEnemyDeaths;
 	int						numAllyDeaths;
 	int						maximumDeaths;
 	int						maximumTurns;

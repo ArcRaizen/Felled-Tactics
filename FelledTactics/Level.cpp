@@ -5,6 +5,7 @@
 Level::Level(int width, int height, int tSize = 50) : mapWidth(width), mapHeight(height), tileSize(tSize)
 {
 	 turn = 0;
+	 numEnemyDeaths = numAllyDeaths = 0;
 	 currentPhase = SelectUnit;
 	 selectedTile.x = selectedTile.y = -1;
 	 pathDrawEnabled = false;
@@ -35,6 +36,26 @@ int Level::Update(float dt, HWND hWnd)
 			actionBeginning = currentMovementPath.back();
 			bool unitMoved = DoMovementEnd(movementBeginning, currentMovementPath.back());
 			selectedTile.x = -1;
+		}
+		else if(result == 2)
+		{
+			// Leave felled-ally unit's body of possible resurrection
+			if(unitList[i]->IsAlly())
+			{
+				map[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y]->TileStatus = Tile::Status::AllyFelled;
+				numAllyDeaths++;
+			}
+			else	// Remove dead enemy from the level permanently
+			{
+				unitList[i]->Delete();
+				map[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y]->TileStatus = Tile::Status::Empty;
+				unitMap[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y] = NULL;
+				unitList.erase(unitList.begin() + i--);
+				numEnemyDeaths++;
+			}
+
+			// Allow user to interact again now that gameplay has restarted
+			RestoreUserInput();
 		}
 	}
 
@@ -191,6 +212,7 @@ int Level::Update(float dt, HWND hWnd)
 				}
 
 				actionMenu->Delete();
+				PauseUserInputIndefinite();
 				currentPhase = ExecuteAction;
 			}
 			break;
@@ -205,16 +227,27 @@ int Level::Update(float dt, HWND hWnd)
 			}
 			break;
 /**/	case Phase::ExecuteAction:
+		{	
 			int combatResult; combatResult = combatCalculator.Update(dt);		
 
-			// Combat has ended
-			if(combatResult != 0)
+			switch(combatResult)
 			{
-				if(combatResult == 3)
+				case 0: break;	// combat still occuring
+				case 3:			// no death after combat finished
+					RestoreUserInput();
 					currentPhase = SelectUnit;
+					break;
+				default:		// combatant has been killed
+					Position deathPosition = (combatResult == 1 ? actionBeginning : target);	// combatResult == 1 -> attacker died
+																								// combatResult == 2 -> defender died
+					// Activate death animation of defeated unit and pause user input until it completes
+					PauseUserInput(unitMap[deathPosition.x][deathPosition.y]->Die());
+					currentPhase = SelectUnit;		// Go to next phase
+					break;
 			}
 
 			break;
+		}
 /**/	case Phase::EnemyTurn:
 			if(selectedTile.x == -1)	break;
 			break;
@@ -316,7 +349,7 @@ void Level::GenerateLevel()
 	unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,0,0);
 	unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,50,50);
 	unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
-	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,150,150);
+	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,150,false);
 	unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
 	unitList.push_back(unitMap[0][0]);
 	unitList.push_back(unitMap[1][1]);

@@ -1,8 +1,9 @@
 #include "StdAfx.h"
 #include "Unit.h"
 
+int Unit::unitCounter = 0;
 
-Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY) : 
+Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally/*=true*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	InitProficiency();
@@ -13,6 +14,13 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	secBetweenTiles = 0.25f;
 	movementTimer = 0;
 	movementFinished = true;
+	status = 0;
+	unitID = unitCounter++;			// each unit has ID number in order of their creation
+	
+	if(ally)
+		ApplyStatus(ALLY);
+	else
+		ApplyStatus(ENEMY);
 
 	// Test stats
 	movement = 8;
@@ -99,10 +107,15 @@ void Unit::Revive(int health)
 	felled = false;
 }
 
-void Unit::Die()
+float Unit::Die()
 {
 	ApplyStatus(FELLED);
 	felled = true;
+
+	// Play death animation
+
+	// Return death animation time
+	return 1.5f;
 }
 
 void Unit::GainExperience()
@@ -199,9 +212,18 @@ bool Unit::InitializeHPAPBuffers()
 	return true;
 }
 
-// Update Statuses: 0 - None, 1 - Movement between 2 tiles finished,
+// Update Statuses: 0 - None, 1 - Movement between 2 tiles finished, 2 - Dead
 int Unit::Update(float dt)
 {
+	if(CheckStatus(FELLED))
+	{
+		highlightColor.w -= (dt / 1.5f);
+		if(highlightColor.w <= 0)
+			return 2;
+		
+		return 0;
+	}
+
 	// Do movement
 	if(movementPath.size() > 1)
 	{
@@ -239,9 +261,11 @@ int Unit::Update(float dt)
 	return 0;
 }
 
-void Unit::ApplyStatus(int s) { status |= s; }
+void Unit::ApplyStatus(int s) {	status |= s; }
 void Unit::RemoveStatus(int s) { status &= ~s; }
 bool Unit::CheckStatus(int s) { return status & s; }
+bool Unit::IsAlly() { return status & ALLY; }
+bool Unit::IsEnemy() { return status & ENEMY; }
 
 bool Unit::UpdateHPAPBuffers()
 {
@@ -372,4 +396,5 @@ void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }
 void  Unit::SetDrawBars(bool db) { drawBars = db; }
+int	  Unit::GetUnitID() { return unitID; }
 #pragma endregion

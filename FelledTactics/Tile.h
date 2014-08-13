@@ -19,6 +19,8 @@ public:
 	enum	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
 	enum	Mark	{ None, AllyMove, AllyMovePath, AllyMovePathFail, AllySkillRange, AllySkillAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
 
+	void	Clear();				// Tile reset to default state
+
 	bool	IsObstructed();			// is this spot passable by all units?
 	bool	IsObstructedPlayer();	// is this spot passable by a player-owned unit?
 	bool	IsObstructedEnemy();	// is this spot passable by an enemy-owned unit?

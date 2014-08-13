@@ -24,6 +24,12 @@ Tile::~Tile(void)
 {
 }
 
+void Tile::Clear()
+{
+	status = Empty;
+	mark = None;
+}
+
 bool Tile::IsObstructed()
 {
 	return !status == Empty /*|| mark == None*/;

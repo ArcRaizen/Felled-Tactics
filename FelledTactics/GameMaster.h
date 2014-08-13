@@ -7,6 +7,9 @@
 #ifndef VISUAL_H
 #include "VisualElement.h"
 #endif
+#ifndef GAMETIMER_H
+#include "GameTimer.h"
+#endif
 
 #include <vector>
 
@@ -29,11 +32,15 @@ public:
 protected:
 	void			UpdateMouseEvents(HWND hWnd);
 	void			UpdateKeyboardEvents();
-	void			DeleteElements();
+	void			PauseUserInput(float t);
+	void			PauseUserInputIndefinite();
+	void			RestoreUserInput();
 	void			SortVisualElements();
 	void			SortVisualElementsInLayer(int layer);
 	void			AddActiveLayer(int l);
 	void			RemoveActiveLayer(int l);
+
+	float		nextActionTime;		// track when the user is allowed to perform an action
 
 	vector<VisualElement*>	VisualElements;
 	int						activeLayers; // Only VisualElements on the ActiveLayers can be interacted with

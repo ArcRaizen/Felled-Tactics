@@ -8,20 +8,23 @@
 #include <list>
 
 #pragma region Status Codes
-#define FELLED		1 << 1
+#define FELLED		1 << 0
+#define ALLY		1 << 1
+#define ENEMY		1 << 2
 #pragma endregion
 
 class Unit : public VisualElement
 {
 public:
-	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY);
+	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
 	~Unit(void);
 
 	enum Phylum		{Martial, Mystical, Support};
+	static int		unitCounter;
 
 	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
 	virtual void	Revive(int health);						// Revived by an ally
-	virtual void	Die();									// Defeated in combat - Felled
+	virtual float	Die();									// Defeated in combat - Felled
 	void			GainExperience();
 	virtual void	LevelUp();
 	void			SetMovePath(list<Position> path);
@@ -35,6 +38,8 @@ public:
 	void			ApplyStatus(int s);
 	void			RemoveStatus(int s);
 	bool			CheckStatus(int s);
+	bool			IsAlly();
+	bool			IsEnemy();
 
 #pragma region Property Declaration
 	__declspec(property(put=SetPosition, get=GetPosition)) Position UnitPosition;		void SetPosition(Position p);		Position GetPosition();
@@ -54,6 +59,8 @@ public:
 	__declspec(property(get=GetMovementFinished)) bool MovementFinished;													bool GetMovementFinished();
 	__declspec(property(put=SetFinished, get=GetFinished)) bool FinishedTurn;			void SetFinished(bool f);			bool GetFinished();
 	__declspec(property(put=SetDrawBars)) bool DrawBars;								void SetDrawBars(bool db);
+
+	int GetUnitID();
 #pragma endregion
 
 private:
@@ -79,6 +86,7 @@ protected:
 	int		movement;
 	int		attackRange;
 	Phylum	phylum;
+	int		unitID;
 
 	// Growth Rates
 	float	hpGrowth;

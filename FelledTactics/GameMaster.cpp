@@ -1,16 +1,17 @@
 #include "stdafx.h"
 #include "GameMaster.h"
 
-GameMaster::GameMaster(void){}
+GameMaster::GameMaster(void){ nextActionTime = 0; }
 GameMaster::~GameMaster(void){}
 
 int GameMaster::Update(float dt, HWND hWnd)
 {
-	UpdateKeyboardEvents();
-	UpdateMouseEvents(hWnd);
+	// Do not allow user input
+	if(GameTimer::GetGameTime() < nextActionTime || nextActionTime < 0)
+		return 2;
 
-	if(deletionRequired)
-		DeleteElements();
+	UpdateMouseEvents(hWnd);
+	UpdateKeyboardEvents();
 
 	return 1;
 }
@@ -24,7 +25,17 @@ void GameMaster::UpdateMouseEvents(HWND hWnd)
 	D3DXVECTOR3 mousePosition = InputManager::GetMouseWorldCoords(hWnd, Camera::GetPosition());
 
 	for(int i = 0; i < VisualElements.size(); i++)
-	{	// Only allow interactions with elements on the active layers
+	{	
+		// Remove VisualElements from list once they've been deleted
+		if(VisualElements[i]->deleted)
+		{
+			delete VisualElements[i];
+			VisualElements[i] = NULL;
+			VisualElements.erase(VisualElements.begin() + i--);
+			continue;
+		}
+
+		// Only allow interactions with elements on the active layers
 		if(!(activeLayers & (1 << VisualElements[i]->Layer)))
 			continue;
 
@@ -36,24 +47,28 @@ void GameMaster::UpdateMouseEvents(HWND hWnd)
 
 		// MouseOver and MouseOut - Logic handled on Visual Element side, just tell them where the mouse is
 		VisualElements[i]->SetCurrentMousePosition(mousePosition);
-
-		// Set-up process to delete necessary elements
-		if(VisualElements[i]->deleted)
-			deletionRequired = true;
 	}
 }
 
 void GameMaster::UpdateKeyboardEvents(){}
 
-void GameMaster::DeleteElements()
+// Do not allow user to do anything
+// Used to allow certain actions or animations to proceed without being interfered with
+void GameMaster::PauseUserInput(float t)
 {
-	for(int i = 0; i < VisualElements.size(); i++)
-	{
-		if(VisualElements[i]->deleted)
-			VisualElements.erase(VisualElements.begin() + i--);
-	}
+	nextActionTime = GameTimer::GetGameTime() + t;
+}
 
-	deletionRequired = false;
+// Prevent user from doing anything until RestoreUserInput is called
+void GameMaster::PauseUserInputIndefinite()
+{
+	nextActionTime = -1;
+}
+
+// Allow user to give input to game again
+void GameMaster::RestoreUserInput()
+{
+	nextActionTime = GameTimer::GetGameTime();
 }
 
 // Use a simple Insertion Sort to order the game's current Visual Elements for drawing
@@ -84,7 +99,7 @@ void GameMaster::SortVisualElements()
 	}
 }
 
-// Use Simple Insertion Sort to roder a single layer's VisualElements for drawing
+// Use Simple Insertion Sort to order a single layer's VisualElements for drawing
 // Lower VisualElements are drawn first to give an isometric look
 void GameMaster::SortVisualElementsInLayer(int layer)
 {

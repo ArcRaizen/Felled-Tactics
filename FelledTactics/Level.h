@@ -128,8 +128,6 @@ private:
 	MenuBox*				secondaryMenu;	// Menu for selecting skill/item for unit to use
 	Position				actionBeginning;// Location of unit selected to take an action
 	Position				target;			// Target location of a skill to be cast
-	MenuElement*			attackerDamage;
-	MenuElement*			defenderDamage;
 
 #pragma region Utility Functions
 private:

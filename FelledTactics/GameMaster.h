@@ -27,7 +27,7 @@ public:
 	~GameMaster(void);
 
 	virtual int		Update(float dt, HWND hWnd);
-	virtual void	Draw() = 0;
+	virtual void	Draw();
 
 protected:
 	void			UpdateMouseEvents(HWND hWnd);
@@ -35,6 +35,7 @@ protected:
 	void			PauseUserInput(float t);
 	void			PauseUserInputIndefinite();
 	void			RestoreUserInput();
+	void			AddVisualElement(VisualElement* const &ve);
 	void			SortVisualElements();
 	void			SortVisualElementsInLayer(int layer);
 	void			AddActiveLayer(int l);
@@ -42,8 +43,10 @@ protected:
 
 	float		nextActionTime;		// track when the user is allowed to perform an action
 
-	vector<VisualElement*>	VisualElements;
-	int						activeLayers; // Only VisualElements on the ActiveLayers can be interacted with
-	bool					deletionRequired;
+private:
+	vector<VisualElement*>	VisualElements;		// List of all VisualElements currently in the game
+	int						activeLayers;		// Only VisualElements on the ActiveLayers can be interacted with
+	bool					sortingRequired;	// Has a VisualElement been added? A sort is needed afterwards
+	bool					deletionRequired;	// Has a VisualElement been marked for deletion?
 };
 #endif

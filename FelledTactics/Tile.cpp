@@ -2,7 +2,6 @@
 #include "Tile.h"
 
 #pragma region Highlight Color Initializations
-D3DXVECTOR4 Tile::highlightNone = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllyMove = D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllyMoveAlly = D3DXVECTOR4(0.0f, 1.0f, 1.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllySkillRange = D3DXVECTOR4(0.0f, 1.0f, 0.0f, 1.0f);

@@ -1,11 +1,20 @@
 #include "stdafx.h"
 #include "GameMaster.h"
 
-GameMaster::GameMaster(void){ nextActionTime = 0; }
-GameMaster::~GameMaster(void){}
+GameMaster::GameMaster(void) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false) {}
+GameMaster::~GameMaster(void)
+{
+	for(int i = 0; i < VisualElements.size(); i++)
+		delete VisualElements[i];
+
+	VisualElements.clear();
+}
 
 int GameMaster::Update(float dt, HWND hWnd)
 {
+	if(sortingRequired)
+		SortVisualElements();
+
 	// Do not allow user input
 	if(GameTimer::GetGameTime() < nextActionTime || nextActionTime < 0)
 		return 2;
@@ -99,6 +108,13 @@ void GameMaster::SortVisualElements()
 	}
 }
 
+// A new VisualElement has been created, add it to the master list
+void GameMaster::AddVisualElement(VisualElement* const &ve)
+{
+	VisualElements.push_back(ve);
+	sortingRequired = true;
+}
+
 // Use Simple Insertion Sort to order a single layer's VisualElements for drawing
 // Lower VisualElements are drawn first to give an isometric look
 void GameMaster::SortVisualElementsInLayer(int layer)
@@ -133,4 +149,10 @@ void GameMaster::AddActiveLayer(int layer)
 void GameMaster::RemoveActiveLayer(int layer)
 {
 	activeLayers &= ~(1<<layer);
+}
+
+void GameMaster::Draw()
+{
+	for(int i = 0; i < VisualElements.size(); i++)
+		VisualElements[i]->Draw();
 }

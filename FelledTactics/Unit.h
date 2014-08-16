@@ -41,6 +41,9 @@ public:
 	bool			IsAlly();
 	bool			IsEnemy();
 
+	void			FinishTurn();
+	void			NewTurn();
+
 #pragma region Property Declaration
 	__declspec(property(put=SetPosition, get=GetPosition)) Position UnitPosition;		void SetPosition(Position p);		Position GetPosition();
 	__declspec(property(put=SetName, get=GetName)) char* Name;							void SetName(char* n);				char* GetName();
@@ -60,8 +63,11 @@ public:
 	__declspec(property(put=SetFinished, get=GetFinished)) bool FinishedTurn;			void SetFinished(bool f);			bool GetFinished();
 	__declspec(property(put=SetDrawBars)) bool DrawBars;								void SetDrawBars(bool db);
 
-	int GetUnitID();
+	int GetUnitID() const;
 #pragma endregion
+
+	bool			operator==(const Unit& other) const;
+	bool			operator==(const Unit* &other) const;
 
 private:
 	void			InitProficiency();
@@ -144,7 +150,8 @@ protected:
 	float						hpapHeight;
 	bool						drawBars;
 
-
 	Inventory	inventory;
+
+	static D3DXVECTOR4 highlightFinishedTurn;
 };
 #endif

@@ -2,6 +2,7 @@
 #include "Unit.h"
 
 int Unit::unitCounter = 0;
+D3DXVECTOR4 Unit::highlightFinishedTurn = D3DXVECTOR4(0.328f, 0.328f, 0.328f, 1.0f);
 
 Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally/*=true*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
@@ -28,7 +29,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	abilityPoints = maximumAbilityPoints = 50;
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
-	inventory += new Weapon(Weapon::WeaponClass::Bow, 30, 0, 5);
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 50, 0, 5);
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -267,6 +268,18 @@ bool Unit::CheckStatus(int s) { return status & s; }
 bool Unit::IsAlly() { return status & ALLY; }
 bool Unit::IsEnemy() { return status & ENEMY; }
 
+void Unit::FinishTurn()
+{
+	finishedTurn = true;
+	highlightColor = highlightFinishedTurn;
+}
+
+void Unit::NewTurn()
+{
+	finishedTurn = false;
+	highlightColor = highlightNone;
+}
+
 bool Unit::UpdateHPAPBuffers()
 {
 	float left, right, bottom, top;										// Boarders of each bard
@@ -396,5 +409,8 @@ void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }
 void  Unit::SetDrawBars(bool db) { drawBars = db; }
-int	  Unit::GetUnitID() { return unitID; }
+int	  Unit::GetUnitID() const { return unitID; }
+
+bool  Unit::operator==(const Unit& other) const { return other.GetUnitID() == unitID; }
+bool  Unit::operator==(const Unit* &other) const { return other->GetUnitID() == this->unitID; }
 #pragma endregion

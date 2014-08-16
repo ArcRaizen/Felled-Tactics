@@ -41,7 +41,6 @@ private:
 	Level*		level;
 
 	// Highlight Color Effects (for each Mark)
-	static D3DXVECTOR4 highlightNone;
 	static D3DXVECTOR4 highlightAllyMove;
 	static D3DXVECTOR4 highlightAllyMoveAlly;
 	static D3DXVECTOR4 highlightAllySkillRange;

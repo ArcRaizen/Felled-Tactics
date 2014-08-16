@@ -10,12 +10,32 @@ Level::Level(int width, int height, int tSize = 50) : mapWidth(width), mapHeight
 	 selectedTile.x = selectedTile.y = -1;
 	 pathDrawEnabled = false;
 
-	 activeLayers = 0;
+	 GenerateLevel();
 }
 
 
 Level::~Level(void)
 {
+	for(int i = 0; i < mapWidth; i++)
+	{
+		for(int j = 0; j < mapHeight; j++)
+		{
+			delete map[i][j];
+			delete unitMap[i][j];
+		}
+
+		delete[] map[i];
+		delete[] unitMap[i];
+		delete[] movementMap[i];
+	}
+
+	delete[] map;
+	delete[] unitMap;
+	delete[] movementMap;
+
+	delete boss;
+	delete actionMenu;
+	delete secondaryMenu;
 }
 
 int Level::Update(float dt, HWND hWnd)
@@ -24,6 +44,7 @@ int Level::Update(float dt, HWND hWnd)
 	if(InputManager::RightMouseUpEvent())
 		HandleRightClick();
 
+#pragma region Unit Update
 	// Update all units on the map
 	int result = -1;
 	for(int i = 0; i < unitList.size(); i++)
@@ -58,7 +79,9 @@ int Level::Update(float dt, HWND hWnd)
 			RestoreUserInput();
 		}
 	}
+#pragma endregion
 
+#pragma region Phase Update
 	// Do different updates depending on the current phase
 	switch(currentPhase)
 	{
@@ -97,9 +120,10 @@ int Level::Update(float dt, HWND hWnd)
 				}
 
 				movementBeginning = selectedTile;
-				selectedTile.x = -1;
 				MarkTiles(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, 0);
+				unitMap[selectedTile.x][selectedTile.y]->DrawBars = false;
 
+				selectedTile.x = -1;
 				currentPhase = SelectMove; // Jump to next phase
 			}
 
@@ -236,6 +260,7 @@ int Level::Update(float dt, HWND hWnd)
 				case 3:			// no death after combat finished
 					RestoreUserInput();
 					currentPhase = SelectUnit;
+					unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
 					break;
 				default:		// combatant has been killed
 					Position deathPosition = (combatResult == 1 ? actionBeginning : target);	// combatResult == 1 -> attacker died
@@ -243,6 +268,7 @@ int Level::Update(float dt, HWND hWnd)
 					// Activate death animation of defeated unit and pause user input until it completes
 					PauseUserInput(unitMap[deathPosition.x][deathPosition.y]->Die());
 					currentPhase = SelectUnit;		// Go to next phase
+					unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
 					break;
 			}
 
@@ -252,6 +278,7 @@ int Level::Update(float dt, HWND hWnd)
 			if(selectedTile.x == -1)	break;
 			break;
 	}
+#pragma endregion
 
 	lastSelectedTile = selectedTile;
 	lastHoveredTile = hoveredTile;
@@ -341,7 +368,7 @@ void Level::GenerateLevel()
 		{
 			map[i][j] = new Tile(L"../FelledTactics/Textures/Tile.png", TILE_LAYER, tileSize, tileSize, i*tileSize, j*tileSize, this, Position(i,j));
 			unitMap[i][j] = NULL;
-			VisualElements.push_back(map[i][j]);
+			AddVisualElement(map[i][j]);
 		}
 	}
 
@@ -364,7 +391,7 @@ void Level::GenerateLevel()
 
 	// Add units to the VisualElements list
 	for(int i = 0; i < unitList.size(); i++)
-		VisualElements.push_back(unitList[i]);
+		AddVisualElement(unitList[i]);
 
 	SortVisualElements();
 	AddActiveLayer(TILE_LAYER);
@@ -779,7 +806,7 @@ void Level::CreateActionMenu()
 	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55);
 	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10);
 	
-	VisualElements.push_back(actionMenu);
+	AddVisualElement(actionMenu);
 //	SortVisualElements();
 
 	// Set active layers to ignore everything but this Menu
@@ -817,7 +844,7 @@ void Level::ActivateSkill()
 {
 	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
 
-	VisualElements.push_back(secondaryMenu);
+	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 
 	// Set active layers to ignore everything but this Menu
@@ -829,7 +856,7 @@ void Level::ActivateItem()
 {
 	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
 
-	VisualElements.push_back(secondaryMenu);
+	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 
 	// Set active layers to ignore everything but this Menu
@@ -840,6 +867,7 @@ void Level::ActivateItem()
 void Level::ActivateEndTurn()
 {
 	currentPhase = SelectUnit;
+	unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
 	actionMenu->Delete();
 	RemoveActiveLayer(ACTION_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
@@ -861,10 +889,6 @@ void Level::SetSelectedTile(Position p)
 	pathDrawEnabled = false;
 	if(currentMovementPath.size() == 1)
 		currentMovementPath.clear();
-
-	// Stop drawing HP/AP bars once selected for movement
-	if(unitMap[p.x][p.y] != NULL)
-		unitMap[p.x][p.y]->DrawBars = false;
 }
 
 // Save the hovered tile (called from the tile itself)
@@ -876,8 +900,7 @@ void Level::SetHoveredTile(Position p)
 
 void Level::Draw()
 {
-	for(int i = 0; i < VisualElements.size(); i++)
-		VisualElements[i]->Draw();
+	GameMaster::Draw();
 
 	combatCalculator.Draw();
 }

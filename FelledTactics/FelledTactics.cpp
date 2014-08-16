@@ -54,7 +54,7 @@ void				DrawFrameRate();
 #pragma endregion
 
 #pragma region Game Variables
-Level*					currentLevel;
+GameMaster*				currentLevel;
 int						GameState = 0;
 #pragma endregion
 
@@ -142,6 +142,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				Draw();
 			#endif
 
+#ifdef DRAW_FRAMERATE
 				// Average frame rate
 				frameRateSum -= frameRateList[frameRateIndex];
 				frameRateSum += FRAME_RATE;
@@ -150,6 +151,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 					frameRateIndex = 0;
 
 				frameRateAverage = frameRateSum/MAX_SAMPLES;
+#endif
 		}
 	}
 
@@ -163,7 +165,6 @@ void GameInitialize()
 	srand(time(NULL));
 
 	currentLevel = new Level(26, 16, 50);
-	currentLevel->GenerateLevel();
 
 	Skill* s = new Skill("bob");
 }
@@ -181,13 +182,16 @@ void Draw()
 
 	currentLevel->Draw();
 
+#ifdef DRAW_FRAMERATE
 	DrawFrameRate();
+#endif
 
 	// Swap to back buffer
 	Direct3D::EndFrame();
 }
 
 
+#ifdef DRAW_FRAMERATE
 void DrawFrameRate(void)
 {
 	stringstream ss(stringstream::in | stringstream::out);
@@ -219,6 +223,7 @@ void DrawFrameRate(void)
 	// Reset
 	Direct3D::DrawTextReset();
 }
+#endif
 
 #pragma region  DirectX Initialization
 BOOL DXInit(HWND hWnd)

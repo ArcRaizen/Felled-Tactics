@@ -71,5 +71,7 @@ protected:
 
 	D3DXVECTOR4	highlightColor;
 	D3DXVECTOR2 uvScale;
+
+	static D3DXVECTOR4 highlightNone;
 };
 #endif

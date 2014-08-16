@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "VisualElement.h"
 
+D3DXVECTOR4 VisualElement::highlightNone = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
 
 VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY)
 {

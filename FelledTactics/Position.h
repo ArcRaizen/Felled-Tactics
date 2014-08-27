@@ -54,6 +54,10 @@ struct Position
 	{
 		return (abs(other.x - x) + abs(other.y - y));
 	}
+	void Reset()
+	{
+		x = y = -1;
+	}
 };
 #endif
 

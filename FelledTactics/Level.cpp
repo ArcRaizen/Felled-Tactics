@@ -6,6 +6,8 @@ Level::Level(int width, int height, int tSize = 50) : mapWidth(width), mapHeight
 {
 	 turn = 0;
 	 numEnemyDeaths = numAllyDeaths = 0;
+	 numAllies = numEnemies = 0;
+	 numUnitsMoved = 0;
 	 currentPhase = SelectUnit;
 	 selectedTile.x = selectedTile.y = -1;
 	 pathDrawEnabled = false;
@@ -54,7 +56,6 @@ int Level::Update(float dt, HWND hWnd)
 		// Move unit on map - If during movement it enters an active hazard, we resolve that now
 		if(result == 1)
 		{
-			actionBeginning = currentMovementPath.back();
 			bool unitMoved = DoMovementEnd(movementBeginning, currentMovementPath.back());
 			selectedTile.x = -1;
 		}
@@ -181,11 +182,15 @@ int Level::Update(float dt, HWND hWnd)
 				// No movement for this Unit
 				if(selectedTile == movementBeginning)
 				{
+#ifdef ALLOW_ZERO_TILE_MOVEMENT
+					DoMovementEnd(movementBeginning, movementBeginning);
+#else
 					currentPhase = SelectUnit;
+#endif
 					selectedTile.x = -1;
 					break;
 				}
-
+		
 				// Tell the unit to move
 				unitMap[movementBeginning.x][movementBeginning.y]->SetMovePath(currentMovementPath);
 				currentPhase = ExecuteMove;	// Go to next phase
@@ -223,10 +228,10 @@ int Level::Update(float dt, HWND hWnd)
 				combatCalculator.DoCombat();
 
 				// Unmark all enemies in range of unit
-				int range; range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
-				for(int i = actionBeginning.x - range; i <= actionBeginning.x + range; i++)
+				int range; range = unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange;
+				for(int i = currentUnitPosition.x - range; i <= currentUnitPosition.x + range; i++)
 				{
-					for(int j = actionBeginning.y - range; j <= actionBeginning.y + range; j++)
+					for(int j = currentUnitPosition.y - range; j <= currentUnitPosition.y + range; j++)
 					{
 						if(i < 0 || j < 0) continue;
 
@@ -235,7 +240,6 @@ int Level::Update(float dt, HWND hWnd)
 					}
 				}
 
-				actionMenu->Delete();
 				PauseUserInputIndefinite();
 				currentPhase = ExecuteAction;
 			}
@@ -259,22 +263,21 @@ int Level::Update(float dt, HWND hWnd)
 				case 0: break;	// combat still occuring
 				case 3:			// no death after combat finished
 					RestoreUserInput();
-					currentPhase = SelectUnit;
-					unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
+					ActivateEndTurn();
 					break;
 				default:		// combatant has been killed
-					Position deathPosition = (combatResult == 1 ? actionBeginning : target);	// combatResult == 1 -> attacker died
+					Position deathPosition = (combatResult == 1 ? currentUnitPosition : target);	// combatResult == 1 -> attacker died
 																								// combatResult == 2 -> defender died
 					// Activate death animation of defeated unit and pause user input until it completes
 					PauseUserInput(unitMap[deathPosition.x][deathPosition.y]->Die());
-					currentPhase = SelectUnit;		// Go to next phase
-					unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
+					ActivateEndTurn();
 					break;
 			}
 
 			break;
 		}
 /**/	case Phase::EnemyTurn:
+			StartNewTurn();
 			if(selectedTile.x == -1)	break;
 			break;
 	}
@@ -282,7 +285,7 @@ int Level::Update(float dt, HWND hWnd)
 
 	lastSelectedTile = selectedTile;
 	lastHoveredTile = hoveredTile;
-	selectedTile.x = -1;
+	selectedTile.Reset();
 	return 1;
 }
 
@@ -313,10 +316,10 @@ void Level::HandleRightClick()
 			break;
 /**/	case Phase::SelectTarget:			// Cancel Action, return to SelectAction
 			// Unmark all enemies in range of unit
-			int range; range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
-			for(int i = actionBeginning.x - range; i <= actionBeginning.x + range; i++)
+			int range; range = unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange;
+			for(int i = currentUnitPosition.x - range; i <= currentUnitPosition.x + range; i++)
 			{
-				for(int j = actionBeginning.y - range; j <= actionBeginning.y + range; j++)
+				for(int j = currentUnitPosition.y - range; j <= currentUnitPosition.y + range; j++)
 				{
 					if(i < 0 || j < 0) continue;
 
@@ -332,7 +335,7 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectSkillTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
-			// MarkTiles(true, actionBeginning, /*SkillRange*/ 0, 2);
+			// MarkTiles(true, currentUnitPosition, /*SkillRange*/ 0, 2);
 			
 			secondaryMenu->EnableDraw();
 			actionMenu->EnableDraw();
@@ -389,12 +392,28 @@ void Level::GenerateLevel()
 	map[3][3]->TileStatus = Tile::Status::EnemyUnit;
 	map[4][4]->TileStatus = Tile::Status::AllyUnit;
 
+	numAllies = 4;
+	numEnemies = 1;
+
 	// Add units to the VisualElements list
 	for(int i = 0; i < unitList.size(); i++)
 		AddVisualElement(unitList[i]);
 
 	SortVisualElements();
 	AddActiveLayer(TILE_LAYER);
+	StartNewTurn();
+}
+
+void Level::StartNewTurn()
+{
+	for(int i = 0; i < unitList.size(); i++)
+		unitList[i]->NewTurn();
+
+	currentUnitPosition.Reset();
+	selectedTile.Reset();
+	numUnitsMoved = 0;
+	turn++;
+	currentPhase = SelectUnit;
 }
 
 bool Level::CheckWin()
@@ -767,29 +786,35 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 // Move a unit from the start to end, change all properties and statuses to reflect
 bool Level::DoMovementEnd(Position start, Position end)
 {
-	// Attempting to move unit to occupied space
-	if(unitMap[end.x][end.y] != NULL || map[end.x][end.y]->TileStatus != Tile::Status::Empty)
-		return false;
+	if(start != end)
+	{
+		// Attempting to move unit to occupied space
+		if(unitMap[end.x][end.y] != NULL || map[end.x][end.y]->TileStatus != Tile::Status::Empty)
+			return false;
 
-	// Attempting to move non-existant or felled unit
-	if(unitMap[start.x][start.y] == NULL || map[start.x][start.y]->TileStatus == Tile::Status::Empty || map[start.x][start.y]->TileStatus == Tile::Status::AllyFelled)
-		return false;
+		// Attempting to move non-existant or felled unit
+		if(unitMap[start.x][start.y] == NULL || map[start.x][start.y]->TileStatus == Tile::Status::Empty || map[start.x][start.y]->TileStatus == Tile::Status::AllyFelled)
+			return false;
 
-	// Move unit from start to end
-	unitMap[end.x][end.y] = unitMap[start.x][start.y];
-	unitMap[start.x][start.y] = NULL;
-	unitMap[end.x][end.y]->UnitPosition = end;
+		// Move unit from start to end
+		unitMap[end.x][end.y] = unitMap[start.x][start.y];
+		unitMap[start.x][start.y] = NULL;
+		unitMap[end.x][end.y]->UnitPosition = end;
 
-	// Change tile statuses to reflect
-	map[end.x][end.y]->TileStatus = map[start.x][start.y]->TileStatus;
-	map[start.x][start.y]->TileStatus = Tile::Status::Empty;
+		// Change tile statuses to reflect
+		map[end.x][end.y]->TileStatus = map[start.x][start.y]->TileStatus;
+		map[start.x][start.y]->TileStatus = Tile::Status::Empty;
 
-	// Re-sort the VisualElements list only on the layer that just changed
-	SortVisualElementsInLayer(unitMap[end.x][end.y]->Layer);
+		// Re-sort the VisualElements list only on the layer that just changed
+		SortVisualElementsInLayer(unitMap[end.x][end.y]->Layer);
 
-	// DO EFFECTS FROM TILES MOVED THROUGH OR STOPPED ON VIA CURRENTMOVEMENTPATH
+		// DO EFFECTS FROM TILES MOVED THROUGH OR STOPPED ON VIA CURRENTMOVEMENTPATH
 
-	currentMovementPath.clear();
+		currentMovementPath.clear();
+	}
+
+	// Set current unit position for this action
+	currentUnitPosition = end;
 
 	// Create Action Menu
 	CreateActionMenu();
@@ -818,20 +843,20 @@ void Level::CreateActionMenu()
 void Level::ActivateAttack()
 {
 	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
-	int range = unitMap[actionBeginning.x][actionBeginning.y]->AttackRange;
-	for(int i = actionBeginning.x - range; i <= actionBeginning.x + range; i++)
+	int range = unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange;
+	for(int i = currentUnitPosition.x - range; i <= currentUnitPosition.x + range; i++)
 	{
-		for(int j = actionBeginning.y - range; j <= actionBeginning.y + range; j++)
+		for(int j = currentUnitPosition.y - range; j <= currentUnitPosition.y + range; j++)
 		{
 			if(i < 0 || j < 0) continue;
 
-			if(Position(i,j).DistanceTo(actionBeginning) <= range && map[i][j]->TileStatus == Tile::Status::EnemyUnit)
+			if(Position(i,j).DistanceTo(currentUnitPosition) <= range && map[i][j]->TileStatus == Tile::Status::EnemyUnit)
 				map[i][j]->TileMark = Tile::Mark::Attack;
 		}
 	}
 
 	// Create Combat Calculator
-	combatCalculator.SetAttacker(unitMap[actionBeginning.x][actionBeginning.y]);
+	combatCalculator.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
 	// Go to Next Phase - Select Target for attack
 	currentPhase = SelectTarget;
@@ -866,11 +891,21 @@ void Level::ActivateItem()
 
 void Level::ActivateEndTurn()
 {
-	currentPhase = SelectUnit;
-	unitMap[actionBeginning.x][actionBeginning.y]->FinishTurn();
+	// End turn of current unit
+	unitMap[currentUnitPosition.x][currentUnitPosition.y]->FinishTurn();
+	currentUnitPosition.Reset();
+	numUnitsMoved++;
+
+	// Delete action menu
 	actionMenu->Delete();
 	RemoveActiveLayer(ACTION_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
+
+	// Go to next phase
+	if(numUnitsMoved == numAllies)
+		currentPhase = EnemyTurn;
+	else
+		currentPhase = SelectUnit;
 }
 
 void Level::CreateCombatUI()
@@ -887,15 +922,16 @@ void Level::SetSelectedTile(Position p)
 {
 	selectedTile = p;
 	pathDrawEnabled = false;
-	if(currentMovementPath.size() == 1)
-		currentMovementPath.clear();
+//	if(currentMovementPath.size() == 1)
+//		currentMovementPath.clear();
 }
 
 // Save the hovered tile (called from the tile itself)
 void Level::SetHoveredTile(Position p)
 {
-	// Set new hovered tile
 	hoveredTile = p;
+	if(lastHoveredTile.y == -1)
+		lastHoveredTile = p;
 }
 
 void Level::Draw()

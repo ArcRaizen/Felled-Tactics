@@ -21,6 +21,7 @@ using namespace std;
 #define DEBUG
 //#define LOCK_FRAMERATE
 #define DRAW_FRAMERATE
+#define ALLOW_ZERO_TILE_MOVEMENT
 #pragma region
 
 static UINT screenWidth = 1280;

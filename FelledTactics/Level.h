@@ -57,6 +57,7 @@ private:
 public:
 	void	GenerateLevel();
 private:
+	void	StartNewTurn();
 	bool	CheckWin();
 	bool	CheckLoss();
 #pragma endregion
@@ -70,12 +71,14 @@ private:
 	int 	CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* node);
 	void	MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange = vector<Position>());
 	bool	DoMovementEnd(Position start, Position end);
+
 	void	CreateActionMenu();
 	void	ActivateAttack();
 	void	ActivateSkill();
 	void	ActivateItem();
 	void	ActivateEndTurn();
 	void	CreateCombatUI();
+
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);
 	bool	IsObstructedEnemy(Position p);
@@ -102,6 +105,9 @@ private:
 	Unit*					boss;
 	int						numEnemyDeaths;
 	int						numAllyDeaths;
+	int						numAllies;
+	int						numEnemies;
+	int						numUnitsMoved;
 	int						maximumDeaths;
 	int						maximumTurns;
 	CombatCalculator		combatCalculator;
@@ -124,10 +130,10 @@ private:
 	bool					pathDrawEnabled;	// Is the player drawing a path for their selected unit to follow?
 
 	// Actions
-	MenuBox*				actionMenu;		// Menu for selecting action for unit to take
-	MenuBox*				secondaryMenu;	// Menu for selecting skill/item for unit to use
-	Position				actionBeginning;// Location of unit selected to take an action
-	Position				target;			// Target location of a skill to be cast
+	MenuBox*				actionMenu;				// Menu for selecting action for unit to take
+	MenuBox*				secondaryMenu;			// Menu for selecting skill/item for unit to use
+	Position				currentUnitPosition;	// Location of unit selected to take an action
+	Position				target;					// Target location of a skill to be cast
 
 #pragma region Utility Functions
 private:

@@ -467,7 +467,7 @@ void Level::PlayerDrawPath()
 				currentMovementPath.pop_back();		// delete last tile in path (it already exists in newPath)
 						
 				bool finished = false;
-				cpIT = currentMovementPath.begin(); cpIT++;
+				cpIT = currentMovementPath.begin(); 
 				for(; cpIT != currentMovementPath.end(); cpIT++)
 				{
 					for(npIT = newPath.begin(); npIT != newPath.end(); npIT++)

@@ -5,6 +5,7 @@ const float CombatCalculator::COMBAT_TEXT_LIFE = 1.0f;
 const float CombatCalculator::PRE_COMBAT_WAIT = 0.5f;
 const float CombatCalculator::MID_COMBAT_WAIT = 1.0f;
 const float CombatCalculator::POST_COMBAT_WAIT = 2.0f;
+const float CombatCalculator::MULTI_HIT_WAIT = 1.0f;
 const D3DXVECTOR3 CombatCalculator::COMBAT_TEXT_MOVE = D3DXVECTOR3(25.0f, -25.0f, 0.0f);
 
 CombatCalculator::CombatCalculator(void)
@@ -71,6 +72,9 @@ void CombatCalculator::Reset(bool onlyDefender/* = false*/)
 	baseMagicalDamageA = baseMagicalDamageD = 0;
 	physicalDamageA = physicalDamageD = 0;
 	magicalDamageA = magicalDamageD = 0;
+	physicalModifier = magicalModifier = 1.0f;
+	numAttackerHits = numDefenderHits = 1;
+	attHitCount = defHitCount = 0;
 	hitA = hitD = 0.0f;
 	avoidA = avoidD = 0.0f;
 	accuracyA = accuracyD = 0;
@@ -82,6 +86,14 @@ void CombatCalculator::Reset(bool onlyDefender/* = false*/)
 void CombatCalculator::ResetDefender()
 {
 	Reset(true);
+}
+
+void CombatCalculator::SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits)
+{
+	physicalModifier = physMod;
+	magicalModifier = magMod;
+	numAttackerHits = numAttHits;
+	numDefenderHits = numDefHits;
 }
 
 // Complete a phase of combat between 2 units and return result
@@ -97,9 +109,15 @@ int CombatCalculator::Update(float dt)
 
 	switch(combatPhase)
 	{
-		case 1:
-			// Wait period before combat occurs
+/**/	case 1:	// Wait period before combat occurs
 			if(combatTimer < PRE_COMBAT_WAIT)
+			{
+				combatTimer += dt;
+				return 0;
+			}
+			combatPhase = 2;
+/**/	case 2: // Attacker executing combat
+			if(attHitCount > 0 && combatTimer < MULTI_HIT_WAIT)
 			{
 				combatTimer += dt;
 				return 0;
@@ -111,27 +129,32 @@ int CombatCalculator::Update(float dt)
 			if(RNG < accuracyA)
 			{
 				// Defender takes damage
-				damage = physicalDamageA + magicalDamageA;
+				damage = (physicalDamageA * physicalModifier) + (magicalDamageA * magicalModifier);
 				defender->Health -= damage;
 				itoa(damage, battleText, 10);
 				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
 
-				// Defender killed
+				// Defender killed - Only check after all attacks have finished
 				if(defender->Health == 0)
 					defenderDied = true;
 			}
-			else
-			{
-				// WHIFF
+			else	// WHIFF
 				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
+
+			// If the attacker is executing multiple hits, repeat this step appropriately
+			if(numAttackerHits - attHitCount > 1)
+			{
+				attHitCount++;
+				combatTimer = 0.0f;
+			}
+			else	// Proceed to next combat phase
+			{
+				combatTimer = 0.0f;
+				combatPhase = 3;
 			}
 
-			// Proceed to next combat phase
-			combatTimer = 0.0f;
-			combatPhase = 2;
 			return 0;
-		case 2:
-			// Wait period before defender retaliates
+/**/	case 3:	// Wait period before defender retaliates
 			if(combatTimer < MID_COMBAT_WAIT)
 			{
 				combatTimer += dt;
@@ -142,7 +165,8 @@ int CombatCalculator::Update(float dt)
 			if(defenderDied)
 				return 2;
 
-			// Defender retaliates against attacker
+			combatPhase = 4;
+/**/	case 4: // Defender executing combat
 			if(defender->AttackRange >= range) // Defender might not be able to retaliate
 			{
 				RNG = rand() % 100;
@@ -158,18 +182,21 @@ int CombatCalculator::Update(float dt)
 					if(attacker->Health == 0)
 						attackerDied = true;
 				}
-				else
-				{
-					// WHIFF
+				else // WHIFF
 					combatText.push_back(new TextElement(0, 100, 100, attacker->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
-				}
+			}
+
+			// If attacker has post-combat skill, proceed to phase to execute it
+			if(/*attacker->HasSkill("Follow-Up Cut")*/true)
+			{
+				combatPhase = 5;
+				combatTimer = 0.0f;
+				return 0;
 			}
 
 			combatTimer = 0.0f;
-			combatPhase = 3;
-			return 0;
-		case 3:
-			// Wait period before combat finishes
+			combatPhase = 6;
+/**/	case 6: // Wait period before combat finishes
 			if(combatTimer < POST_COMBAT_WAIT)
 			{
 				combatTimer += dt;
@@ -184,9 +211,40 @@ int CombatCalculator::Update(float dt)
 			// Check if attacker died
 			if(attackerDied)
 				return 1;
+			else if(defenderDied)
+				return 2;
 
 			// No one died
 			return 3;
+/**/	case 5:	// Optional wait for post-combat skills
+			if(combatTimer < MID_COMBAT_WAIT)
+			{
+				combatTimer += dt;
+				return 0;
+			}
+
+			// Check which post-combat skill and execute it
+
+
+			RNG = rand() % 100;
+			if(RNG < accuracyA)
+			{
+				// Defender takes damage
+				damage = (physicalDamageA * physicalModifier) + (magicalDamageA * magicalModifier);
+				defender->Health -= damage;
+				itoa(damage, battleText, 10);
+				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
+
+				// Defender killed - Only check after all attacks have finished
+				if(defender->Health == 0)
+					defenderDied = true;
+			}
+			else	// WHIFF
+				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
+
+			// Proceed to end of combat
+			combatTimer = 0.0f;
+			combatPhase = 6;
 		default: return 0;
 	}
 }

@@ -138,6 +138,7 @@ private:
 #pragma region Utility Functions
 private:
 	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x > mapWidth || p.y > mapWidth) { return false;	} return true; }
+	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(y > mapWidth || y > mapWidth) { return false; } return true; }
 #pragma endregion
 };
 #endif

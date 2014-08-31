@@ -29,7 +29,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	abilityPoints = maximumAbilityPoints = 50;
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
-	inventory += new Weapon(Weapon::WeaponClass::Bow, 50, 0, 5);
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 40, 0, 5);
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -220,7 +220,15 @@ int Unit::Update(float dt)
 	{
 		highlightColor.w -= (dt / 1.5f);
 		if(highlightColor.w <= 0)
+		{
+			if(CheckStatus(ALLY))
+			{
+				highlightColor.w = 0.2;
+				RemoveStatus(FELLED);
+				felled = true;
+			}
 			return 2;
+		}
 		
 		return 0;
 	}

@@ -225,20 +225,11 @@ int Level::Update(float dt, HWND hWnd)
 			// Selected valid target - FIGHT!
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::Attack)
 			{
+				combatCalculator.SetCombatModifiers(1.0f, 1.0f, 1, 1);
 				combatCalculator.DoCombat();
 
 				// Unmark all enemies in range of unit
-				int range; range = unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange;
-				for(int i = currentUnitPosition.x - range; i <= currentUnitPosition.x + range; i++)
-				{
-					for(int j = currentUnitPosition.y - range; j <= currentUnitPosition.y + range; j++)
-					{
-						if(i < 0 || j < 0) continue;
-
-						if(map[i][j]->TileMark == Tile::Mark::Attack)
-							map[i][j]->TileMark = Tile::Mark::None;
-					}
-				}
+				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
 
 				PauseUserInputIndefinite();
 				currentPhase = ExecuteAction;
@@ -316,18 +307,7 @@ void Level::HandleRightClick()
 			break;
 /**/	case Phase::SelectTarget:			// Cancel Action, return to SelectAction
 			// Unmark all enemies in range of unit
-			int range; range = unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange;
-			for(int i = currentUnitPosition.x - range; i <= currentUnitPosition.x + range; i++)
-			{
-				for(int j = currentUnitPosition.y - range; j <= currentUnitPosition.y + range; j++)
-				{
-					if(i < 0 || j < 0) continue;
-
-					if(map[i][j]->TileMark == Tile::Mark::Attack)
-						map[i][j]->TileMark = Tile::Mark::None;
-				}
-			}
-
+			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
@@ -381,16 +361,28 @@ void Level::GenerateLevel()
 	unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
 	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,150,false);
 	unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
+	unitMap[7][7] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,350,false);
+	unitMap[7][6] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,300,false);
+	unitMap[2][8] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,100,400,false);
+	unitMap[3][8] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,400,false);
 	unitList.push_back(unitMap[0][0]);
 	unitList.push_back(unitMap[1][1]);
 	unitList.push_back(unitMap[2][2]);
 	unitList.push_back(unitMap[3][3]);
 	unitList.push_back(unitMap[4][4]);
+	unitList.push_back(unitMap[7][7]);
+	unitList.push_back(unitMap[7][6]);
+	unitList.push_back(unitMap[2][8]);
+	unitList.push_back(unitMap[3][8]);
 	map[0][0]->TileStatus = Tile::Status::AllyUnit;
 	map[1][1]->TileStatus = Tile::Status::AllyUnit;
 	map[2][2]->TileStatus = Tile::Status::AllyUnit;
 	map[3][3]->TileStatus = Tile::Status::EnemyUnit;
 	map[4][4]->TileStatus = Tile::Status::AllyUnit;
+	map[7][7]->TileStatus = Tile::Status::EnemyUnit;
+	map[7][6]->TileStatus = Tile::Status::EnemyUnit;
+	map[2][8]->TileStatus = Tile::Status::EnemyUnit;
+	map[3][8]->TileStatus = Tile::Status::EnemyUnit;
 
 	numAllies = 4;
 	numEnemies = 1;
@@ -739,13 +731,13 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 		return;	// Do not bother with the rest, this section is for AllySkillAoE only
 	}
 
-	// Search through all tiles
-	for(int i = 0; i < mapWidth; i++)
+	// Search through all tiles in range
+	for(int i = start.x - range; i <= start.x + range; i++)
 	{
-		for(int j = 0; j < mapHeight; j++)
+		for(int j = start.y - range; j <= start.y + range; j++)
 		{
 			// Mark/Unmark tiles within the movement range of the currently selected unit
-			if(Position(i, j).DistanceTo(start) <= range)
+			if(IsValidPosition(i, j) && Position(i, j).DistanceTo(start) <= range)
 			{ 
 				if(!undo)
 				{
@@ -825,7 +817,7 @@ bool Level::DoMovementEnd(Position start, Position end)
 
 void Level::CreateActionMenu()
 {
-	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, 1000, 100);
+	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*2, currentUnitPosition.y*tileSize);
 	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145);
 	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100);
 	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55);
@@ -869,6 +861,7 @@ void Level::ActivateSkill()
 {
 	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
 
+	currentPhase = SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 
@@ -881,6 +874,7 @@ void Level::ActivateItem()
 {
 	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
 
+	currentPhase = SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 

@@ -3,6 +3,7 @@
 
 D3DXVECTOR4 VisualElement::highlightNone = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
 
+// PosX and PosY are pixel-coordinates in the game with (0,0) being the bottom-left corner
 VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY)
 {
 	// Initialize values
@@ -34,7 +35,7 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 	D3DXMatrixIdentity(&world);
 	D3DXMATRIX translation, scale;
 	D3DXMatrixScaling(&scale, width, height, 0);
-	D3DXMatrixTranslation(&translation, posX - (int)screenWidth/2 + width/2, posY - (int)screenHeight/2 + height/2, 0);
+	D3DXMatrixTranslation(&translation, ConvertCoordinatesX(posX, width), ConvertCoordinatesY(posY, height), 0);
 	world = world * scale;
 	world = world * translation;
 	CalcRect();

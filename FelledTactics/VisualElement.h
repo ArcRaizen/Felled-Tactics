@@ -73,5 +73,16 @@ protected:
 	D3DXVECTOR2 uvScale;
 
 	static D3DXVECTOR4 highlightNone;
+
+	// Convert between in-game coordinates (Origin at bottom-left corner, X postive right, Y positive Up)
+	// and DirectX drawing coordinates
+	inline int ConvertCoordinatesX(int posX, int width)
+	{
+		return posX - (int)screenWidth/2 + width/2;
+	}
+	inline int ConvertCoordinatesY(int posY, int height)
+	{
+		return posY - (int)screenHeight/2 + height/2;
+	}
 };
 #endif

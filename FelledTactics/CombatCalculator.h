@@ -17,6 +17,7 @@ public:
 	void	DoCombat();
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
+	void	SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits);
 
 	int		Update(float dt);
 	void	Draw();
@@ -47,6 +48,7 @@ private:
 	static const float  PRE_COMBAT_WAIT;	// time after combat is initiated before attacker first strikes
 	static const float	MID_COMBAT_WAIT;	// time after attacker first strikes before defender retaliates
 	static const float	POST_COMBAT_WAIT;	// time after final attack before combat completely ends
+	static const float  MULTI_HIT_WAIT;		// time between multiple hits from a single combatant
 	static const D3DXVECTOR3 COMBAT_TEXT_MOVE;	// direction combat text moves during its life
 
 	// Combat Phase + timer
@@ -60,6 +62,9 @@ private:
 	// Battle Statistics
 	int		basePhysicalDamageA, basePhysicalDamageD;		// Physical Damage delt by attacker
 	int		baseMagicalDamageA, baseMagicalDamageD;			// Magical damage delt by attacker
+	float	physicalModifier, magicalModifier;				// Damage modifiers during combat
+	int		numAttackerHits, numDefenderHits;				// Num of times each combatant attacks (default 1)
+	int		attHitCount, defHitCount;						// Counter to track number of attacks on each side
 	float	hitA, hitD;										// Percent chance to hit with attack
 	float	avoidA, avoidD;									// Perecent chance to dodge attack
 	int		range;

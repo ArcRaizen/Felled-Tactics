@@ -23,6 +23,7 @@
 class GameMaster
 {
 public:
+	GameMaster(lua_State* luaState);
 	GameMaster(void);
 	~GameMaster(void);
 
@@ -48,5 +49,8 @@ private:
 	int						activeLayers;		// Only VisualElements on the ActiveLayers can be interacted with
 	bool					sortingRequired;	// Has a VisualElement been added? A sort is needed afterwards
 	bool					deletionRequired;	// Has a VisualElement been marked for deletion?
+
+protected:
+	lua_State* L;
 };
 #endif

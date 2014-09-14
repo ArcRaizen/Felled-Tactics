@@ -10,6 +10,12 @@
 #include <D3D10.h>
 #include <D3DX10.h>
 
+extern "C"{
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+}
+#include "Luna.h"
 using namespace std;
 
 #define PI		3.141592653589793238462

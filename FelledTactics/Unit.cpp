@@ -30,6 +30,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
 	inventory += new Weapon(Weapon::WeaponClass::Bow, 40, 0, 5);
+	a = new Ability("Damage");
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -99,6 +100,16 @@ void Unit::CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int ra
 	// Set final damages
 	physicalDamage = baseDamage;
 	magicalDamage = 0;
+}
+
+int Unit::TakeDamage(int physDamage, int magDamage)
+{
+	health -= physDamage + magDamage;
+	if(health < 0)
+		health = 0;
+
+	updateHPAPBuffers = true;
+	return physDamage + magDamage;	// return damage taken
 }
 
 void Unit::Revive(int health)
@@ -180,6 +191,11 @@ void Unit::SetMovePath(list<Position> path)
 		movementPath.push_back(*iterator * tileSize);
 
 	movementFinished = false;
+}
+
+void Unit::ActivateAbility(lua_State* L)
+{
+	a->Activate(L);
 }
 
 bool Unit::InitializeHPAPBuffers()

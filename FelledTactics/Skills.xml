@@ -1,39 +1,12 @@
 <?xml version="1.0"?>
 <Skill_List>
-	<Skill Name="dave">
+	<Skill Name="Damage">
 		<type>Action</type>
-		<affect_type>Physical</affect_type>
+		<effect_type>Physical</effect_type>
 		<cast_type>SelfCast</cast_type>
-		<ap_cost></ap_cost>
-		<range></range>
+		<ap_cost>20</ap_cost>
+		<range>0</range>
 		<aoe>0|</aoe>
-		<script></script>
-	</Skill>
-	<Skill Name="bob">
-		<type>Battle</type>
-		<affect_type>Magical</affect_type>
-		<cast_type>Ally</cast_type>
-		<ap_cost>50</ap_cost>
-		<range>5</range>
-		<aoe>3|0|1|0|2|3|0|</aoe>
-		<script></script>
-	</Skill>
-	<Skill Name="george">
-		<type>Passive</type>
-		<affect_type>Heal</affect_type>
-		<cast_type>Enemy</cast_type>
-		<ap_cost></ap_cost>
-		<range></range>
-		<aoe>0|</aoe>
-		<script></script>
-	</Skill>
-	<Skill Name="adam">
-		<type>Passive</type>
-		<affect_type>None</affect_type>
-		<cast_type>Free</cast_type>
-		<ap_cost></ap_cost>
-		<range></range>
-		<aoe>0|</aoe>
-		<script></script>
+		<script>Lua\Damage.lua</script>
 	</Skill>
 </Skill_List>

@@ -1,7 +1,12 @@
 #include "stdafx.h"
 #include "GameMaster.h"
 
-GameMaster::GameMaster(void) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false) {}
+GameMaster::GameMaster(lua_State* luaState) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false) 
+{
+	L = luaState;
+}
+GameMaster::GameMaster(void){}
+
 GameMaster::~GameMaster(void)
 {
 	for(int i = 0; i < VisualElements.size(); i++)

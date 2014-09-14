@@ -1,9 +1,19 @@
 #pragma once
 #ifndef UNIT_H
 #define UNIT_H
+
+#ifndef VISUAL_H
 #include "VisualElement.h"
+#endif
+#ifndef INVENTORY_H
 #include "Inventory.h"
+#endif
+#ifndef POSITION_S
 #include "Position.h"
+#endif
+#ifndef SKILL_H
+#include "Ability.h"
+#endif
 
 #include <list>
 
@@ -23,11 +33,13 @@ public:
 	static int		unitCounter;
 
 	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
+	int				TakeDamage(int physDamage, int magDamage);
 	virtual void	Revive(int health);						// Revived by an ally
 	virtual float	Die();									// Defeated in combat - Felled
 	void			GainExperience();
 	virtual void	LevelUp();
 	void			SetMovePath(list<Position> path);
+	void			ActivateAbility(lua_State* L);
 
 	bool			InitializeHPAPBuffers();
 
@@ -151,6 +163,7 @@ protected:
 	bool						drawBars;
 
 	Inventory	inventory;
+	Ability* a;
 
 	static D3DXVECTOR4 highlightFinishedTurn;
 };

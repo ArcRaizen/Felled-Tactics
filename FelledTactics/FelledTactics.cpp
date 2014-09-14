@@ -1,6 +1,5 @@
 // FelledTactics.cpp : Defines the entry point for the application.
 //
-
 #include "stdafx.h"
 #include "FelledTactics.h"
 
@@ -56,6 +55,7 @@ void				DrawFrameRate();
 #pragma region Game Variables
 GameMaster*				currentLevel;
 int						GameState = 0;
+lua_State*				L;
 #pragma endregion
 
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
@@ -156,6 +156,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 
 	// SHUT DOWN GAME HERE
+	//lua_close(L);
 
 	return (int) msg.wParam;
 }
@@ -164,9 +165,12 @@ void GameInitialize()
 {
 	srand(time(NULL));
 
-	currentLevel = new Level(26, 16, 50);
+	L = luaL_newstate();
+	luaopen_base(L);
+	Luna<LuaLevel>::Register(L);
+	Luna<LuaUnit>::Register(L);
 
-	Skill* s = new Skill("bob");
+	currentLevel = new Level(L, 26, 16, 50);
 }
 
 void Update(float dt)
@@ -392,4 +396,4 @@ wstring ToWString(string s)
 	delete[] buf;
 	return r;
 }
-#pragma endregion
+#pragma endregion                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           

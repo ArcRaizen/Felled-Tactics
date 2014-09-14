@@ -1,4 +1,5 @@
 #pragma once
+#include "stdafx.h"
 
 #include "resource.h"
 #include "Core.h"
@@ -11,8 +12,10 @@
 #include "InputManager.h"
 #include "Direct3D.h"
 #include "Camera.h"
-#include "Level.h"
-#include "Unit.h"
+#include "LuaLevel.h"
+//#include "Level.h"
+#include "LuaUnit.h"
+//#include "Unit.h"
 #include "Item.h"
 #include "Tile.h"
-#include "Skill.h"
+#include "Ability.h"                                                                                                                                                                                                                                                                         

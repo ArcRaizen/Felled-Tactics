@@ -28,11 +28,11 @@
     <Filter Include="Level">
       <UniqueIdentifier>{3bfe269e-a8bc-47c2-8d60-768e72c0c004}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Skills">
-      <UniqueIdentifier>{b0d3de69-f9f7-4f6a-b7ac-f06c76b2634e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Menu">
       <UniqueIdentifier>{9ee20140-6a17-4aa8-b932-6493530ecded}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Abilities">
+      <UniqueIdentifier>{b0d3de69-f9f7-4f6a-b7ac-f06c76b2634e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -45,6 +45,7 @@
     </None>
     <None Include="color.fx" />
     <None Include="texture.fx" />
+    <None Include="Lua\Damage.lua" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -107,9 +108,6 @@
     <ClInclude Include="Position.h">
       <Filter>Header Files\Structs</Filter>
     </ClInclude>
-    <ClInclude Include="Skill.h">
-      <Filter>Skills</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -127,6 +125,27 @@
     </ClInclude>
     <ClInclude Include="MenuElement.h">
       <Filter>Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="TravelNode.h">
+      <Filter>Header Files\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatCalculator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextElement.h">
+      <Filter>Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="Luna.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaUnit.h">
+      <Filter>Units</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaLevel.h">
+      <Filter>Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Ability.h">
+      <Filter>Abilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -178,9 +197,6 @@
     <ClCompile Include="Tile.cpp">
       <Filter>Level</Filter>
     </ClCompile>
-    <ClCompile Include="Skill.cpp">
-      <Filter>Skills</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -198,6 +214,21 @@
     </ClCompile>
     <ClCompile Include="MenuElement.cpp">
       <Filter>Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="CombatCalculator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextElement.cpp">
+      <Filter>Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaUnit.cpp">
+      <Filter>Units</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaLevel.cpp">
+      <Filter>Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Ability.cpp">
+      <Filter>Abilities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

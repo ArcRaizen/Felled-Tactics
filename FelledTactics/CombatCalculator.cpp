@@ -129,8 +129,7 @@ int CombatCalculator::Update(float dt)
 			if(RNG < accuracyA)
 			{
 				// Defender takes damage
-				damage = (physicalDamageA * physicalModifier) + (magicalDamageA * magicalModifier);
-				defender->Health -= damage;
+				damage = defender->TakeDamage(physicalDamageA * physicalModifier, magicalDamageA * magicalModifier);
 				itoa(damage, battleText, 10);
 				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
 
@@ -173,7 +172,7 @@ int CombatCalculator::Update(float dt)
 				if(RNG < accuracyD)
 				{
 					// Attacker takes damage
-					damage = physicalDamageD + magicalDamageD;
+					damage = attacker->TakeDamage(physicalDamageD, magicalDamageD);
 					attacker->Health -= damage;
 					itoa(damage, battleText, 10);
 					combatText.push_back(new TextElement(0, 100, 100, attacker->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
@@ -230,8 +229,7 @@ int CombatCalculator::Update(float dt)
 			if(RNG < accuracyA)
 			{
 				// Defender takes damage
-				damage = (physicalDamageA * physicalModifier) + (magicalDamageA * magicalModifier);
-				defender->Health -= damage;
+				damage = defender->TakeDamage(physicalDamageA * physicalModifier, magicalDamageA * magicalModifier);
 				itoa(damage, battleText, 10);
 				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
 

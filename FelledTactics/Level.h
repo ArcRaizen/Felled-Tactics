@@ -38,7 +38,7 @@ class Tile; // forward declaration
 class Level : public GameMaster
 {
 public:
-	Level(int width, int height, int tSize);
+	Level(lua_State* luaState, int width, int height, int tSize);
 	~Level(void);
 
 #pragma region Enums
@@ -93,6 +93,9 @@ public:
 	__declspec(property(get=GetUnits)) Unit*** Units;										Unit*** GetUnits();
 	__declspec(property(put=SetWidth, get=GetWidth)) int Width;		void SetWidth(int w);	int GetWidth();
 	__declspec(property(put=SetHeight, get=GetHeight)) int Height;	void SetHeight(int h);	int GetHeight();
+
+	Tile* GetTile(int x, int y);
+	Unit* GetUnit(int x, int y);
 #pragma endregion
 
 private:

@@ -193,9 +193,9 @@ void Unit::SetMovePath(list<Position> path)
 	movementFinished = false;
 }
 
-void Unit::ActivateAbility(lua_State* L)
+void Unit::ActivateAbility(lua_State* L, Position target)
 {
-	a->Activate(L);
+	a->Activate(L, target);
 }
 
 bool Unit::InitializeHPAPBuffers()

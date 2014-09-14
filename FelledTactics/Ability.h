@@ -28,7 +28,7 @@ public:
 	enum	EffectType {Physical, Magical, Heal, Status, None};	// Skills do Physical damage, Magical Damage, Heal a unit, Apply a Status or do no damage
 	enum	CastType {SelfCast, Ally, Enemy, Free};				// Type of units the skill can be used on
 
-	void	Activate(lua_State* L);
+	void	Activate(lua_State* L, Position target);
 
 	__declspec(property(get=GetCost)) int APCost;				int GetCost();
 	__declspec(property(get=GetType)) CastType SkillCastType;	CastType GetType();
@@ -38,7 +38,6 @@ private:
 	Type				type;
 	EffectType			effect;
 	CastType			castType;
-	Position			target;
 	int					range;
 	vector<Position>	areaOfEffect;	// List of all tiles the spell is cast on
 											// Entries are a non-negative distance from initial target

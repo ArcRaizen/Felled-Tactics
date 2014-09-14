@@ -872,7 +872,7 @@ void Level::ActivateSkill()
 
 	lua_pushlightuserdata(L, (void*)this);
 	lua_setglobal(L, "Level");
-	unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L);
+	unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, currentUnitPosition);
 	ActivateEndTurn();
 }
 

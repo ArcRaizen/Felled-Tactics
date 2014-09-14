@@ -39,7 +39,7 @@ public:
 	void			GainExperience();
 	virtual void	LevelUp();
 	void			SetMovePath(list<Position> path);
-	void			ActivateAbility(lua_State* L);
+	void			ActivateAbility(lua_State* L, Position target);
 
 	bool			InitializeHPAPBuffers();
 

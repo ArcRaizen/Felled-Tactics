@@ -70,24 +70,28 @@ Ability::Ability(const char* name)
 
 	// 6) AoE
 	int num;
-	string len, aoe;
+	string aoe;
 	element = element->NextSiblingElement();	// move to next element
 	stream << element->GetText();				// get aoe string
-	stream >> len;								// convert to string
+	stream >> aoe;								// convert to string
 	stream.clear();
-	stream << len.substr(0, len.find("|"));		// find first number (number of Positions in the element)
+	stream << aoe.substr(0, aoe.find("|"));		// find first number (number of Positions in the element)
 	stream >> num;								// conver to int and save
 	stream.clear();
 
 	if(num > 0)
 	{
-		value = len.substr(len.find("|") + 1).c_str();	// Get list of positions
-		int a, b, i;
-		for(i = 0; i < num*4; i+=4)
+		aoe = aoe.substr(aoe.find("|") + 1).c_str();	// Get list of positions
+		int a, b, x;
+		for(int i = 0; i < num; i++)
 		{
-			a = value[i] - 48;		// Convert to int
-			b = value[i+2] - 48;	//	but 0 makes it tricky --V
-			areaOfEffect.push_back(Position(a == -48 ? 0 : a, b == -48 ? 0 : b));
+			x = aoe.find("|");											// Find index of first delimeter
+			a = atoi(aoe.substr(0, x).c_str());							// Get and save x-coordinate of AoE (string before delimeter)
+			aoe = aoe.substr(x+1);										// Remove x-coordinate from string
+			x = aoe.find("|");											// Find index of next delimeter
+			b = atoi(x > 0 ? aoe.substr(0, x).c_str() : aoe.c_str());	// Get and save y-coordinate of AoE (string before delimeter)
+			aoe = aoe.substr(x+1);										// Remove y-coordinate from delimeter
+			areaOfEffect.push_back(Position(a,b));						// Add new Position(x,y) to AoE list - Move to next entry in AoE
 		}
 	}
 
@@ -98,9 +102,6 @@ Ability::Ability(const char* name)
 	script.clear();
 	if(value != NULL)
 		script = value;
-
-	int x = 5;
-	x++;
 }
 
 
@@ -108,39 +109,39 @@ Ability::~Ability(void)
 {
 }
 
-void Ability::Activate(lua_State* L)
+void Ability::Activate(lua_State* L, Position target)
 {
 	// Create tables of tiles where skill  has an effect
 	if(areaOfEffect.size() > 0)
 	{
-	/*	stringstream ss(stringstream::in | stringstream::out);
-		lua_createtable(L, areaOfEffect.size(), 0);	// AoE
+		stringstream ss(stringstream::in | stringstream::out);
+		lua_createtable(L, areaOfEffect.size(), 0);		// Create AreaOfEffect
 		for(int i = 0; i < areaOfEffect.size(); i++)
 		{
 			ss << i;
-			lua_createtable(L, 2, 0);
+			lua_createtable(L, 2, 0);					// Create next entry in AoE
 			lua_pushinteger(L, target.x + areaOfEffect[i].x);
-			lua_setfield(L, -2, "x");
+			lua_setfield(L, -2, "x");					// Set and name x-coordinate in entry
 			lua_pushinteger(L, target.y + areaOfEffect[i].y);
-			lua_setfield(L, -2, "y");
-			lua_setfield(L, -2, ss.str().c_str());
+			lua_setfield(L, -2, "y");					// Set and name y-coordinate in entry 
+			lua_setfield(L, -2, ss.str().c_str());		// Name entry (string of entries index in AoE)
 		}
 
-		lua_setglobal(L, "AreaOfEffect");*/
+		lua_setglobal(L, "AreaOfEffect");				// Name AreaOfEffect
 	}
 	else	// Self Cast or Single Target
 	{
-	/*	lua_createtable(L, 2, 0);
-		lua_pushinteger(L, target.x);
-		lua_setfield(L, -2, "x");
+		lua_createtable(L, 1, 0);			// Create AreaOfEffect
+		lua_createtable(L, 2, 0);			// Create first entry in AoE
+		lua_pushinteger(L, target.x);		
+		lua_setfield(L, -2, "x");			// Set and name x-coordinate in first entry
 		lua_pushinteger(L, target.y);
-		lua_setfield(L, -2, "y");
-		lua_setfield(L, -2, "0");
-		lua_setglobal(L, "AreaOfEffect");*/
+		lua_setfield(L, -2, "y");			// Set and name y-coordinate in first entry
+		lua_setfield(L, -2, "0");			// Name first entry
+		lua_setglobal(L, "AreaOfEffect");	// Name AreaOfEffect
 	}
 
-	lua_settop(L, 0);
-	int x = lua_gettop(L);
+	// Run script
 	luaL_dofile(L, script.c_str());
 }
 

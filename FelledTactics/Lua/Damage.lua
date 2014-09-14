@@ -1,12 +1,18 @@
 --[[
-	Level comes from the global parameters and is a pointer to
-	the REAL C++ data. This is saved as lightuserdata in Lua and
-	we preserve this pointer in the LuaGameObject. From there, we
-	can manipulate ANYTHING from this pointer
+	Level is pointer to current level passed from C++
+	AreaOfEffect is a list of all the Positions on the map this ability
+		has an effect on. Whether it's a tile and/or a unit is up to the ability
+
+	Using Level and AreaOfEffect, loop through and access each respective Tile/Unit
+	and apply the effects of this ability
 --]]
 
--- Start up a new LuaLevel wrapper class and pass the global Level
--- C++ lightuserdata pointer into it
+-- Get proper pointer to current Level
 local level = LuaLevel(Level)
-local unit = LuaUnit(level:GetUnit(2,2))
-unit:TakeDamage(20, 10)
+local unit = nil
+
+-- Loop through AoE and apply ability effects
+for key, value in pairs(AreaOfEffect) do
+	unit = LuaUnit(level:GetUnit(value["x"], value["y"]))
+	unit:TakeDamage(20, 10)
+end

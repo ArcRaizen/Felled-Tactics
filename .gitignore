@@ -19,3 +19,14 @@
 *.exe
 *.out
 *.app
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
+
+*.tlog
+FelledTactics/Debug/

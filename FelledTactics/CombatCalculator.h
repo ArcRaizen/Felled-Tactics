@@ -1,12 +1,20 @@
 #pragma once
 #ifndef COMBATCALC_H
 #define COMBATCALC_H
+
+#ifndef LEVEL_H
+//#include "Level.h"
+#endif
 #ifndef UNIT_H
 #include "Unit.h"
 #endif
+#ifndef TEXTELEMENT_H
 #include "TextElement.h"
+#endif
+
 #include <vector>
 
+class Level;
 class CombatCalculator
 {
 public:
@@ -18,9 +26,9 @@ public:
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
 	void	SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits);
+	void	SetCombatTextCallback(Level* l, void (Level::*func)(int, int, Position, const char*, D3DXCOLOR, float, D3DXVECTOR3, float));
 
 	int		Update(float dt);
-	void	Draw();
 
 #pragma region Properties
 	__declspec(property(put=SetAttacker)) Unit* Attacker;	void	SetAttacker(Unit* a);
@@ -38,10 +46,9 @@ private:
 	bool	doCombat;		// is combat occuring right now? (do update function?)
 
 	// Combat Text displays
-	vector<TextElement*> combatText;	// list of text to print to screen to show combat results
+	Level*	level;
 	char	battleText[10];				// buffer to hold text form of damage numbers during combat
-	D3DXVECTOR3	combatTextMove;			// temp vector to hold distance for each combat text to move each frame
-	float		alphaChange;			// temp float to hold value change in each combat text's alpha each frame
+	void	(Level::*CreateCombatText)(int, int, Position, const char*, D3DXCOLOR, float, D3DXVECTOR3, float);
 
 	// Combat timer values
 	static const float  COMBAT_TEXT_LIFE;	// how long each combat text entry lasts / is displayed

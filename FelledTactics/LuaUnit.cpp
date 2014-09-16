@@ -26,14 +26,20 @@ LuaUnit::~LuaUnit(void)
 
 int LuaUnit::ApplyStatus(lua_State* L)
 {
-	realUnit->ApplyStatus((int)luaL_checknumber(L, 1));
+	realUnit->ApplyStatus((int)lua_tointeger(L, 2));
 	return 0;
 }
 
 int LuaUnit::TakeDamage(lua_State* L)
 {
-	int a = (int)lua_tointeger(L, 2);
-	int b = (int)lua_tointeger(L, 3);
-	lua_pushnumber(L, realUnit->TakeDamage(a,b));
+	if(realUnit == NULL)
+		lua_pushnumber(L, -1);
+	else
+	{
+		int a = (int)lua_tointeger(L, 2);
+		int b = (int)lua_tointeger(L, 3);
+		lua_pushnumber(L, realUnit->TakeDamage(a,b));
+	}
+
 	return 1;
 }

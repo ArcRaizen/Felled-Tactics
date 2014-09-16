@@ -27,17 +27,12 @@ LuaLevel::~LuaLevel(void)
 
 int LuaLevel::GetTile(lua_State* L)
 {
-	lua_pushlightuserdata(L, realLevel->GetTile((int)luaL_checknumber(L, 1), (int)luaL_checknumber(L, 2)));
+	lua_pushlightuserdata(L, (void*)realLevel->GetTile(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }
 
 int LuaLevel::GetUnit(lua_State* L)
 {
-	bool a = lua_isuserdata(L, 1);
-	void* blah = lua_touserdata(L, 1);
-	int x = (int)lua_tointeger(L, 2);
-	int y = (int)lua_tointeger(L, 3);
-	int z = lua_gettop(L);
-	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(x, y));
+	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }

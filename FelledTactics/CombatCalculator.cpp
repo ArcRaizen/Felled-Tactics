@@ -96,14 +96,16 @@ void CombatCalculator::SetCombatModifiers(float physMod, float magMod, int numAt
 	numDefenderHits = numDefHits;
 }
 
+void CombatCalculator::SetCombatTextCallback(Level* l, void (Level::*func)(int, int, Position, const char*, D3DXCOLOR, float, D3DXVECTOR3, float))
+{
+	level = l;
+	CreateCombatText = func;
+}
+
 // Complete a phase of combat between 2 units and return result
 // 0 = no one died (yet), 1 = attacker died, 2 = defender died, 3 = no deaths
 int CombatCalculator::Update(float dt)
 {
-	// Calc updates to each combat text entry now
-	combatTextMove = COMBAT_TEXT_MOVE * (dt/COMBAT_TEXT_LIFE);
-	alphaChange = -dt / COMBAT_TEXT_LIFE;
-
 	if(!doCombat)
 		return -1;
 
@@ -131,14 +133,14 @@ int CombatCalculator::Update(float dt)
 				// Defender takes damage
 				damage = defender->TakeDamage(physicalDamageA * physicalModifier, magicalDamageA * magicalModifier);
 				itoa(damage, battleText, 10);
-				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
+				((level)->*(CreateCombatText))(100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 
 				// Defender killed - Only check after all attacks have finished
 				if(defender->Health == 0)
 					defenderDied = true;
 			}
 			else	// WHIFF
-				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
+				((level)->*(CreateCombatText))(100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 
 			// If the attacker is executing multiple hits, repeat this step appropriately
 			if(numAttackerHits - attHitCount > 1)
@@ -173,16 +175,15 @@ int CombatCalculator::Update(float dt)
 				{
 					// Attacker takes damage
 					damage = attacker->TakeDamage(physicalDamageD, magicalDamageD);
-					attacker->Health -= damage;
 					itoa(damage, battleText, 10);
-					combatText.push_back(new TextElement(0, 100, 100, attacker->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
+					((level)->*(CreateCombatText))(100, 100, attacker->GetCorner(), battleText, D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 
 					// Attacker killed
 					if(attacker->Health == 0)
 						attackerDied = true;
 				}
 				else // WHIFF
-					combatText.push_back(new TextElement(0, 100, 100, attacker->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
+					((level)->*(CreateCombatText))(100, 100, attacker->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 			}
 
 			// If attacker has post-combat skill, proceed to phase to execute it
@@ -231,35 +232,20 @@ int CombatCalculator::Update(float dt)
 				// Defender takes damage
 				damage = defender->TakeDamage(physicalDamageA * physicalModifier, magicalDamageA * magicalModifier);
 				itoa(damage, battleText, 10);
-				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1)));
+				((level)->*(CreateCombatText))(100, 100, defender->GetCorner(), battleText, D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 
 				// Defender killed - Only check after all attacks have finished
 				if(defender->Health == 0)
 					defenderDied = true;
 			}
 			else	// WHIFF
-				combatText.push_back(new TextElement(0, 100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1)));
+				((level)->*(CreateCombatText))(100, 100, defender->GetCorner(), "MISS!", D3DXCOLOR(1,0,0,1), COMBAT_TEXT_LIFE, COMBAT_TEXT_MOVE, 0.5f);
 
 			// Proceed to end of combat
 			combatTimer = 0.0f;
 			combatPhase = 6;
 		default: return 0;
 	}
-}
-
-void CombatCalculator::Draw()
-{
-	for(int i = 0; i < combatText.size(); i++)
-	{
-		combatText[i]->Draw();
-		combatText[i]->Translate(combatTextMove);
-		combatText[i]->ChangeAlpha(alphaChange);
-
-		if(combatText[i]->NoAlpha())
-			combatText.erase(combatText.begin() + i--);
-	}
-
-	Direct3D::DrawTextReset();
 }
 
 #pragma region Properties

@@ -22,12 +22,30 @@ int GameMaster::Update(float dt, HWND hWnd)
 
 	// Do not allow user input
 	if(GameTimer::GetGameTime() < nextActionTime || nextActionTime < 0)
+	{
+		UpdateNoInput();
 		return 2;
+	}
 
 	UpdateMouseEvents(hWnd);
 	UpdateKeyboardEvents();
 
 	return 1;
+}
+
+// Perform all update actions that do not correspond with player input
+void GameMaster::UpdateNoInput()
+{
+	for(int i = 0; i < VisualElements.size(); i++)
+	{	
+		// Remove VisualElements from list once they've been deleted
+		if(VisualElements[i]->deleted)
+		{
+			delete VisualElements[i];
+			VisualElements[i] = NULL;
+			VisualElements.erase(VisualElements.begin() + i--);
+		}
+	}
 }
 
 // Track the mouse

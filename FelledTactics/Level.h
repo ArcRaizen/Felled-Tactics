@@ -79,6 +79,8 @@ private:
 	void	ActivateEndTurn();
 	void	CreateCombatUI();
 
+	void	CreateCombatText(int width, int height, Position p, const char* t, D3DXCOLOR c, float life, D3DXVECTOR3 move, float a);
+
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);
 	bool	IsObstructedEnemy(Position p);
@@ -137,6 +139,9 @@ private:
 	MenuBox*				secondaryMenu;			// Menu for selecting skill/item for unit to use
 	Position				currentUnitPosition;	// Location of unit selected to take an action
 	Position				target;					// Target location of a skill to be cast
+
+	// Combat Text
+	vector<TextElement*>	combatText;				// list of text to print to screen to show combat results
 
 #pragma region Utility Functions
 private:

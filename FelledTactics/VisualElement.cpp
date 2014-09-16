@@ -46,7 +46,8 @@ VisualElement::VisualElement(){}
 VisualElement::~VisualElement(void)
 {
 	// Release texture
-	texture->Release();
+	if(texture)
+		texture->Release();
 	texture = 0;
 	delete texture;
 	texture = 0;

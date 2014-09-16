@@ -19,6 +19,7 @@
 #define UNIT_LAYER				3
 #define ACTION_MENU_LAYER		4
 #define SECONDARY_MENU_LAYER	5
+#define COMBAT_TEXT_LAYER		6
 
 class GameMaster
 {
@@ -31,6 +32,7 @@ public:
 	virtual void	Draw();
 
 protected:
+	void			UpdateNoInput();
 	void			UpdateMouseEvents(HWND hWnd);
 	void			UpdateKeyboardEvents();
 	void			PauseUserInput(float t);

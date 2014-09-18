@@ -193,9 +193,17 @@ void Unit::SetMovePath(list<Position> path)
 	movementFinished = false;
 }
 
-void Unit::ActivateAbility(lua_State* L, Position target)
+// Activate ability (if possible) at target location.
+// Return 1 is ability is cast, 0 if not
+int Unit::ActivateAbility(lua_State* L, Position target)
 {
-	a->Activate(L, target);
+	if(abilityPoints < a->APCost)
+		return 0;
+
+	a->Activate(L, target, position);
+	abilityPoints -= a->APCost;
+	updateHPAPBuffers = true;
+	return 1;
 }
 
 bool Unit::InitializeHPAPBuffers()

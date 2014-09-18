@@ -147,6 +147,9 @@
     <ClInclude Include="Ability.h">
       <Filter>Abilities</Filter>
     </ClInclude>
+    <ClInclude Include="CombatText.h">
+      <Filter>Menu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -229,6 +232,9 @@
     </ClCompile>
     <ClCompile Include="Ability.cpp">
       <Filter>Abilities</Filter>
+    </ClCompile>
+    <ClCompile Include="CombatText.cpp">
+      <Filter>Menu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

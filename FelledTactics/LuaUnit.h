@@ -18,6 +18,7 @@ public:
 	// Functions Lua needs to access
 	int ApplyStatus(lua_State* L);
 	int TakeDamage(lua_State* L);
+	int GetCorner(lua_State* L);
 
 private:
 	Unit* realUnit;		// Pointer to real Unit wrapped by this class

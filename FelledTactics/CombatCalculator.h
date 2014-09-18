@@ -8,9 +8,6 @@
 #ifndef UNIT_H
 #include "Unit.h"
 #endif
-#ifndef TEXTELEMENT_H
-#include "TextElement.h"
-#endif
 
 #include <vector>
 
@@ -26,7 +23,7 @@ public:
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
 	void	SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits);
-	void	SetCombatTextCallback(Level* l, void (Level::*func)(int, int, Position, const char*, D3DXCOLOR, float, D3DXVECTOR3, float));
+	void	SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int));
 
 	int		Update(float dt);
 
@@ -48,7 +45,7 @@ private:
 	// Combat Text displays
 	Level*	level;
 	char	battleText[10];				// buffer to hold text form of damage numbers during combat
-	void	(Level::*CreateCombatText)(int, int, Position, const char*, D3DXCOLOR, float, D3DXVECTOR3, float);
+	void	(Level::*CreateCombatText)(Position, Position, const char*, int);
 
 	// Combat timer values
 	static const float  COMBAT_TEXT_LIFE;	// how long each combat text entry lasts / is displayed

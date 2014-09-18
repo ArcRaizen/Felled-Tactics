@@ -10,9 +10,13 @@
 -- Get proper pointer to current Level
 local level = LuaLevel(Level)
 local unit = nil
+local damage = 0
 
 -- Loop through AoE and apply ability effects
 for key, value in pairs(AreaOfEffect) do
-	unit = LuaUnit(level:GetUnit(value["x"], value["y"]))
-	unit:TakeDamage(20, 10)
+	unit = LuaUnit(level:GetEnemyUnit(value["x"], value["y"]))
+	damage = unit:TakeDamage(20, 10)
+	if damage ~= nil then
+		level:CreateCombatText(value["x"], value["y"], Source["x"], Source["y"], damage, 0)
+	end
 end

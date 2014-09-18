@@ -28,7 +28,7 @@ public:
 	enum	EffectType {Physical, Magical, Heal, Status, None};	// Skills do Physical damage, Magical Damage, Heal a unit, Apply a Status or do no damage
 	enum	CastType {SelfCast, Ally, Enemy, Free};				// Type of units the skill can be used on
 
-	void	Activate(lua_State* L, Position target);
+	void	Activate(lua_State* L, Position target, Position source);
 
 	__declspec(property(get=GetCost)) int APCost;				int GetCost();
 	__declspec(property(get=GetType)) CastType SkillCastType;	CastType GetType();

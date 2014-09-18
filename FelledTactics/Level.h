@@ -18,6 +18,9 @@
 #ifndef COMBATCAL_H
 #include "CombatCalculator.h"
 #endif
+#ifndef COMBATEXT_H
+#include "CombatText.h"
+#endif
 #ifndef TRAVELNODE_H
 #include "TravelNode.h"
 #endif
@@ -79,12 +82,11 @@ private:
 	void	ActivateEndTurn();
 	void	CreateCombatUI();
 
-	void	CreateCombatText(int width, int height, Position p, const char* t, D3DXCOLOR c, float life, D3DXVECTOR3 move, float a);
-
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);
 	bool	IsObstructedEnemy(Position p);
 public:
+	void	CreateCombatText(Position target, Position source, const char* t, int damageType);
 	void	SetSelectedTile(Position p);
 	void	SetHoveredTile(Position p);
 #pragma endregion 
@@ -97,7 +99,7 @@ public:
 	__declspec(property(put=SetHeight, get=GetHeight)) int Height;	void SetHeight(int h);	int GetHeight();
 
 	Tile* GetTile(int x, int y);
-	Unit* GetUnit(int x, int y);
+	Unit* GetUnit(int x, int y); Unit* GetEnemyUnit(int x, int y); Unit* GetAllyUnit(int x, int y);
 #pragma endregion
 
 private:
@@ -145,8 +147,10 @@ private:
 
 #pragma region Utility Functions
 private:
-	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x > mapWidth || p.y > mapWidth) { return false;	} return true; }
-	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(y > mapWidth || y > mapWidth) { return false; } return true; }
+	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x >= mapWidth || p.y >= mapWidth) { return false; } return true; }
+	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(y >= mapWidth || y >= mapWidth) { return false; } return true; }
+	inline bool IsValidUnit(Position p) { if(!IsValidPosition(p) || unitMap[p.x][p.y] == NULL) { return false; } return true; }
+	inline bool IsValidUnit(int x, int y) { if(!IsValidPosition(x,y) || unitMap[x][y] == NULL) { return false; } return true; }
 #pragma endregion
 };
 #endif

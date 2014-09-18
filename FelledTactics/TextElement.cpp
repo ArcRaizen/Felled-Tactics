@@ -2,8 +2,8 @@
 #include "TextElement.h"
 
 
-TextElement::TextElement(int layer, int width, int height, Position p, const char* t, D3DXCOLOR color, float life, D3DXVECTOR3 move, float alpha) : 
-	VisualElement(L"", layer, width, height, p.x, p.y), text(t), fontColor(color), lifeCounter(0), textMove(move), lifeTime(life), alphaChange(alpha)
+TextElement::TextElement(int layer, int width, int height, Position p, const char* t, D3DXCOLOR color) : 
+	VisualElement(L"", layer, width, height, p.x, p.y), text(t), fontColor(color)
 {
 	mbstowcs(lpcwText, t, 20);
 	trans.x = trans.y = trans.z = 0.0f;
@@ -29,14 +29,7 @@ void TextElement::Translate(D3DXVECTOR3 t)
 
 int TextElement::Update(float dt)
 {
-	Translate(textMove * (dt / lifeTime));
-	fontColor.a += alphaChange * (-dt / lifeTime); 
-	lifeCounter += dt;
-
-	if(lifeCounter >= lifeTime)
-		return 2;
-
-	return 0;
+	return 1;
 }
 
 bool TextElement::Draw()

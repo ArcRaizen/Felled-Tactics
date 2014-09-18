@@ -109,8 +109,16 @@ Ability::~Ability(void)
 {
 }
 
-void Ability::Activate(lua_State* L, Position target)
+void Ability::Activate(lua_State* L, Position target, Position source)
 {
+	// Create table to tell script where skill was cast from
+	lua_createtable(L, 2, 0);
+	lua_pushinteger(L, source.x);
+	lua_setfield(L, -2, "x");
+	lua_pushinteger(L, source.y);
+	lua_setfield(L, -2, "y");
+	lua_setglobal(L, "Source");
+
 	// Create tables of tiles where skill  has an effect
 	if(areaOfEffect.size() > 0)
 	{

@@ -33,13 +33,16 @@ int LuaUnit::ApplyStatus(lua_State* L)
 int LuaUnit::TakeDamage(lua_State* L)
 {
 	if(realUnit == NULL)
-		lua_pushnumber(L, -1);
+		lua_pushnil(L);
 	else
-	{
-		int a = (int)lua_tointeger(L, 2);
-		int b = (int)lua_tointeger(L, 3);
-		lua_pushnumber(L, realUnit->TakeDamage(a,b));
-	}
+		lua_pushnumber(L, realUnit->TakeDamage(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 
 	return 1;
+}
+
+int LuaUnit::GetCorner(lua_State* L)
+{
+	lua_pushnumber(L, realUnit->Corner.x);
+	lua_pushnumber(L, realUnit->Corner.y);
+	return 2;
 }

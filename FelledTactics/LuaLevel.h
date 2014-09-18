@@ -16,8 +16,11 @@ public:
 	~LuaLevel(void);
 
 	// Functions Lua needs to access
+	int CreateCombatText(lua_State* L);
 	int GetTile(lua_State* L);
 	int GetUnit(lua_State* L);
+	int GetEnemyUnit(lua_State* L);
+	int GetAllyUnit(lua_State* L);
 
 private:
 	Level* realLevel;	// Pointer to real Level wrapped by this class

@@ -90,6 +90,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CombatCalculator.h" />
+    <ClInclude Include="CombatText.h" />
     <ClInclude Include="Consumable.h" />
     <ClInclude Include="Core.h" />
     <ClInclude Include="Direct3D.h" />
@@ -125,6 +126,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CombatCalculator.cpp" />
+    <ClCompile Include="CombatText.cpp" />
     <ClCompile Include="Consumable.cpp" />
     <ClCompile Include="Direct3D.cpp" />
     <ClCompile Include="FelledTactics.cpp" />

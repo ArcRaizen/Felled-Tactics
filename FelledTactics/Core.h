@@ -7,6 +7,7 @@
 #include <time.h>
 #include <sstream>
 #include <iostream>
+#include <assert.h>
 #include <D3D10.h>
 #include <D3DX10.h>
 

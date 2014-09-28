@@ -5,7 +5,7 @@
 Ability::Ability(const char* name)
 {
 	tinyxml2::XMLDocument doc;
-	doc.LoadFile("../FelledTactics/Skills.xml");
+	doc.LoadFile("../FelledTactics/Abilities.xml");
 	tinyxml2::XMLElement* abilityList = doc.FirstChildElement();
 	tinyxml2::XMLElement* ability = abilityList->FirstChildElement();
 	const char* value = ability->Attribute("Name");
@@ -155,4 +155,5 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 
 int Ability::GetCost() { return apCost; }
 Ability::CastType Ability::GetType() { return castType; }
-int Ability::GetRange() { return range; }                                          
+int Ability::GetRange() { return range; }
+vector<Position> Ability::GetAOE() { return areaOfEffect; }

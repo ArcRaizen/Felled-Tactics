@@ -21,6 +21,7 @@ Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY
 
 Tile::~Tile(void)
 {
+	level = NULL;
 }
 
 void Tile::Clear()

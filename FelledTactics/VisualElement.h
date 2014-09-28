@@ -19,7 +19,7 @@ class VisualElement
 public:
 	VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY);
 	VisualElement();
-	~VisualElement(void);
+	virtual ~VisualElement(void);
 
 	virtual enum FrameState {IDLE};
 
@@ -40,13 +40,11 @@ public:
 	__declspec(property(put=SetLayer, get=GetLayer)) int Layer;				void SetLayer(int l);			int GetLayer();
 	__declspec(property(get=GetMouseDown)) bool IsMouseDown;												bool GetMouseDown();
 	__declspec(property(get=GetMouseEntered)) bool MouseEntered;											bool GetMouseEntered();
-	__declspec(property(put=SetWidth, get=GetWidth)) int Width;				void SetWidth(int w);			int GetWidth();
-	__declspec(property(put=SetHeight, get=GetHeight)) int Height;			void SetHeight(int h);			int GetHeight();
 	__declspec(property(put=SetCorner, get=GetCorner)) Position Corner;		void SetCorner(Position p);		Position GetCorner();
 	__declspec(property(put=SetEnabled, get=GetEnabled)) bool DrawEnabled;	void SetEnabled(bool e);		bool GetEnabled();
 	__declspec(property(get=GetTexture)) ID3D10ShaderResourceView* Texture;									ID3D10ShaderResourceView* GetTexture();
 																											Position GetWorldPosition();
-
+																											RECT GetRect();
 
 	bool		deleted;	// Mark element for deletion
 
@@ -56,15 +54,16 @@ protected:
 	void	Scale(D3DXVECTOR3 s);
 	void	SetPosition(D3DXVECTOR3 p);
 	void	CalcRect();
+	bool	RectCollide(const RECT& r);
 
 	ID3D10ShaderResourceView*	texture;		// Texture for this Visual Element
-	D3DXMATRIX					world;			// World matrix for this object! 
+	D3DXMATRIX					world;			// World matrix for this object AT ITS CENTER!
 
 	int			layer;		// Depth layer for any visual element. Used for ordering of drawing objects. 
 							//	The higher the layer the closer to the screen. The lower the layer the farther back
 	bool		mouseEntered, mouseDown;
-	int			width, height, tileSize;
-	RECT		rect;
+	int			tileSize;
+	RECT		rect;			// Rectangle representing position on screen. Mostly used for drawing text
 	Position	leftCorner;		// Position according to me. Reference point is lower-left corner of a Visual Element in the world with (0,0) being the lower-left corner of the screen
 	bool		drawEnabled;	// Is this element being draw?
 	float		alpha;			// space to hold alpha of element when disabling/enabling it
@@ -83,6 +82,40 @@ protected:
 	inline int ConvertCoordinatesY(int posY, int height)
 	{
 		return posY - (int)screenHeight/2 + height/2;
+	}
+	inline int ReverseConvertCoordinatesX(int posX)
+	{
+		return posX + (int)screenWidth/2 - world._11/2;
+	}
+	inline int ReverseConvertCoordinatesY(int posY)
+	{
+		return posY + (int)screenHeight/2 - world._22/2;
+	}
+
+	// Quick inlines for element dimensions and position (in DirectX coords) since variables for width/height were removed
+	inline float Width()
+	{
+		return world._11;
+	}
+	inline float Height()
+	{
+		return world._22;
+	}
+	inline float Left()
+	{
+		return world._41 - (world._11 / 2);
+	}
+	inline float Right()
+	{
+		return world._41 + (world._11 / 2);
+	}
+	inline float Top()
+	{
+		return world._42 + (world._22 / 2);
+	}
+	inline float Bottom()
+	{
+		return world._42 - (world._22 / 2);
 	}
 };
 #endif

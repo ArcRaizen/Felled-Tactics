@@ -26,6 +26,7 @@ LuaLevel::LuaLevel(lua_State* L)
 
 LuaLevel::~LuaLevel(void)
 {
+	realLevel = NULL;
 }
 
 int LuaLevel::CreateCombatText(lua_State* L)

@@ -10,7 +10,10 @@ GameMaster::GameMaster(void){}
 GameMaster::~GameMaster(void)
 {
 	for(int i = 0; i < VisualElements.size(); i++)
+	{
 		delete VisualElements[i];
+		VisualElements[i] = NULL;
+	}
 
 	VisualElements.clear();
 }
@@ -36,15 +39,9 @@ int GameMaster::Update(float dt, HWND hWnd)
 // Perform all update actions that do not correspond with player input
 void GameMaster::UpdateNoInput()
 {
+	return;
 	for(int i = 0; i < VisualElements.size(); i++)
-	{	
-		// Remove VisualElements from list once they've been deleted
-		if(VisualElements[i]->deleted)
-		{
-			delete VisualElements[i];
-			VisualElements[i] = NULL;
-			VisualElements.erase(VisualElements.begin() + i--);
-		}
+	{
 	}
 }
 
@@ -58,15 +55,6 @@ void GameMaster::UpdateMouseEvents(HWND hWnd)
 
 	for(int i = 0; i < VisualElements.size(); i++)
 	{	
-		// Remove VisualElements from list once they've been deleted
-		if(VisualElements[i]->deleted)
-		{
-			delete VisualElements[i];
-			VisualElements[i] = NULL;
-			VisualElements.erase(VisualElements.begin() + i--);
-			continue;
-		}
-
 		// Only allow interactions with elements on the active layers
 		if(!(activeLayers & (1 << VisualElements[i]->Layer)))
 			continue;
@@ -76,6 +64,14 @@ void GameMaster::UpdateMouseEvents(HWND hWnd)
 			VisualElements[i]->MouseDown();
 		else if(!mouseDown && VisualElements[i]->IsPointContained(mousePosition))
 			VisualElements[i]->MouseUp();
+
+		// Remove VisualElements from list once they've been deleted (some Mouse Up/Down events cause a deletion immediately)
+		if(VisualElements[i]->deleted)
+		{
+			VisualElements[i] = NULL;
+			VisualElements.erase(VisualElements.begin() + i--);
+			continue;
+		}
 
 		// MouseOver and MouseOut - Logic handled on Visual Element side, just tell them where the mouse is
 		VisualElements[i]->SetCurrentMousePosition(mousePosition);
@@ -129,6 +125,8 @@ void GameMaster::SortVisualElements()
 		if(layers & (1<<j))
 			SortVisualElementsInLayer(j);
 	}
+
+	sortingRequired = false;
 }
 
 // A new VisualElement has been created, add it to the master list
@@ -177,5 +175,15 @@ void GameMaster::RemoveActiveLayer(int layer)
 void GameMaster::Draw()
 {
 	for(int i = 0; i < VisualElements.size(); i++)
+	{
+		// Remove VisualElements from list once they've been deleted
+		if(VisualElements[i]->deleted)
+		{
+			VisualElements[i] = NULL;
+			VisualElements.erase(VisualElements.begin() + i--);
+			continue;
+		}
+		
 		VisualElements[i]->Draw();
+	}
 }

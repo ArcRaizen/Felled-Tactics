@@ -16,8 +16,6 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 	uvScale.x = uvScale.y = 1.0f;
 
 	// Save screen and visual element size, initialize previous position
-	this->width = width;
-	this->height = height;
 	this->layer = layer;
 	if(width == height)
 		tileSize = width;
@@ -49,8 +47,6 @@ VisualElement::~VisualElement(void)
 	if(texture)
 		texture->Release();
 	texture = 0;
-	delete texture;
-	texture = 0;
 }
 
 // Translate Visual Element
@@ -60,7 +56,9 @@ void VisualElement::Translate(D3DXVECTOR3 t)
 	D3DXMatrixTranslation(&translate, t.x, t.y, t.z);
 	world *= translate;
 
-	leftCorner += t;
+	// Update LeftCorner and Rect
+	leftCorner.x = world._41 - (int)(world._11/2) + (int)(screenWidth/2);		// DirectXPos.x - width/2 - screenWidth/2
+	leftCorner.y = world._42 - (int)(world._22/2) + (int)(screenHeight/2);		// DirectXPos.y - height/2 - screenHeight/2
 	CalcRect();
 }
 
@@ -83,12 +81,25 @@ void VisualElement::SetPosition(D3DXVECTOR3 p)
 {
 }
 
+// Calculate the rectangle encompasing this element in screen coordinates (mostly used for drawing text)
 void VisualElement::CalcRect()	// get rekt, scrub
 {
 	rect.left = leftCorner.x;
-	rect.right = rect.left + width;
+	rect.right = rect.left + Width();
 	rect.bottom = screenHeight - leftCorner.y;
-	rect.top = rect.bottom - height;
+	rect.top = rect.bottom - Height();
+}
+
+// Although rect is mostly used for drawing text, it is updated and maintained for all VisualElements
+// Therefore, we can use it for overlap and collision detection calculations with other RECTS
+bool VisualElement::RectCollide(const RECT& r)
+{
+	if(r.left > rect.right) return false;
+	if(r.right < rect.left) return false;
+	if(r.top > rect.bottom) return false;
+	if(r.bottom < rect.top ) return false;
+
+	return true;
 }
 
 // Is a point in the world contained inside this visual element?
@@ -99,13 +110,13 @@ bool VisualElement::IsPointContained(D3DXVECTOR3 pos)
 		L"y: %.2f\n", pos.x, pos.y);
 	MessageBox(0, msg, L"Mouse Position", MB_OK);*/
 
-	if(pos.x < (world._41 - (width / 2)))
+	if(pos.x < (world._41 - (world._11 / 2)))
 		return false;
-	if(pos.x > (world._41 + (width / 2)))
+	if(pos.x > (world._41 + (world._11 / 2)))
 		return false;
-	if(pos.y < (world._42 - (height / 2)))
+	if(pos.y < (world._42 - (world._22 / 2)))
 		return false;
-	if(pos.y > (world._42 + (height / 2)))
+	if(pos.y > (world._42 + (world._22 / 2)))
 		return false;
 
 	return true;
@@ -198,14 +209,85 @@ int  VisualElement::GetLayer() { return layer; }
 void VisualElement::SetLayer(int l) { layer = l; }
 bool VisualElement::GetMouseDown() { return mouseDown; }
 bool VisualElement::GetMouseEntered() { return mouseEntered; }
-int  VisualElement::GetWidth() { return width; }
-void VisualElement::SetWidth(int w) { width = w; }
-int  VisualElement::GetHeight() { return height; }
-void VisualElement::SetHeight(int h) { height = h; }
+//int  VisualElement::GetWidth() { return width; }
+//void VisualElement::SetWidth(int w) { width = w; }
+//int  VisualElement::GetHeight() { return height; }
+//void VisualElement::SetHeight(int h) { height = h; }
 Position VisualElement::GetCorner() { return leftCorner; }
 void VisualElement::SetCorner(Position p) { leftCorner = p; }
 bool VisualElement::GetEnabled() { return drawEnabled; }
 void VisualElement::SetEnabled(bool e) { drawEnabled = e; }
 ID3D10ShaderResourceView* VisualElement::GetTexture() { return texture; }
 Position VisualElement::GetWorldPosition() { return Position(world._41, world._42); }
+RECT VisualElement::GetRect() { return rect; }
+#pragma endregion
+
+#pragma region Coordinates
+/*
+	LEFTCORNER - IN GAME COORDINATE DEFINED BY ME
+		Used to position elements in the game
+
+0, height										width, height
+	+---------------------------------------------+
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	+---------------------------------------------+
+  0,0                                             width, 0
+
+				Origin:	bottom left corner
+				Positive: right, up
+
+	DIRECTX - COORDINATES USED BY DIRECTX
+			Used to draw elements on screen
+												width/2, height/2
+	+---------------------------------------------+
+	|                     |                       |
+	|                     |                       |
+	|                     |                       |
+	|                     |                       |
+	|                     |                       |
+	|---------------------+-----------------------|
+	|                     | \                     |
+	|                     |  \                    |
+	|                     |   0,0                 |
+	|                     |                       |
+	|                     |                       |
+	+---------------------------------------------+
+-width/2, -height/2
+
+				Origin: center
+				Positive: right, up
+		
+
+	RECT - SCREEN COORDINATES
+		Used for mouse position and drawing directly on the screen (text)
+
+0,0
+	+---------------------------------------------+
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	|                                             |
+	+---------------------------------------------+
+													width/height
+
+				Origin: top left corner
+				Positive: right, down
+*/
 #pragma endregion

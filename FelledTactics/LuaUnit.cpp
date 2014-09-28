@@ -21,7 +21,7 @@ LuaUnit::LuaUnit(lua_State* L)
 
 LuaUnit::~LuaUnit(void)
 {
-
+	realUnit = NULL;
 }
 
 int LuaUnit::ApplyStatus(lua_State* L)

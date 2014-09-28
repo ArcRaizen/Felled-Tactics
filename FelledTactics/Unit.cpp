@@ -29,8 +29,8 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	abilityPoints = maximumAbilityPoints = 50;
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
-	inventory += new Weapon(Weapon::WeaponClass::Bow, 40, 0, 5);
-	a = new Ability("Damage");
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 100, 0, 5);
+	abilityList.push_back(new Ability("Damage"));
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -45,10 +45,17 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 
 Unit::~Unit(void)
 {
-	hpVertexBuffer->Release(); delete hpVertexBuffer; hpVertexBuffer = 0;
-	apVertexBuffer->Release(); delete apVertexBuffer; apVertexBuffer = 0;
-	hpBarTexture->Release(); delete hpBarTexture; hpBarTexture = 0;
-	apBarTexture->Release(); delete apBarTexture; apBarTexture = 0;
+	hpVertexBuffer->Release(); 	hpVertexBuffer = 0;
+	apVertexBuffer->Release(); 	apVertexBuffer = 0;
+	hpBarTexture->Release();    hpBarTexture = 0;
+	apBarTexture->Release();    apBarTexture = 0;
+
+	for(int i = 0; i < abilityList.size(); i++)
+	{
+		delete abilityList[i];
+		abilityList[i] = NULL;
+	}
+	abilityList.clear();
 }
 
 // Pre-set all efficiency values to -1, denoting that a unit cannot use any skills of those classes.
@@ -193,15 +200,20 @@ void Unit::SetMovePath(list<Position> path)
 	movementFinished = false;
 }
 
+Ability* Unit::GetSelectedAbility()
+{
+	return abilityList[0];
+}
+
 // Activate ability (if possible) at target location.
 // Return 1 is ability is cast, 0 if not
 int Unit::ActivateAbility(lua_State* L, Position target)
 {
-	if(abilityPoints < a->APCost)
+	if(abilityPoints < abilityList[0]->APCost)
 		return 0;
 
-	a->Activate(L, target, position);
-	abilityPoints -= a->APCost;
+	abilityList[0]->Activate(L, target, position);
+	abilityPoints -= abilityList[0]->APCost;
 	updateHPAPBuffers = true;
 	return 1;
 }
@@ -314,7 +326,7 @@ void Unit::NewTurn()
 
 bool Unit::UpdateHPAPBuffers()
 {
-	float left, right, bottom, top;										// Boarders of each bard
+	float left, right, bottom, top;										// Borders of each bar
 	float hpRatio = (float)health / (float)maximumHealth;				// Ratio of HP determines how filled HP Bar is	
 	float apRatio = (float)abilityPoints / (float)maximumAbilityPoints;	// Ratio of AP determines how filled AP Bar is
 	void* vertsPtr = 0;
@@ -323,10 +335,10 @@ bool Unit::UpdateHPAPBuffers()
 	if(CENTERED_ORIGIN) {}
 	else
 	{
-		left = -(float)(screenWidth / 2) + (float)leftCorner.x;		// Left even with Unit
-		right = left + ((float)width * hpRatio);					// Right scales to even with Unit at max
-		bottom = -(float)(screenHeight / 2) + (float)leftCorner.y +  height + hpapHeight; // Bottom slightly above unit
-		top = bottom + hpapHeight;		// HP Bar is 1/10 height of unit
+		left = Left();								// Left even with Unit
+		right = left + (Width()* hpRatio);			// Right scales to even with Unit at max
+		bottom = Top() + hpapHeight;				// Bottom slightly above unit
+		top = bottom + hpapHeight;					// HP Bar is 1/10 height of unit
 	}
 
 	Vertex verts[] =
@@ -347,10 +359,10 @@ bool Unit::UpdateHPAPBuffers()
 	if(CENTERED_ORIGIN) {}
 	else
 	{
-		//left = leftCorner.x;						// Left doesn't change
-		right = left + ((float)width * apRatio);	// Right scales to even with Unit at max
-		top = bottom;								// Top starts at bottom of HP Bar
-		bottom = top - hpapHeight;					// Stops at top of Unit
+		//left = Left();						// Left doesn't change
+		right = left + (Width() * apRatio);		// Right scales to even with Unit at max
+		top = bottom;							// Top starts at bottom of HP Bar
+		bottom = top - hpapHeight;				// Stops at top of Unit
 	}
 
 	Vertex verts2[] = 

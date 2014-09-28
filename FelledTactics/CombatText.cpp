@@ -48,7 +48,7 @@ Position CombatText::CalcCombatTextPosition(Position target, Position source)
 D3DXVECTOR3 CombatText::CalcCombatTextMovement(Position target, Position source)
 {
 	if(target.x < source.x)
-		return D3DXVECTOR3(-1, -1, 0);
+		return D3DXVECTOR3(-1, 1, 0);
 
-	return D3DXVECTOR3(1, -1, 0);
+	return D3DXVECTOR3(1, 1, 0);
 }

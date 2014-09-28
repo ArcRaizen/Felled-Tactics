@@ -27,7 +27,7 @@ class Unit : public VisualElement
 {
 public:
 	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
-	~Unit(void);
+	virtual ~Unit(void);
 
 	enum Phylum		{Martial, Mystical, Support};
 	static int		unitCounter;
@@ -39,6 +39,9 @@ public:
 	void			GainExperience();
 	virtual void	LevelUp();
 	void			SetMovePath(list<Position> path);
+
+	// Get ability
+	Ability*		GetSelectedAbility();
 	int				ActivateAbility(lua_State* L, Position target);
 
 	bool			InitializeHPAPBuffers();
@@ -162,8 +165,8 @@ protected:
 	float						hpapHeight;
 	bool						drawBars;
 
-	Inventory	inventory;
-	Ability* a;
+	Inventory					inventory;
+	vector<Ability*>			abilityList;
 
 	static D3DXVECTOR4 highlightFinishedTurn;
 };

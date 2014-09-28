@@ -33,6 +33,7 @@ public:
 	__declspec(property(get=GetCost)) int APCost;				int GetCost();
 	__declspec(property(get=GetType)) CastType SkillCastType;	CastType GetType();
 	__declspec(property(get=GetRange))int Range;				int	GetRange();
+	__declspec(property(get=GetAOE)) vector<Position> AoE;		vector<Position> GetAOE();
 
 private:
 	Type				type;

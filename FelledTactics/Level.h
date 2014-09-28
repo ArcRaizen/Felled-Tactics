@@ -76,11 +76,12 @@ private:
 	bool	DoMovementEnd(Position start, Position end);
 
 	void	CreateActionMenu();
-	void	ActivateAttack();
-	void	ActivateSkill();
-	void	ActivateItem();
+	void	SelectAttack();
+	void	SelectSkill();
+	void	SelectItem();
 	void	ActivateEndTurn();
 	void	CreateCombatUI();
+	void	ActivateSkill(int i);
 
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);

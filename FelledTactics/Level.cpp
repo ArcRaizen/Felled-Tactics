@@ -1,6 +1,13 @@
 #include "StdAfx.h"
 #include "Level.h"
 
+template <typename T>
+void Delete(T*& t)
+{
+	t->Delete();
+	delete t;
+	t = NULL;
+}
 
 Level::Level(lua_State* luaState, int width, int height, int tSize = 50) : mapWidth(width), mapHeight(height), tileSize(tSize), GameMaster(luaState)
 {
@@ -11,6 +18,7 @@ Level::Level(lua_State* luaState, int width, int height, int tSize = 50) : mapWi
 	currentPhase = SelectUnit;
 	selectedTile.x = selectedTile.y = -1;
 	pathDrawEnabled = false;
+	actionMenu = secondaryMenu = NULL;
 
 	GenerateLevel();
 }
@@ -69,10 +77,11 @@ int Level::Update(float dt, HWND hWnd)
 			}
 			else	// Remove dead enemy from the level permanently
 			{
-				unitList[i]->Delete();
-				map[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y]->TileStatus = Tile::Status::Empty;
-				unitMap[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y] = NULL;
-				unitList.erase(unitList.begin() + i--);
+				Position p = unitList[i]->UnitPosition;				// Save position temporarily
+				Delete<Unit>(unitList[i]);							// Delete unit	
+				unitList.erase(unitList.begin() + i--);				// Remove from unit list
+				map[p.x][p.y]->TileStatus = Tile::Status::Empty;	// Clear tile it was on
+				unitMap[p.x][p.y] = NULL;							// Reset tile
 				numEnemyDeaths++;
 			}
 
@@ -89,11 +98,16 @@ int Level::Update(float dt, HWND hWnd)
 
 		if(result == 2)
 		{
-			combatText[i]->Delete();
+			Delete<TextElement>(combatText[i]);
 			combatText.erase(combatText.begin() + i--);
 		}
 	}
 #pragma endregion
+
+	if(actionMenu)
+		actionMenu->Update(dt);
+	if(secondaryMenu)
+		secondaryMenu->Update(dt);
 
 #pragma region Phase Update
 	// Do different updates depending on the current phase
@@ -249,13 +263,37 @@ int Level::Update(float dt, HWND hWnd)
 			}
 			break;
 /**/	case Phase::SelectSkillTarget:
-			if(selectedTile.x == -1)	break;
-			MarkTiles(false, hoveredTile, 0 /*get range of skill selected*/, 2 /*get aoe of skill selected*/);
+			// Target location for skill has moved
+			if(lastHoveredTile != hoveredTile)
+			{
+				// Remove AoE marks now that the target for the skill has changed
+				if(map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
+					MarkTiles(true, lastHoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
 
-			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillRange)
+				// Re-draw AoE marks when the target is a new valid tile
+				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
+					MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+			}
+
+			if(selectedTile.x == -1)	break;
+
+			// Skill has been activated at target location
+			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillRange ||
+				map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillAoE)
 			{
 				target = selectedTile;
 				currentPhase = ExecuteAction;
+
+				// Remove marks from tiles
+				
+				MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
+
+				// Activate Skill
+				lua_pushlightuserdata(L, (void*)this);
+				lua_setglobal(L, "Level");
+				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile))
+					ActivateEndTurn();
 			}
 			break;
 /**/	case Phase::ExecuteAction:
@@ -312,8 +350,8 @@ void Level::HandleRightClick()
 			ActivateEndTurn();
 			return;
 /**/	case Phase::SelectSecondaryAction:	// Return to SelectPrimaryAction
-			secondaryMenu->Delete();
-			//actionMenu->EnableDraw();
+			Delete<MenuBox>(secondaryMenu);
+			actionMenu->EnableDraw();
 			RemoveActiveLayer(SECONDARY_MENU_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
 			currentPhase = SelectPrimaryAction;
@@ -328,8 +366,8 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectSkillTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
-			// MarkTiles(true, currentUnitPosition, /*SkillRange*/ 0, 2);
-			
+			MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
 			secondaryMenu->EnableDraw();
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
@@ -726,22 +764,26 @@ int Level::CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* no
 // Mark Type 0 = Movement, 1 = Attack, 2 = Ally Skill Range, 3 = Ally Skill AoE, 4 = Enemy Movement
 void Level::MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange)
 {
-	if(markType == 2)
+	if(markType == 3)
 	{
 		if(!undo)
 		{
-			map[start.x][start.y]->PrevTileMark = map[start.x][start.y]->TileMark;	// Save mark for simple undo later
-			map[start.x][start.y]->TileMark = Tile::Mark::AllySkillAoE;				// Mark tile - Visual Change will be done by the tile itself (hopefully with shaders)
-
 			// A skill can have a custom Area of Effect (aoe) that requires extra markings
 			for(int k = 0; k < skillRange.size(); k++)
+			{
+				if(!IsValidPosition(start.x+skillRange[k].x,start.y+skillRange[k].y)) continue;
+				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark;
 				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark = Tile::Mark::AllySkillAoE;
+			}
 		}
 		else	// Undo the change as the cast location of the skill moves or the skill is cast or cancelled
 		{
-			map[start.x][start.y]->TileMark = map[start.x][start.y]->PrevTileMark;
 			for(int k = 0; k < skillRange.size(); k++)
+			{
+				if(!IsValidPosition(start.x+skillRange[k].x,start.y+skillRange[k].y)) continue;
 				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark = map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark;
+				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = Tile::Mark::None;
+			}
 		}
 
 		return;	// Do not bother with the rest, this section is for AllySkillAoE only
@@ -839,17 +881,16 @@ bool Level::DoMovementEnd(Position start, Position end)
 	// Create Action Menu
 	CreateActionMenu();
 
-	currentPhase = SelectPrimaryAction;
 	return true;
 }
 
 void Level::CreateActionMenu()
 {
-	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*2, currentUnitPosition.y*tileSize);
-	actionMenu->CreateElement(&Level::ActivateAttack, L"../FelledTactics/Textures/MenuAttack.png", 80, 45, 10, 145);
-	actionMenu->CreateElement(&Level::ActivateSkill, L"../FelledTactics/Textures/MenuSkills.png", 80, 45, 10, 100);
-	actionMenu->CreateElement(&Level::ActivateItem, L"../FelledTactics/Textures/MenuItems.png", 80, 45, 10, 55);
-	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png", 80, 45, 10, 10);
+	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*2, currentUnitPosition.y*tileSize, 1, 4);
+	actionMenu->CreateElement(&Level::SelectAttack, L"../FelledTactics/Textures/MenuAttack.png");//, 80, 45, 10, 145);
+	actionMenu->CreateElement(&Level::SelectSkill, L"../FelledTactics/Textures/MenuSkills.png");//, 80, 45, 10, 100);
+	actionMenu->CreateElement(&Level::SelectItem, L"../FelledTactics/Textures/MenuItems.png");//, 80, 45, 10, 55);
+	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png");//, 80, 45, 10, 10);
 	
 	AddVisualElement(actionMenu);
 //	SortVisualElements();
@@ -857,10 +898,11 @@ void Level::CreateActionMenu()
 	// Set active layers to ignore everything but this Menu
 	RemoveActiveLayer(TILE_LAYER);
 	AddActiveLayer(ACTION_MENU_LAYER);
+	currentPhase = SelectPrimaryAction;
 }
 
 // Player has selected for a Unit to attack
-void Level::ActivateAttack()
+void Level::SelectAttack()
 {
 	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
 	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
@@ -875,9 +917,10 @@ void Level::ActivateAttack()
 	AddActiveLayer(TILE_LAYER);				//	to the tiles to allow player to select a target
 }
 
-void Level::ActivateSkill()
+void Level::SelectSkill()
 {
-/*	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
+	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*3, currentUnitPosition.y*tileSize + tileSize/2, 1, 4);
+	secondaryMenu->CreateElement(&Level::ActivateSkill, 0, L"../FelledTactics/Textures/MenuBackgrounds.png", "WORDS");//, 80, 45, 10, 145);
 
 	currentPhase = SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
@@ -885,17 +928,12 @@ void Level::ActivateSkill()
 
 	// Set active layers to ignore everything but this Menu
 	RemoveActiveLayer(ACTION_MENU_LAYER);
-	AddActiveLayer(SECONDARY_MENU_LAYER);*/
-
-	lua_pushlightuserdata(L, (void*)this);
-	lua_setglobal(L, "Level");
-	if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, currentUnitPosition))
-		ActivateEndTurn();
+	AddActiveLayer(SECONDARY_MENU_LAYER);
 }
 
-void Level::ActivateItem()
+void Level::SelectItem()
 {
-	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100);
+	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100, 1, 4);
 
 	currentPhase = SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
@@ -914,7 +952,9 @@ void Level::ActivateEndTurn()
 	numUnitsMoved++;
 
 	// Delete action menu
-	actionMenu->Delete();
+	Delete<MenuBox>(actionMenu);
+	if(secondaryMenu)
+		Delete<MenuBox>(secondaryMenu);
 	RemoveActiveLayer(ACTION_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
 
@@ -928,6 +968,17 @@ void Level::ActivateEndTurn()
 void Level::CreateCombatUI()
 {
 
+}
+
+void Level::ActivateSkill(int i)
+{
+	RemoveActiveLayer(SECONDARY_MENU_LAYER);
+	AddActiveLayer(TILE_LAYER);
+	currentPhase = SelectSkillTarget;
+	actionMenu->DisableDraw();
+	secondaryMenu->DisableDraw();
+	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
+	MarkTiles(false, currentUnitPosition, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
 }
 
 void Level::CreateCombatText(Position target, Position source, const char* t, int damageType)

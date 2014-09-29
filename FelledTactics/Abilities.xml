@@ -5,7 +5,7 @@
 		<effect_type>Physical</effect_type>
 		<cast_type>SelfCast</cast_type>
 		<ap_cost>20</ap_cost>
-		<range>5</range>
+		<range>6</range>
 		<aoe>3|-1|-1|1|1|1|0</aoe>
 		<script>Lua\Damage.lua</script>
 	</Skill>

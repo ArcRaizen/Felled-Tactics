@@ -302,6 +302,7 @@ int Level::Update(float dt, HWND hWnd)
 
 			switch(combatResult)
 			{
+				case -1: break;	// no combat occuring
 				case 0: break;	// combat still occuring
 				case 3:			// no death after combat finished
 					RestoreUserInput();
@@ -972,13 +973,21 @@ void Level::CreateCombatUI()
 
 void Level::ActivateSkill(int i)
 {
+	// Allow targeting on tiles
 	RemoveActiveLayer(SECONDARY_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
-	currentPhase = SelectSkillTarget;
+
+	// Turn off menus for targeting
 	actionMenu->DisableDraw();
 	secondaryMenu->DisableDraw();
+
+	// Move to proper gameplay phase
+	currentPhase = SelectSkillTarget;
+
+	// Mark Range and AoE of skill
 	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
-	MarkTiles(false, currentUnitPosition, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
+		MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
 }
 
 void Level::CreateCombatText(Position target, Position source, const char* t, int damageType)

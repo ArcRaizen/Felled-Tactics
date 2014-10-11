@@ -29,8 +29,13 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	abilityPoints = maximumAbilityPoints = 50;
 	strength = magic = skill = agility = defense = resistance = 10;
 	attackRange = 5;
-	inventory += new Weapon(Weapon::WeaponClass::Bow, 100, 0, 5);
-	abilityList.push_back(new Ability("Damage"));
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 30, 0, 5);
+
+	// Test Abilities
+	numAbilities = numActionAbilities = numBattleAbilities = 0;
+	LearnAbility("Damage");
+	LearnAbility("Heal");
+	LearnAbility("DoubleStrike");
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -50,12 +55,18 @@ Unit::~Unit(void)
 	hpBarTexture->Release();    hpBarTexture = 0;
 	apBarTexture->Release();    apBarTexture = 0;
 
-	for(int i = 0; i < abilityList.size(); i++)
+	for(int i = 0; i < activeAbilityList.size(); i++)
 	{
-		delete abilityList[i];
-		abilityList[i] = NULL;
+		delete activeAbilityList[i];
+		activeAbilityList[i] = NULL;
 	}
-	abilityList.clear();
+	for(int j = 0; j < passiveAbilityList.size(); j++)
+	{
+		delete passiveAbilityList[j];
+		passiveAbilityList[j] = NULL;
+	}
+	activeAbilityList.clear();
+	passiveAbilityList.clear();
 }
 
 // Pre-set all efficiency values to -1, denoting that a unit cannot use any skills of those classes.
@@ -117,6 +128,21 @@ int Unit::TakeDamage(int physDamage, int magDamage)
 
 	updateHPAPBuffers = true;
 	return physDamage + magDamage;	// return damage taken
+}
+
+// Unit regains HP and returns the amount gained
+int Unit::Heal(int hp)
+{
+	int healed = maximumHealth - health;
+
+	health += hp;
+	if(health > maximumHealth)
+	{
+		health = maximumHealth;
+		return healed;
+	}
+
+	return hp;
 }
 
 void Unit::Revive(int health)
@@ -200,23 +226,83 @@ void Unit::SetMovePath(list<Position> path)
 	movementFinished = false;
 }
 
-Ability* Unit::GetSelectedAbility()
+#pragma region Abilities
+void Unit::LearnAbility(const char* name)
 {
-	return abilityList[0];
+	// LEARN NEW ABILITY HERE
+	Ability* a = new Ability(name);
+
+	numAbilities++;
+	switch(a->AbilityType)
+	{
+		case Ability::Type::Passive:
+			passiveAbilityList.push_back(a);
+			break;
+		case Ability::Type::Action:
+			numActionAbilities++;
+			numBattleAbilities--;
+		case Ability::Type::Battle:
+			numBattleAbilities++;
+			activeAbilityList.push_back(a);
+			break;
+	}
+
+	a = NULL;
 }
+
+// Check if the selected ability is a Battle ability (not action or passive)
+bool Unit::SelectedBattleAbility() const { return activeAbilityList[selectedAbility]->AbilityType == Ability::Type::Battle; }
+
+// Set a new ability as the currently selected ability
+void Unit::SetSelectedAbility(int index) { selectedAbility = index; }
+
+// Get specific parameters of the currently selected ability
+char* Unit::GetSelectedAbilityName() const { return activeAbilityList[selectedAbility]->Name; }
+int   Unit::GetSelectedAbilityCost() const { return activeAbilityList[selectedAbility]->APCost; }
+int	  Unit::GetSelectedAbilityRange() const { return activeAbilityList[selectedAbility]->Range; }
+void  Unit::SetSelectedAbilityRange(int r) { activeAbilityList[selectedAbility]->Range = r; }
+Ability::CastType Unit::GetSelectedAbilityCastType() const { return activeAbilityList[selectedAbility]->AbilityCastType; }
+vector<Position> Unit::GetSelectedAbilityAoE() const { return activeAbilityList[selectedAbility]->AoE; }
 
 // Activate ability (if possible) at target location.
 // Return 1 is ability is cast, 0 if not
 int Unit::ActivateAbility(lua_State* L, Position target)
 {
-	if(abilityPoints < abilityList[0]->APCost)
+	if(abilityPoints < activeAbilityList[selectedAbility]->APCost)
 		return 0;
 
-	abilityList[0]->Activate(L, target, position);
-	abilityPoints -= abilityList[0]->APCost;
+	activeAbilityList[selectedAbility]->Activate(L, target, position);
+	abilityPoints -= activeAbilityList[selectedAbility]->APCost;
 	updateHPAPBuffers = true;
 	return 1;
 }
+
+// Battle Abilities are activated BEFORE their effects go through and can be canceled before as well
+// Call this function to refund their cost after activation if they are canceled before combat occurs
+void Unit::RefundAP()
+{
+	abilityPoints += activeAbilityList[selectedAbility]->APCost;
+}
+
+// Reset Battle Ability Scripts after they have been used
+void Unit::ClearBattleScripts()
+{
+	combatCalculationAbilityScript = "Lua\\Combat\\Base_CalcCombat.lua";
+	combatExecutionAbilityScript = "";
+}
+
+bool Unit::HasAbility(const char* name)
+{
+
+	return false;
+}
+
+char* Unit::GetAbilityName(int index) const { return activeAbilityList[index]->Name; }
+
+// Get number of abilities
+int Unit::GetNumActiveAbilities() const { return numActionAbilities + numBattleAbilities; }
+int Unit::GetNumAbilities() const { return numAbilities; }
+#pragma endregion
 
 bool Unit::InitializeHPAPBuffers()
 {
@@ -452,6 +538,10 @@ Unit::Phylum Unit::GetPhylum() { return phylum; }
 void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }
+void  Unit::SetCombatCalcScript(std::string s) { combatCalculationAbilityScript = s; }
+std::string Unit::GetCombatCalcScript() { return combatCalculationAbilityScript; }
+void  Unit::SetCombatExecuteScript(std::string s) { combatExecutionAbilityScript = s; }
+std::string Unit::GetCombatExecuteScript() { return combatExecutionAbilityScript; }
 void  Unit::SetDrawBars(bool db) { drawBars = db; }
 int	  Unit::GetUnitID() const { return unitID; }
 

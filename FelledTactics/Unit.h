@@ -23,6 +23,10 @@
 #define ENEMY		1 << 2
 #pragma endregion
 
+#pragma region Ability Codes
+
+#pragma endregion
+
 class Unit : public VisualElement
 {
 public:
@@ -34,15 +38,29 @@ public:
 
 	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
 	int				TakeDamage(int physDamage, int magDamage);
+	int				Heal(int hp);
 	virtual void	Revive(int health);						// Revived by an ally
 	virtual float	Die();									// Defeated in combat - Felled
 	void			GainExperience();
 	virtual void	LevelUp();
 	void			SetMovePath(list<Position> path);
 
-	// Get ability
-	Ability*		GetSelectedAbility();
+	void			LearnAbility(const char* name);
+	bool			SelectedBattleAbility() const;
+	void			SetSelectedAbility(int index);
+	char*			GetSelectedAbilityName() const;
+	int				GetSelectedAbilityCost() const;
+	int				GetSelectedAbilityRange() const;
+	void			SetSelectedAbilityRange(int r);
+	Ability::CastType GetSelectedAbilityCastType() const;
+	vector<Position> GetSelectedAbilityAoE() const;
 	int				ActivateAbility(lua_State* L, Position target);
+	void			RefundAP();
+	void			ClearBattleScripts();
+	bool			HasAbility(const char* name);
+	char*			GetAbilityName(int index) const;
+	int				GetNumActiveAbilities() const;
+	int				GetNumAbilities() const;
 
 	bool			InitializeHPAPBuffers();
 
@@ -76,6 +94,10 @@ public:
 	__declspec(property(get=GetPhylum)) Phylum UnitPhylum;																	Phylum GetPhylum();
 	__declspec(property(get=GetMovementFinished)) bool MovementFinished;													bool GetMovementFinished();
 	__declspec(property(put=SetFinished, get=GetFinished)) bool FinishedTurn;			void SetFinished(bool f);			bool GetFinished();
+	__declspec(property(put=SetCombatCalcScript, get=GetCombatCalcScript)) std::string CombatCalcScript;
+																						void SetCombatCalcScript(std::string s); std::string GetCombatCalcScript();
+	__declspec(property(put=SetCombatExecuteScript, get=GetCombatExecuteScript)) std::string CombatExecuteScript;
+																						void SetCombatExecuteScript(std::string s); std::string GetCombatExecuteScript();
 	__declspec(property(put=SetDrawBars)) bool DrawBars;								void SetDrawBars(bool db);
 
 	int GetUnitID() const;
@@ -157,6 +179,19 @@ protected:
 	float			movementTimer;
 	bool			movementFinished;
 
+	// Abilities
+	int					numAbilities;
+	int					numActionAbilities;
+	int					numBattleAbilities;
+	int					selectedAbility;
+	vector<Ability*>	passiveAbilityList;
+	vector<Ability*>	activeAbilityList;
+	std::string			combatCalculationAbilityScript;
+	std::string			combatExecutionAbilityScript;
+
+	// Items
+	Inventory					inventory;
+
 	// DirectX Stuff / Health + Ability Power Bar Stuff
 	ID3D10Buffer				*hpVertexBuffer, *apVertexBuffer;	// Vertex buffers for HP/AP Bars
 	ID3D10ShaderResourceView	*hpBarTexture, *apBarTexture;		// Textures for HP/AP Bars
@@ -164,9 +199,6 @@ protected:
 	D3DXMATRIX					hpapWorld;
 	float						hpapHeight;
 	bool						drawBars;
-
-	Inventory					inventory;
-	vector<Ability*>			abilityList;
 
 	static D3DXVECTOR4 highlightFinishedTurn;
 };

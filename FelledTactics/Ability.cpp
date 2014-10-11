@@ -12,10 +12,13 @@ Ability::Ability(const char* name)
 
 	// Loop through all skills until correct skill is located
 	while(strcmp(value, name) && ability != abilityList->LastChildElement())
-	{
+	{ 
 		ability = ability->NextSiblingElement();
 		value = ability->Attribute("Name");
 	}
+
+	// Save name
+	strcpy(this->name, name);
 
 	// Set Skill from XML file
 	// 1) Skill Type
@@ -94,6 +97,8 @@ Ability::Ability(const char* name)
 			areaOfEffect.push_back(Position(a,b));						// Add new Position(x,y) to AoE list - Move to next entry in AoE
 		}
 	}
+	else
+		areaOfEffect.push_back(Position(0,0));
 
 
 	// 7) Script
@@ -153,7 +158,10 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	luaL_dofile(L, script.c_str());
 }
 
+char* Ability::GetName() { return name; }
+Ability::Type Ability::GetType() { return type; }
 int Ability::GetCost() { return apCost; }
-Ability::CastType Ability::GetType() { return castType; }
+Ability::CastType Ability::GetCastType() { return castType; }
 int Ability::GetRange() { return range; }
+void Ability::SetRange(int r) { range = r; }
 vector<Position> Ability::GetAOE() { return areaOfEffect; }

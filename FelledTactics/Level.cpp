@@ -234,8 +234,8 @@ int Level::Update(float dt, HWND hWnd)
 				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::Attack)
 				{
 					target = hoveredTile;
-					combatCalculator.Defender = unitMap[target.x][target.y];
-					combatCalculator.CalculateCombat();
+					combatCalculator.SetDefender(unitMap[target.x][target.y]);
+					combatCalculator.CalculateCombat(L);
 
 					// CREATE COMBAT RESULTS UI
 				}
@@ -252,53 +252,94 @@ int Level::Update(float dt, HWND hWnd)
 			// Selected valid target - FIGHT!
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::Attack)
 			{
-				combatCalculator.SetCombatModifiers(1.0f, 1.0f, 1, 1);
+			//	combatCalculator.SetCombatModifiers(1.0f, 1.0f, 1, 1);
 				combatCalculator.DoCombat();
 
 				// Unmark all enemies in range of unit
 				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
 
 				PauseUserInputIndefinite();
-				currentPhase = ExecuteAction;
+				currentPhase = ExecuteAttack;
 			}
 			break;
-/**/	case Phase::SelectSkillTarget:
+/**/	case Phase::SelectAbilityTarget:
 			// Target location for skill has moved
 			if(lastHoveredTile != hoveredTile)
 			{
 				// Remove AoE marks now that the target for the skill has changed
-				if(map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-					MarkTiles(true, lastHoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+				if(lastHoveredTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
+					MarkTiles(true, lastHoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
 
 				// Re-draw AoE marks when the target is a new valid tile
-				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-					MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+				if(hoveredTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
+					MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+
+				// Special Considerations must be made for Battle Abilities that tie-in to regular combat
+				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
+				{
+					if(map[hoveredTile.x][hoveredTile.y]->TileStatus == Tile::Status::EnemyUnit)
+					{
+						target = hoveredTile;
+						combatCalculator.SetDefender(unitMap[target.x][target.y]);
+						combatCalculator.CalculateCombat(L);
+
+						// Create combat results UI
+					}
+					else
+					{
+						combatCalculator.ResetDefender();
+						// Remove combat UI
+					}
+				}
 			}
 
 			if(selectedTile.x == -1)	break;
 
 			// Skill has been activated at target location
-			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillRange ||
-				map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllySkillAoE)
+			if(selectedTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
 			{
-				target = selectedTile;
-				currentPhase = ExecuteAction;
+				// Battle Abilities proceed to Combat Phase when their target is selected
+				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
+				{
+					combatCalculator.DoCombat();
 
-				// Remove marks from tiles
-				
-				MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
-				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
+					// Remove marks from tiles
+					MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+					MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
 
-				// Activate Skill
-				lua_pushlightuserdata(L, (void*)this);
-				lua_setglobal(L, "Level");
-				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile))
-					ActivateEndTurn();
+					PauseUserInputIndefinite();
+					currentPhase = ExecuteAttack;
+				}
+				else
+				{
+					Ability::CastType ct = unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityCastType();
+					Tile::Status ts = map[selectedTile.x][selectedTile.y]->TileStatus;
+
+					// Check Ability CastType is being respected
+					if((ct == Ability::CastType::Ally && ts == Tile::Status::AllyUnit) || 
+						(ct == Ability::CastType::Enemy && ts == Tile::Status::EnemyUnit) || 
+						(ct == Ability::CastType::SelfCast && selectedTile == currentUnitPosition) ||
+						ct == Ability::CastType::Free)
+					{
+						target = selectedTile;
+						currentPhase = ExecuteAbility;
+
+						// Remove marks from tiles
+						MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+
+						// Activate Skill
+						lua_pushlightuserdata(L, (void*)this);
+						lua_setglobal(L, "Level");
+						if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile))
+							ActivateEndTurn();
+					}
+				}
 			}
 			break;
-/**/	case Phase::ExecuteAction:
+/**/	case Phase::ExecuteAttack:
 		{	
-			int combatResult; combatResult = combatCalculator.Update(dt);		
+			int combatResult; combatResult = combatCalculator.Update2(dt, L);		
 
 			switch(combatResult)
 			{
@@ -319,6 +360,8 @@ int Level::Update(float dt, HWND hWnd)
 
 			break;
 		}
+		case Phase::ExecuteAbility:
+			break;
 /**/	case Phase::EnemyTurn:
 			StartNewTurn();
 			if(selectedTile.x == -1)	break;
@@ -365,17 +408,22 @@ void Level::HandleRightClick()
 			AddActiveLayer(ACTION_MENU_LAYER);
 			currentPhase = SelectPrimaryAction;
 			return;
-/**/	case Phase::SelectSkillTarget:		// Cancel Secondary Action, return to SelectSecondary Action
+/**/	case Phase::SelectAbilityTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
-			MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
-			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
+			MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+			unitMap[currentUnitPosition.x][currentUnitPosition.y]->ClearBattleScripts();
+			if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
+				unitMap[currentUnitPosition.x][currentUnitPosition.y]->RefundAP();
 			secondaryMenu->EnableDraw();
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(SECONDARY_MENU_LAYER);
 			currentPhase = SelectSecondaryAction;
 			break;
-/**/	case Phase::ExecuteAction:			// Do Nothing
+/**/	case Phase::ExecuteAttack:			// Do Nothing
+			return;
+/**/	case Phase::ExecuteAbility:			// Do Nothing
 			return;
 /**/	case Phase::EnemyTurn:				// Skip Enemy Turn (maybe)
 			return;
@@ -889,7 +937,7 @@ void Level::CreateActionMenu()
 {
 	actionMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", ACTION_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*2, currentUnitPosition.y*tileSize, 1, 4);
 	actionMenu->CreateElement(&Level::SelectAttack, L"../FelledTactics/Textures/MenuAttack.png");//, 80, 45, 10, 145);
-	actionMenu->CreateElement(&Level::SelectSkill, L"../FelledTactics/Textures/MenuSkills.png");//, 80, 45, 10, 100);
+	actionMenu->CreateElement(&Level::SelectAbility, L"../FelledTactics/Textures/MenuSkills.png");//, 80, 45, 10, 100);
 	actionMenu->CreateElement(&Level::SelectItem, L"../FelledTactics/Textures/MenuItems.png");//, 80, 45, 10, 55);
 	actionMenu->CreateElement(&Level::ActivateEndTurn, L"../FelledTactics/Textures/MenuEnd.png");//, 80, 45, 10, 10);
 	
@@ -908,7 +956,7 @@ void Level::SelectAttack()
 	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
 	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
 
-	// Create Combat Calculator
+	// Set 1st Combatant in the CombatCalculator
 	combatCalculator.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
 	// Go to Next Phase - Select Target for attack
@@ -918,10 +966,17 @@ void Level::SelectAttack()
 	AddActiveLayer(TILE_LAYER);				//	to the tiles to allow player to select a target
 }
 
-void Level::SelectSkill()
+void Level::SelectAbility()
 {
-	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*3, currentUnitPosition.y*tileSize + tileSize/2, 1, 4);
-	secondaryMenu->CreateElement(&Level::ActivateSkill, 0, L"../FelledTactics/Textures/MenuBackgrounds.png", "WORDS");//, 80, 45, 10, 145);
+	int numAbilities = unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetNumActiveAbilities();
+	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, currentUnitPosition.x*tileSize + tileSize*3, currentUnitPosition.y*tileSize + tileSize/2, 1, numAbilities);
+	
+	for(int i = 0; i < numAbilities; i++)
+	{
+		secondaryMenu->CreateElement(&Level::ActivateAbility, i, 
+			L"../FelledTactics/Textures/MenuBackgrounds.png", 
+			unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetAbilityName(i));
+	}
 
 	currentPhase = SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
@@ -971,8 +1026,31 @@ void Level::CreateCombatUI()
 
 }
 
-void Level::ActivateSkill(int i)
+void Level::ActivateAbility(int selectedAbility)
 {
+	// Set Selected Ability
+	unitMap[currentUnitPosition.x][currentUnitPosition.y]->SetSelectedAbility(selectedAbility);
+
+	// Activate Battle Abilities NOW. The costs/effects are reset if they are canceled before a target is selected
+	if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
+	{
+		lua_pushlightuserdata(L, (void*)this);
+		lua_setglobal(L, "Level");
+		if(!unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, currentUnitPosition))
+			return;
+
+		// Set 1st Combatant in the CombatCalculator
+		combatCalculator.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
+
+		// Set Range of Battle Ability to the Attack Range of the Activating Unit
+		unitMap[currentUnitPosition.x][currentUnitPosition.y]->SetSelectedAbilityRange(unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange);
+	}
+
+	// Mark Range and AoE of ability - Range = Attack Range if Battle Ability and no AoE
+	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
+		MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+
 	// Allow targeting on tiles
 	RemoveActiveLayer(SECONDARY_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
@@ -982,12 +1060,7 @@ void Level::ActivateSkill(int i)
 	secondaryMenu->DisableDraw();
 
 	// Move to proper gameplay phase
-	currentPhase = SelectSkillTarget;
-
-	// Mark Range and AoE of skill
-	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->Range, 2);
-	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-		MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbility()->AoE);
+	currentPhase = SelectAbilityTarget;
 }
 
 void Level::CreateCombatText(Position target, Position source, const char* t, int damageType)

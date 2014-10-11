@@ -34,6 +34,9 @@
     <Filter Include="Abilities">
       <UniqueIdentifier>{b0d3de69-f9f7-4f6a-b7ac-f06c76b2634e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Lua">
+      <UniqueIdentifier>{3d1566a0-192d-44a5-b659-c570dd2c55e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -135,20 +138,23 @@
     <ClInclude Include="TextElement.h">
       <Filter>Menu</Filter>
     </ClInclude>
-    <ClInclude Include="Luna.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LuaUnit.h">
-      <Filter>Units</Filter>
-    </ClInclude>
-    <ClInclude Include="LuaLevel.h">
-      <Filter>Level</Filter>
-    </ClInclude>
     <ClInclude Include="Ability.h">
       <Filter>Abilities</Filter>
     </ClInclude>
     <ClInclude Include="CombatText.h">
       <Filter>Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="Luna.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaCombatCalculator.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaLevel.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaUnit.h">
+      <Filter>Lua</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -224,17 +230,20 @@
     <ClCompile Include="TextElement.cpp">
       <Filter>Menu</Filter>
     </ClCompile>
-    <ClCompile Include="LuaUnit.cpp">
-      <Filter>Units</Filter>
-    </ClCompile>
-    <ClCompile Include="LuaLevel.cpp">
-      <Filter>Level</Filter>
-    </ClCompile>
     <ClCompile Include="Ability.cpp">
       <Filter>Abilities</Filter>
     </ClCompile>
     <ClCompile Include="CombatText.cpp">
       <Filter>Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaLevel.cpp">
+      <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaCombatCalculator.cpp">
+      <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaUnit.cpp">
+      <Filter>Lua</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

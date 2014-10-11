@@ -101,6 +101,7 @@
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="Level.h" />
+    <ClInclude Include="LuaCombatCalculator.h" />
     <ClInclude Include="LuaLevel.h" />
     <ClInclude Include="LuaUnit.h" />
     <ClInclude Include="Luna.h" />
@@ -136,6 +137,7 @@
     <ClCompile Include="Inventory.cpp" />
     <ClCompile Include="Item.cpp" />
     <ClCompile Include="Level.cpp" />
+    <ClCompile Include="LuaCombatCalculator.cpp" />
     <ClCompile Include="LuaLevel.cpp" />
     <ClCompile Include="LuaUnit.cpp" />
     <ClCompile Include="Matrix.cpp" />

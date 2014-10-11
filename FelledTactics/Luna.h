@@ -2,6 +2,7 @@
 #include "lua.hpp" //Lua for C++ Header
 #include <string.h> // For strlen
 
+#define propertyL(class, name, get, set) {#name, &class::get, &class::set}
 #define method(class, name) {#name, &class::name}
 
 /*

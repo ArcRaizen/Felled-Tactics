@@ -9,6 +9,7 @@
 #include "Unit.h"
 #endif
 
+#include "Luna.h"
 #include <vector>
 
 class Level;
@@ -19,18 +20,22 @@ public:
 	~CombatCalculator(void);
 
 	void	CalculateCombat();
+	void	CalculateCombat(lua_State* L);
 	void	DoCombat();
+	void	DefenderDied();
+	void	AttackerDied();
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
-	void	SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits);
+	void	SetCombatParametersAttacker(int attPhys, int attMag, int attHit, int attAvoid, int attNumHits);
+	void	SetCombatParametersDefender(int defPhys, int defMag, int defHit, int defAvoid, int defNumHits);
 	void	SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int));
 
 	int		Update(float dt);
+	int		Update2(float dt, lua_State* L);
 
 #pragma region Properties
-	__declspec(property(put=SetAttacker)) Unit* Attacker;	void	SetAttacker(Unit* a);
-	__declspec(property(put=SetDefender)) Unit* Defender;	void	SetDefender(Unit* d);
-	__declspec(property(put=SetRange)) int Range;			void	SetRange(int r);
+	__declspec(property(get=GetAttacker, put=SetAttacker)) Unit* Attacker;	Unit* GetAttacker();	void SetAttacker(Unit* a);
+	__declspec(property(get=GetDefender, put=SetDefender)) Unit* Defender;	Unit* GetDefender();	void SetDefender(Unit* d);
 	__declspec(property(get=GetDamageA)) int DamageA;		int		GetDamageA();
 	__declspec(property(get=GetDaamgeD)) int DamageD;		int		GetDamageD();
 	__declspec(property(get=GetAccuracyA)) float AccuracyA;	float	GetAccuracyA();
@@ -53,7 +58,11 @@ private:
 	static const float	MID_COMBAT_WAIT;	// time after attacker first strikes before defender retaliates
 	static const float	POST_COMBAT_WAIT;	// time after final attack before combat completely ends
 	static const float  MULTI_HIT_WAIT;		// time between multiple hits from a single combatant
-	static const D3DXVECTOR3 COMBAT_TEXT_MOVE;	// direction combat text moves during its life
+
+	// Default Combat scripts
+	static const std::string BASE_CALC_COMBAT_SCRIPT;
+	static const std::string BASE_COMBAT_ATTACKER_STRIKES_SCRIPT;
+	static const std::string BASE_COMBAT_DEFENDER_STRIKES_SCRIPT;
 
 	// Combat Phase + timer
 	float combatTimer;	// timer to keep track of when each combat phase initiates/ends

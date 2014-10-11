@@ -47,7 +47,7 @@ public:
 #pragma region Enums
 	enum WinCondition	{Rout, Capture, Defeat, Defend, Collect};	// Possible Conditions for winning a specific level
 	enum LoseCondition	{Death, Turn, Surrender};					// Possible Conditions for losing a specific level
-	enum Phase			{SelectUnit, SelectMove, ExecuteMove, SelectPrimaryAction, SelectSecondaryAction, SelectTarget, SelectSkillTarget, ExecuteAction, EnemyTurn};
+	enum Phase			{SelectUnit, SelectMove, ExecuteMove, SelectPrimaryAction, SelectSecondaryAction, SelectTarget, SelectAbilityTarget, ExecuteAttack, ExecuteAbility, EnemyTurn};
 #pragma endregion
 
 	int		Update(float dt, HWND hWnd);
@@ -77,11 +77,11 @@ private:
 
 	void	CreateActionMenu();
 	void	SelectAttack();
-	void	SelectSkill();
+	void	SelectAbility();
 	void	SelectItem();
 	void	ActivateEndTurn();
 	void	CreateCombatUI();
-	void	ActivateSkill(int i);
+	void	ActivateAbility(int selectedAbility);
 
 	bool	IsObstructed(Position p);
 	bool	IsObstructedPlayer(Position p);

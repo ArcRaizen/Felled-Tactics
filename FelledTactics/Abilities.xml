@@ -3,10 +3,40 @@
 	<Skill Name="Damage">
 		<type>Action</type>
 		<effect_type>Physical</effect_type>
-		<cast_type>SelfCast</cast_type>
+		<cast_type>Free</cast_type>
 		<ap_cost>20</ap_cost>
 		<range>6</range>
 		<aoe>3|-1|-1|1|1|1|0</aoe>
-		<script>Lua\Damage.lua</script>
+		<script>Lua\Action_Damage_Activate.lua</script>
+	</Skill>
+	<Skill Name="Heal">
+		<type>Action</type>
+		<effect_type>Heal</effect_type>
+		<cast_type>Ally</cast_type>
+		<ap_cost>30</ap_cost>
+		<range>4</range>
+		<aoe>0|</aoe>
+		<script>Lua\Action_Heal_Activate.lua</script>
+	</Skill>
+	<Skill Name="DoubleStrike">
+		<type>Battle</type>
+		<effect_type>Physical</effect_type>
+		<cast_type>Enemy</cast_type>
+		<ap_cost>15</ap_cost>
+		<range>-1</range>
+		<aoe>0|</aoe>
+		<script>Lua\Battle_DoubleStrike_Activate.lua</script>
 	</Skill>
 </Skill_List>
+
+<!-- BASE ABILITY DESCRIPTION
+	<Skill Name="">
+		<type></type>
+		<effect_type></effect_type>
+		<cast_type></cast_type>
+		<ap_cost></ap_cost>
+		<range></range>
+		<aoe>0|</aoe>
+		<script></script>
+	</Skill>
+-->

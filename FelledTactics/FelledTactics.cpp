@@ -167,8 +167,10 @@ void GameInitialize()
 
 	L = luaL_newstate();
 	luaopen_base(L);
+	luaL_openlibs(L);
 	Luna<LuaLevel>::Register(L);
 	Luna<LuaUnit>::Register(L);
+	Luna<LuaCombatCalculator>::Register(L);
 
 	currentLevel = new Level(L, 26, 16, 50);
 }

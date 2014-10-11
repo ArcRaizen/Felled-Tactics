@@ -30,15 +30,19 @@ public:
 
 	void	Activate(lua_State* L, Position target, Position source);
 
-	__declspec(property(get=GetCost)) int APCost;				int GetCost();
-	__declspec(property(get=GetType)) CastType SkillCastType;	CastType GetType();
-	__declspec(property(get=GetRange))int Range;				int	GetRange();
-	__declspec(property(get=GetAOE)) vector<Position> AoE;		vector<Position> GetAOE();
+	__declspec(property(get=GetName)) char* Name;					char* GetName();
+	__declspec(property(get=GetType)) Type AbilityType;				Type GetType();
+	__declspec(property(get=GetCost)) int APCost;					int GetCost();
+	__declspec(property(get=GetCastType)) CastType AbilityCastType;	CastType GetCastType();
+	__declspec(property(get=GetRange,put=SetRange))int Range;		int	GetRange();				void SetRange(int r);
+	__declspec(property(get=GetAOE)) vector<Position> AoE;			vector<Position> GetAOE();
 
 private:
+	char				name[15];
 	Type				type;
 	EffectType			effect;
 	CastType			castType;
+	float				proficiency;
 	int					range;
 	vector<Position>	areaOfEffect;	// List of all tiles the spell is cast on
 											// Entries are a non-negative distance from initial target

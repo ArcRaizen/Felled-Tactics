@@ -16,6 +16,7 @@
 //#include "Level.h"
 #include "LuaUnit.h"
 //#include "Unit.h"
+#include "LuaCombatCalculator.h"
 #include "Item.h"
 #include "Tile.h"
 #include "Ability.h"                                                                                                                                                                                                                                                                         

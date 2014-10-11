@@ -6,7 +6,10 @@ const float CombatCalculator::PRE_COMBAT_WAIT = 0.5f;
 const float CombatCalculator::MID_COMBAT_WAIT = 1.0f;
 const float CombatCalculator::POST_COMBAT_WAIT = 2.0f;
 const float CombatCalculator::MULTI_HIT_WAIT = 1.0f;
-const D3DXVECTOR3 CombatCalculator::COMBAT_TEXT_MOVE = D3DXVECTOR3(25.0f, -25.0f, 0.0f);
+
+const std::string CombatCalculator::BASE_CALC_COMBAT_SCRIPT = "Lua\\Combat\\Base_CalcCombat.lua";
+const std::string CombatCalculator::BASE_COMBAT_ATTACKER_STRIKES_SCRIPT = "Lua\\Combat\\BaseCombat_AttackerStrikes.lua";
+const std::string CombatCalculator::BASE_COMBAT_DEFENDER_STRIKES_SCRIPT = "Lua\\Combat\\BaseCombat_DefenderStrikes.lua";
 
 CombatCalculator::CombatCalculator(void)
 {
@@ -28,7 +31,7 @@ void CombatCalculator::CalculateCombat()
 		return;
 
 	// Get range between combaters
-	range = attacker->UnitPosition.DistanceTo(defender->UnitPosition);
+	range = attacker->UnitPosition.DistanceTo(defender->UnitPosition);;
 
 	// Calculate damage delt by attacker
 	attacker->CalculateCombatDamage(basePhysicalDamageA, baseMagicalDamageA, range);
@@ -51,6 +54,47 @@ void CombatCalculator::CalculateCombat()
 	accuracyD = hitD > avoidD ? hitD - avoidD : 0;
 }
 
+void CombatCalculator::CalculateCombat(lua_State* L)
+{
+	// Get range between combatants
+	range = attacker->UnitPosition.DistanceTo(defender->UnitPosition);
+
+	// Attacker
+	lua_pushlightuserdata(L, (void*)this);
+	lua_setglobal(L, "CombatCalc");
+	lua_pushlightuserdata(L, (void*)attacker);
+	lua_setglobal(L, "Combatant");
+	lua_pushlightuserdata(L, (void*)defender);
+	lua_setglobal(L, "Target");
+	lua_pushinteger(L, range);
+	lua_setglobal(L, "Range");
+	lua_pushboolean(L, true);
+	lua_setglobal(L, "isAttacker");
+	if(attacker->CombatCalcScript == "")
+		luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str());
+	else
+		luaL_dofile(L, attacker->CombatCalcScript.c_str());
+
+	// Defender
+	lua_pushlightuserdata(L, (void*)this);
+	lua_setglobal(L, "CombatCalculator");
+	lua_pushlightuserdata(L, (void*)defender);
+	lua_setglobal(L, "Combatant");
+	lua_pushlightuserdata(L, (void*)attacker);
+	lua_setglobal(L, "Target");
+	lua_pushinteger(L, range);
+	lua_setglobal(L, "Range");
+	lua_pushboolean(L, false);
+	lua_setglobal(L, "isAttacker");
+	if(defender->CombatCalcScript == "")
+		luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str());
+	else
+		luaL_dofile(L, defender->CombatCalcScript.c_str());
+
+	accuracyA = hitA - avoidD;
+	accuracyD = hitD - avoidA;
+}
+
 // Do combat between 2 units. Return is who died: 0 = Neither, 1 = Attacker, 2 = Defender
 void CombatCalculator::DoCombat()
 {
@@ -61,6 +105,16 @@ void CombatCalculator::DoCombat()
 	combatTimer = 0.0f;
 	combatPhase = 1;
 	defenderDied = attackerDied = false;
+}
+
+void CombatCalculator::DefenderDied()
+{
+	defenderDied = true;
+}
+
+void CombatCalculator::AttackerDied()
+{
+	attackerDied = true;
 }
 
 void CombatCalculator::Reset(bool onlyDefender/* = false*/)
@@ -88,12 +142,22 @@ void CombatCalculator::ResetDefender()
 	Reset(true);
 }
 
-void CombatCalculator::SetCombatModifiers(float physMod, float magMod, int numAttHits, int numDefHits)
+void CombatCalculator::SetCombatParametersAttacker(int attPhys, int attMag, int attHit, int attAvoid, int attNumHits)
 {
-	physicalModifier = physMod;
-	magicalModifier = magMod;
-	numAttackerHits = numAttHits;
-	numDefenderHits = numDefHits;
+	physicalDamageA = attPhys;
+	magicalDamageA = attMag;
+	hitA = attHit;
+	avoidA = attAvoid;
+	numAttackerHits = attNumHits;
+}
+
+void CombatCalculator::SetCombatParametersDefender(int defPhys, int defMag, int defHit, int defAvoid, int defNumHits)
+{
+	physicalDamageD = defPhys;
+	magicalDamageD = defMag;
+	hitD = defHit;
+	avoidD = defAvoid;
+	numDefenderHits = defNumHits;
 }
 
 void CombatCalculator::SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int))
@@ -248,11 +312,138 @@ int CombatCalculator::Update(float dt)
 	}
 }
 
+int CombatCalculator::Update2(float dt, lua_State* L)
+{
+	if(!doCombat)
+		return -1;
+
+	int test;
+	std::string error;
+
+	switch(combatPhase)
+	{
+		case 1:		// Wait period before combat occurs
+			if(combatTimer < PRE_COMBAT_WAIT)
+			{
+				combatTimer += dt;
+				return 0;
+			}
+			combatPhase = 2;
+		case 2:		// Attacker executing combat
+			if(attHitCount > 0 && combatTimer < MULTI_HIT_WAIT)
+			{
+				combatTimer += dt;
+				return 0;
+			}
+
+			// Attacker attacks defender
+			lua_pushlightuserdata(L, (void*)this);
+			lua_setglobal(L, "CombatCalc");
+			lua_pushlightuserdata(L, (void*)level);
+			lua_setglobal(L, "Level");
+			lua_pushinteger(L, physicalDamageA);
+			lua_setglobal(L, "PhysicalDamage");
+			lua_pushinteger(L, magicalDamageA);
+			lua_setglobal(L, "MagicaDamage");
+			lua_pushinteger(L, accuracyA);
+			lua_setglobal(L, "Accuracy");
+			if(attacker->CombatExecuteScript == "")
+				luaL_dofile(L, BASE_COMBAT_ATTACKER_STRIKES_SCRIPT.c_str());
+			else
+				luaL_dofile(L, attacker->CombatExecuteScript.c_str());
+
+			// If attacker is executing multiple hits, repeate this step appropriately
+			if(numAttackerHits - attHitCount > 1)
+			{
+				attHitCount++;
+				combatTimer = 0.0f;
+			}
+			else	// Proceed to next combat phase
+			{
+				combatTimer = 0.0f;
+				combatPhase = 3;
+			}
+
+			return 0;
+		case 3:		// Wait period before defender retaliates
+			if(combatTimer < MID_COMBAT_WAIT)
+			{
+				combatTimer += dt;
+				 return 0;
+			}
+
+			// End combat if defender died
+			if(defenderDied)
+				return 2;
+
+			combatPhase = 4;
+		case 4:		// Defender executing combat
+			if(defender->AttackRange >= range)
+			{
+				// Defender retaliates against Attacker
+				lua_pushlightuserdata(L, (void*)this);
+				lua_setglobal(L, "CombatCalc");
+				lua_pushlightuserdata(L, (void*)level);
+				lua_setglobal(L, "Level");
+				lua_pushinteger(L, physicalDamageD);
+				lua_setglobal(L, "PhysicalDamage");
+				lua_pushinteger(L, magicalDamageD);
+				lua_setglobal(L, "MagicaDamage");
+				lua_pushinteger(L, accuracyD);
+				lua_setglobal(L, "Accuracy");
+				if(defender->CombatExecuteScript == "")
+					luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str());
+				else
+					luaL_dofile(L, defender->CombatExecuteScript.c_str());
+			}
+
+			// If Attacker has post-combat skill, proceed to phase to execute it
+			if(false)
+			{
+				combatPhase = 5;
+				combatTimer = 0.0f;
+				return 0;
+			}
+
+			combatTimer = 0.0f;
+			combatPhase = 6;
+		case 6:		// Wait period before combat finishes
+			if(combatTimer < POST_COMBAT_WAIT)
+			{
+				combatTimer += dt;
+				return 0;
+			}
+
+			// Combat has ended
+			doCombat = false;
+			combatTimer = 0.0f;
+			combatPhase = 0;
+
+			// Reset combatant combat ability scripts
+			attacker->ClearBattleScripts();
+			defender->ClearBattleScripts();
+
+			// Check for deaths
+			if(attackerDied)
+				return 1;
+			else if(defenderDied)
+				return 2;
+
+			// No one died
+			return 3;
+		case 5:
+			return 0;
+		default: return 0;
+	}
+}
+
 #pragma region Properties
-void CombatCalculator::SetAttacker(Unit* a) { attacker = a; }
-void CombatCalculator::SetDefender(Unit* d) { defender = d; }
-int CombatCalculator::GetDamageA() { return physicalDamageA + magicalDamageA; }
-int CombatCalculator::GetDamageD() { return physicalDamageD + magicalDamageD; }
-float CombatCalculator::GetAccuracyA() { return accuracyA; }
-float CombatCalculator::GetAccuracyD() { return accuracyD; }
+Unit*	CombatCalculator::GetAttacker() { return attacker; }
+void	CombatCalculator::SetAttacker(Unit* a) { attacker = a; }
+Unit*	CombatCalculator::GetDefender() { return defender; }
+void	CombatCalculator::SetDefender(Unit* d) { defender = d; }
+int		CombatCalculator::GetDamageA() { return physicalDamageA + magicalDamageA; }
+int		CombatCalculator::GetDamageD() { return physicalDamageD + magicalDamageD; }
+float	CombatCalculator::GetAccuracyA() { return accuracyA; }
+float	CombatCalculator::GetAccuracyD() { return accuracyD; }
 #pragma endregion

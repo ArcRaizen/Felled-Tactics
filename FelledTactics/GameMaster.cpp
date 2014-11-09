@@ -84,7 +84,9 @@ void GameMaster::UpdateKeyboardEvents(){}
 // Used to allow certain actions or animations to proceed without being interfered with
 void GameMaster::PauseUserInput(float t)
 {
-	nextActionTime = GameTimer::GetGameTime() + t;
+	int temp = GameTimer::GetGameTime() + t;
+	if(temp > nextActionTime)
+		nextActionTime = temp;
 }
 
 // Prevent user from doing anything until RestoreUserInput is called

@@ -9,6 +9,10 @@
 #include "VisualElement.h"
 #endif
 
+#ifndef COMBATTEXTUPDATECODES_C
+#include "CombatTextUpdateCodes.h"
+#endif
+
 class CombatText : public TextElement
 {
 public:

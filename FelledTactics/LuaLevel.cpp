@@ -14,6 +14,7 @@ const Luna<LuaLevel>::FunctionType LuaLevel::methods[] = {
 	method(LuaLevel, GetUnit),
 	method(LuaLevel, GetEnemyUnit),
 	method(LuaLevel, GetAllyUnit),
+	method(LuaLevel, IsOccupied),
 	{0,0}
 };
 
@@ -58,5 +59,11 @@ int LuaLevel::GetEnemyUnit(lua_State* L)
 int LuaLevel::GetAllyUnit(lua_State* L)
 {
 	lua_pushlightuserdata(L, (void*)realLevel->GetAllyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
+	return 1;
+}
+
+int LuaLevel::IsOccupied(lua_State* L)
+{
+	lua_pushboolean(L, realLevel->IsOccupied(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }

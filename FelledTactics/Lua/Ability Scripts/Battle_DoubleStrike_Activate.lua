@@ -8,4 +8,4 @@
 local level = LuaLevel(Level)
 local unit = LuaUnit(level:GetAllyUnit(Source["x"], Source["y"]))
 
-unit:SetCombatCalcAbilityScript("Lua\\Combat\\DoubleStrike_CalcCombat.lua");
+unit:SetCombatCalcAbilityScript("Lua\\Combat Scripts\\DoubleStrike_CalcCombat.lua");

@@ -7,16 +7,13 @@
 	and apply the effects of this ability
 --]]
 
--- Get proper pointer to current Level
+-- Get proper pointer to current Level and CombatManager
 local level = LuaLevel(Level)
-local unit = nil
-local damage = 0
+local combatManager = LuaCombatManager(CombatMan)
+local tile = nil
 
 -- Loop through AoE and apply ability effects
 for key, value in pairs(AreaOfEffect) do
-	unit = LuaUnit(level:GetEnemyUnit(value["x"], value["y"]))
-	damage = unit:TakeDamage(20, 10)
-	if damage ~= nil then
-		level:CreateCombatText(value["x"], value["y"], Source["x"], Source["y"], damage, 0)
-	end
+	tile = LuaTile(level:GetTile(value["x"], value["y"]))
+	tile:SetEffect(1,10)
 end

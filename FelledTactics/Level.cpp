@@ -59,15 +59,52 @@ int Level::Update(float dt, HWND hWnd)
 	int result = -1;
 	for(int i = 0; i < unitList.size(); i++)
 	{
+		Position p;
 		result = unitList[i]->Update(dt);
 
 		// Move unit on map - If during movement it enters an active hazard, we resolve that now
-		if(result == 1)
+		if(result == UNIT_UPDATE_MOVEMENT_END || result == UNIT_UPDATE_TILE_REACHED)
 		{
-			bool unitMoved = DoMovementEnd(movementBeginning, currentMovementPath.back());
-			selectedTile.x = -1;
+			Position p = unitList[i]->UnitPosition;
+
+			// Move unit from to new tile
+			unitMap[p.x][p.y] = unitMap[movementBeginning.x][movementBeginning.y];
+			unitMap[movementBeginning.x][movementBeginning.y] = NULL;
+
+			// Change tile statuses to reflect
+			map[p.x][p.y]->TileStatus = map[movementBeginning.x][movementBeginning.y]->TileStatus;
+			map[movementBeginning.x][movementBeginning.y]->TileStatus = Tile::Status::Empty;
+
+			movementBeginning = p;
+
+			// Do effect of tile unit is currently on
+			if(map[p.x][p.y]->HasEffect())
+			{
+				activatedTiles.push_back(p);	// Save list of tiles with effects this unit has passed through this turn
+				lua_pushlightuserdata(L, (void*)this);
+				lua_setglobal(L, "Level");
+				lua_pushlightuserdata(L, (void*)unitList[i]);
+				lua_setglobal(L, "Unit");
+				map[p.x][p.y]->ActivateMovementEffect(L);
+			}
+
+			if(result == UNIT_UPDATE_MOVEMENT_END)
+			{
+				// Don't call DoMovementEnd if the unit has renewed motion (from ability/tile effct)
+				if(!unitList[i]->CheckStatus(UNIT_STATUS_MOVING | UNIT_STATUS_FORCED_MOVING))
+				{
+#ifdef DEBUG
+					bool moved = 
+#endif
+					DoMovementEnd(movementBeginning, p);
+					for(auto i = activatedTiles.begin(); i != activatedTiles.end(); i++)	// Re-enable those effects (they disabled themselves after activation)
+						map[i->x][i->y]->ReenableEffect();
+					activatedTiles.clear();
+					selectedTile.x = -1;
+				}
+			}
 		}
-		else if(result == 2)
+		else if(result == UNIT_UPDATE_DEAD)
 		{
 			// Leave felled-ally unit's body of possible resurrection
 			if(unitList[i]->IsAlly())
@@ -96,7 +133,7 @@ int Level::Update(float dt, HWND hWnd)
 	{
 		result = combatText[i]->Update(dt);
 
-		if(result == 2)
+		if(result == COMBAT_TEXT_UPDATE_DEAD)
 		{
 			Delete<TextElement>(combatText[i]);
 			combatText.erase(combatText.begin() + i--);
@@ -148,7 +185,7 @@ int Level::Update(float dt, HWND hWnd)
 				}
 
 				movementBeginning = selectedTile;
-				MarkTiles(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, 0);
+				MarkTiles(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 				unitMap[selectedTile.x][selectedTile.y]->DrawBars = false;
 
 				selectedTile.x = -1;
@@ -204,12 +241,15 @@ int Level::Update(float dt, HWND hWnd)
 			else if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllyMovePath)
 			{
 				// Unmark movement tiles
-				MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, 0);
+				MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 
 				// No movement for this Unit
 				if(selectedTile == movementBeginning)
 				{
 #ifdef ALLOW_ZERO_TILE_MOVEMENT
+#ifdef DEBUG
+					bool moved = 
+#endif
 					DoMovementEnd(movementBeginning, movementBeginning);
 #else
 					currentPhase = SelectUnit;
@@ -220,6 +260,7 @@ int Level::Update(float dt, HWND hWnd)
 		
 				// Tell the unit to move
 				unitMap[movementBeginning.x][movementBeginning.y]->SetMovePath(currentMovementPath);
+				currentMovementPath.pop_front();
 				currentPhase = ExecuteMove;	// Go to next phase
 			}
 			break;
@@ -234,14 +275,14 @@ int Level::Update(float dt, HWND hWnd)
 				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::Attack)
 				{
 					target = hoveredTile;
-					combatCalculator.SetDefender(unitMap[target.x][target.y]);
-					combatCalculator.CalculateCombat(L);
+					combatManager.SetDefender(unitMap[target.x][target.y]);
+					combatManager.CalculateCombat(L);
 
 					// CREATE COMBAT RESULTS UI
 				}
 				else
 				{
-					combatCalculator.ResetDefender();
+					combatManager.ResetDefender();
 					// REMOVE COMBAT AI
 				}
 			}
@@ -252,11 +293,10 @@ int Level::Update(float dt, HWND hWnd)
 			// Selected valid target - FIGHT!
 			if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::Attack)
 			{
-			//	combatCalculator.SetCombatModifiers(1.0f, 1.0f, 1, 1);
-				combatCalculator.DoCombat();
+				combatManager.DoCombat();
 
 				// Unmark all enemies in range of unit
-				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
+				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 
 				PauseUserInputIndefinite();
 				currentPhase = ExecuteAttack;
@@ -268,11 +308,11 @@ int Level::Update(float dt, HWND hWnd)
 			{
 				// Remove AoE marks now that the target for the skill has changed
 				if(lastHoveredTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
-					MarkTiles(true, lastHoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+					MarkTiles(true, lastHoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
 
 				// Re-draw AoE marks when the target is a new valid tile
-				if(hoveredTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
-					MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
+					MarkTiles(false, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
 
 				// Special Considerations must be made for Battle Abilities that tie-in to regular combat
 				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
@@ -280,14 +320,14 @@ int Level::Update(float dt, HWND hWnd)
 					if(map[hoveredTile.x][hoveredTile.y]->TileStatus == Tile::Status::EnemyUnit)
 					{
 						target = hoveredTile;
-						combatCalculator.SetDefender(unitMap[target.x][target.y]);
-						combatCalculator.CalculateCombat(L);
+						combatManager.SetDefender(unitMap[target.x][target.y]);
+						combatManager.CalculateCombat(L);
 
 						// Create combat results UI
 					}
 					else
 					{
-						combatCalculator.ResetDefender();
+						combatManager.ResetDefender();
 						// Remove combat UI
 					}
 				}
@@ -301,14 +341,17 @@ int Level::Update(float dt, HWND hWnd)
 				// Battle Abilities proceed to Combat Phase when their target is selected
 				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
 				{
-					combatCalculator.DoCombat();
+					if(map[selectedTile.x][selectedTile.y]->TileStatus == Tile::Status::EnemyUnit)
+					{
+						combatManager.DoCombat();
 
-					// Remove marks from tiles
-					MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-					MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+						// Remove marks from tiles
+						MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
-					PauseUserInputIndefinite();
-					currentPhase = ExecuteAttack;
+						PauseUserInputIndefinite();
+						currentPhase = ExecuteAttack;
+					}
 				}
 				else
 				{
@@ -325,43 +368,56 @@ int Level::Update(float dt, HWND hWnd)
 						currentPhase = ExecuteAbility;
 
 						// Remove marks from tiles
-						MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+						MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
 						// Activate Skill
-						lua_pushlightuserdata(L, (void*)this);
-						lua_setglobal(L, "Level");
-						if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile))
-							ActivateEndTurn();
+						combatManager.SetCombatTimers(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityTimers());
+						combatManager.DoAbility(unitMap[currentUnitPosition.x][currentUnitPosition.y], selectedTile);
+					//	unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile);
+						currentPhase = ExecuteAbility;
 					}
 				}
 			}
 			break;
 /**/	case Phase::ExecuteAttack:
 		{	
-			int combatResult; combatResult = combatCalculator.Update2(dt, L);		
+			int combatResult; combatResult = combatManager.UpdateCombat(dt, L);		
 
 			switch(combatResult)
 			{
-				case -1: break;	// no combat occuring
-				case 0: break;	// combat still occuring
-				case 3:			// no death after combat finished
+				case COMBAT_MANAGER_UPDATE_NULL: break;	// combat still occuring
+				case COMBAT_MANAGER_UPDATE_COMBAT_END:	// combat has ended
 					RestoreUserInput();
 					ActivateEndTurn();
 					break;
 				default:		// combatant has been killed
-					Position deathPosition = (combatResult == 1 ? currentUnitPosition : target);	// combatResult == 1 -> attacker died
-																								// combatResult == 2 -> defender died
+					Position deathPosition = (combatResult == COMBAT_MANAGER_UPDATE_ATTACKER_DEAD ? // combatResult == 1 -> attacker died
+																	currentUnitPosition : target);	// combatResult == 2 -> defender died
+																									
 					// Activate death animation of defeated unit and pause user input until it completes
 					PauseUserInput(unitMap[deathPosition.x][deathPosition.y]->Die());
-					ActivateEndTurn();
 					break;
 			}
-
 			break;
 		}
 		case Phase::ExecuteAbility:
+		{
+			Position p; p = combatManager.UpdateAbility(dt, L);
+
+			switch(p.x)
+			{
+				case -1: break;		// Ability still executing or wait period between unit deaths
+				case -2:			// Ability execution is over
+					RestoreUserInput();
+					ActivateEndTurn();
+					break;
+				default:			// Unit was killed by Ability
+					PauseUserInput(unitMap[p.x][p.y]->Die());
+					break;
+			}
 			break;
+		}
 /**/	case Phase::EnemyTurn:
 			StartNewTurn();
 			if(selectedTile.x == -1)	break;
@@ -384,7 +440,7 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectMove:				// Cancel move, return to SelectUnit
 			// Unmark movement tiles
-			MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, 0);
+			MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 			currentPhase = SelectUnit;
 			selectedTile.x = -1;
 			return;
@@ -402,7 +458,7 @@ void Level::HandleRightClick()
 			break;
 /**/	case Phase::SelectTarget:			// Cancel Action, return to SelectAction
 			// Unmark all enemies in range of unit
-			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
+			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
@@ -410,8 +466,8 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectAbilityTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
-			MarkTiles(true, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
+			MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 			unitMap[currentUnitPosition.x][currentUnitPosition.y]->ClearBattleScripts();
 			if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
 				unitMap[currentUnitPosition.x][currentUnitPosition.y]->RefundAP();
@@ -493,17 +549,24 @@ void Level::GenerateLevel()
 
 	SortVisualElements();
 	AddActiveLayer(TILE_LAYER);
-	combatCalculator.SetCombatTextCallback(this, &Level::CreateCombatText);
+	combatManager.SetCombatTextCallback(this, &Level::CreateCombatText);
 	CombatText::SetTileSize(tileSize);
 
 	StartNewTurn();
 }
 
+// Update and reset all LevelEntities (Units and Tiles) for the start of a new turn
 void Level::StartNewTurn()
 {
-	for(int i = 0; i < unitList.size(); i++)
-		unitList[i]->NewTurn();
+	for(int i = 0; i < unitList.size(); i++)	// Update all Units
+		unitList[i]->NewTurn(L);
+	for(int i = 0; i < mapWidth; i++)			// Update all Tiles
+	{
+		for(int j = 0; j < mapHeight; j++)
+			map[i][j]->NewTurn(L);
+	}
 
+	// Update parameters and reset Level's current state for the new turn
 	currentUnitPosition.Reset();
 	selectedTile.Reset();
 	numUnitsMoved = 0;
@@ -784,7 +847,7 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 int Level::CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove)
 {
 	// This check is only relevant when the user is trying to draw a path outside a unit's movement range
-	if(currentPhase == SelectMove && map[p.x][p.y]->TileMark == Tile::Mark::None)
+	if(currentPhase == SelectMove && map[p.x][p.y]->TileMark == Tile::Mark::Blank)
 		return 100000;
 
 	if(p.DistanceTo(movementBeginning) > unitMove)
@@ -813,7 +876,7 @@ int Level::CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* no
 // Mark Type 0 = Movement, 1 = Attack, 2 = Ally Skill Range, 3 = Ally Skill AoE, 4 = Enemy Movement
 void Level::MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange)
 {
-	if(markType == 3)
+	if(markType == TILE_MARK_TYPE_ALLY_ABILITY_AOE)
 	{
 		if(!undo)
 		{
@@ -831,7 +894,7 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 			{
 				if(!IsValidPosition(start.x+skillRange[k].x,start.y+skillRange[k].y)) continue;
 				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark = map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark;
-				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = Tile::Mark::None;
+				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = Tile::Mark::Blank;
 			}
 		}
 
@@ -857,7 +920,7 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 					// Mark tile - Visual Change will be done by the tile itself
 					switch(markType)
 					{
-						case 0:
+						case TILE_MARK_TYPE_MOVEMENT:
 							// Mark starting movement position as part of the path
 							if(Position(i,j) == start)
 							{
@@ -874,14 +937,18 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 								movementMap[i][j].clear();
 
 							break;
-						case 1:
+						case TILE_MARK_TYPE_ATTACK:
 							if(map[i][j]->TileStatus == Tile::Status::EnemyUnit)
 								map[i][j]->TileMark = Tile::Mark::Attack;
 							break;
-						case 2:
+						case TILE_MARK_TYPE_ALLY_ABILITY_RANGE:
 							map[i][j]->TileMark = Tile::Mark::AllySkillRange;
 							break;
-						case 3:
+						case TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE:
+							if(map[i][j]->TileStatus == Tile::Status::EnemyUnit)
+								map[i][j]->TileMark = Tile::Mark::AllySkillRange;
+							break;
+						case TILE_MARK_TYPE_ENEMY_MOVEMENT:
 							map[i][j]->TileMark = Tile::Mark::EnemyMove;
 							break;
 					}
@@ -894,11 +961,12 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 }
 
 
-// Move a unit from the start to end, change all properties and statuses to reflect
+// Finish the movement phase a unit change all properties and statuses to reflect
 bool Level::DoMovementEnd(Position start, Position end)
 {
 	if(start != end)
 	{
+#ifdef DEBUG
 		// Attempting to move unit to occupied space
 		if(unitMap[end.x][end.y] != NULL || map[end.x][end.y]->TileStatus != Tile::Status::Empty)
 			return false;
@@ -906,20 +974,10 @@ bool Level::DoMovementEnd(Position start, Position end)
 		// Attempting to move non-existant or felled unit
 		if(unitMap[start.x][start.y] == NULL || map[start.x][start.y]->TileStatus == Tile::Status::Empty || map[start.x][start.y]->TileStatus == Tile::Status::AllyFelled)
 			return false;
-
-		// Move unit from start to end
-		unitMap[end.x][end.y] = unitMap[start.x][start.y];
-		unitMap[start.x][start.y] = NULL;
-		unitMap[end.x][end.y]->UnitPosition = end;
-
-		// Change tile statuses to reflect
-		map[end.x][end.y]->TileStatus = map[start.x][start.y]->TileStatus;
-		map[start.x][start.y]->TileStatus = Tile::Status::Empty;
+#endif
 
 		// Re-sort the VisualElements list only on the layer that just changed
 		SortVisualElementsInLayer(unitMap[end.x][end.y]->Layer);
-
-		// DO EFFECTS FROM TILES MOVED THROUGH OR STOPPED ON VIA CURRENTMOVEMENTPATH
 
 		currentMovementPath.clear();
 	}
@@ -929,7 +987,6 @@ bool Level::DoMovementEnd(Position start, Position end)
 
 	// Create Action Menu
 	CreateActionMenu();
-
 	return true;
 }
 
@@ -954,10 +1011,10 @@ void Level::CreateActionMenu()
 void Level::SelectAttack()
 {
 	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
-	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, 1);
+	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 
 	// Set 1st Combatant in the CombatCalculator
-	combatCalculator.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
+	combatManager.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
 	// Go to Next Phase - Select Target for attack
 	currentPhase = SelectTarget;
@@ -1014,6 +1071,8 @@ void Level::ActivateEndTurn()
 	RemoveActiveLayer(ACTION_MENU_LAYER);
 	AddActiveLayer(TILE_LAYER);
 
+	lua_settop(L, 0);
+
 	// Go to next phase
 	if(numUnitsMoved == numAllies)
 		currentPhase = EnemyTurn;
@@ -1031,25 +1090,29 @@ void Level::ActivateAbility(int selectedAbility)
 	// Set Selected Ability
 	unitMap[currentUnitPosition.x][currentUnitPosition.y]->SetSelectedAbility(selectedAbility);
 
+	// Check if unit has enough AP to cast the selected ability
+	if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityCost() > unitMap[currentUnitPosition.x][currentUnitPosition.y]->AbilityPoints)
+		return;
+
 	// Activate Battle Abilities NOW. The costs/effects are reset if they are canceled before a target is selected
 	if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
 	{
 		lua_pushlightuserdata(L, (void*)this);
 		lua_setglobal(L, "Level");
-		if(!unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, currentUnitPosition))
-			return;
+		unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, currentUnitPosition);
 
 		// Set 1st Combatant in the CombatCalculator
-		combatCalculator.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
+		combatManager.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
 		// Set Range of Battle Ability to the Attack Range of the Activating Unit
-		unitMap[currentUnitPosition.x][currentUnitPosition.y]->SetSelectedAbilityRange(unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange);
+		MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE);
 	}
+	else
+		MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
 	// Mark Range and AoE of ability - Range = Attack Range if Battle Ability and no AoE
-	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), 2);
 	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-		MarkTiles(false, hoveredTile, 0, 3, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+		MarkTiles(false, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
 
 	// Allow targeting on tiles
 	RemoveActiveLayer(SECONDARY_MENU_LAYER);
@@ -1106,4 +1169,5 @@ Tile* Level::GetTile(int x, int y) { return IsValidPosition(x,y) ? map[x][y] : N
 Unit* Level::GetUnit(int x, int y) { return IsValidUnit(x,y) ? unitMap[x][y] : NULL; }
 Unit* Level::GetEnemyUnit(int x, int y) { return IsValidUnit(x,y) && unitMap[x][y]->IsEnemy() ? unitMap[x][y] : NULL; }
 Unit* Level::GetAllyUnit(int x, int y) { return IsValidUnit(x,y) && unitMap[x][y]->IsAlly() ? unitMap[x][y] : NULL; }
+bool  Level::IsOccupied(int x, int y) { return IsValidPosition(x,y) ? map[x][y]->IsObstructed() : true; }
 #pragma endregion                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            

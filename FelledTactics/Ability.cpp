@@ -100,6 +100,22 @@ Ability::Ability(const char* name)
 	else
 		areaOfEffect.push_back(Position(0,0));
 
+	// Cast Timers
+	string timers;
+	element = element->NextSiblingElement();	// move to next element
+	stream << element->GetText();				// get timer string
+	stream >> timers;							// convert to string
+	stream.clear();
+	
+	float a;
+	int x;
+	for(int i = 0; i < 4; i++)
+	{
+		 x = timers.find("|");						// Find index of first delimeter
+		 a = atof(timers.substr(0, x).c_str());		// Get and save cast timer (string before delimeter)
+		 timers = timers.substr(x+1);				// Remove timer from string
+		 castTimers[i] = a;							// Save timer
+	}
 
 	// 7) Script
 	element = element->NextSiblingElement();	// move to next element
@@ -155,7 +171,16 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	}
 
 	// Run script
+#ifdef DEBUG
+	int test = luaL_dofile(L, script.c_str());
+	if(test == 1)
+	{
+		std::string error = lua_tostring(L, -1);
+		test++;
+	}
+#else
 	luaL_dofile(L, script.c_str());
+#endif
 }
 
 char* Ability::GetName() { return name; }
@@ -163,5 +188,5 @@ Ability::Type Ability::GetType() { return type; }
 int Ability::GetCost() { return apCost; }
 Ability::CastType Ability::GetCastType() { return castType; }
 int Ability::GetRange() { return range; }
-void Ability::SetRange(int r) { range = r; }
 vector<Position> Ability::GetAOE() { return areaOfEffect; }
+const float* Ability::GetTimers() const { return castTimers; }

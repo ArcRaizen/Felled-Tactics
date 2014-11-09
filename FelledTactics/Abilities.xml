@@ -7,7 +7,8 @@
 		<ap_cost>20</ap_cost>
 		<range>6</range>
 		<aoe>3|-1|-1|1|1|1|0</aoe>
-		<script>Lua\Action_Damage_Activate.lua</script>
+		<cast_timers>1|1|2|-1</cast_timers>
+		<script>Lua\Ability Scripts\Action_Damage_Activate.lua</script>
 	</Skill>
 	<Skill Name="Heal">
 		<type>Action</type>
@@ -16,7 +17,8 @@
 		<ap_cost>30</ap_cost>
 		<range>4</range>
 		<aoe>0|</aoe>
-		<script>Lua\Action_Heal_Activate.lua</script>
+		<cast_timers>1|0|2|-1</cast_timers>
+		<script>Lua\Ability Scripts\Action_Heal_Activate.lua</script>
 	</Skill>
 	<Skill Name="DoubleStrike">
 		<type>Battle</type>
@@ -25,7 +27,28 @@
 		<ap_cost>15</ap_cost>
 		<range>-1</range>
 		<aoe>0|</aoe>
-		<script>Lua\Battle_DoubleStrike_Activate.lua</script>
+		<cast_timers>-1|-1|-1|0.5</cast_timers>
+		<script>Lua\Ability Scripts\Battle_DoubleStrike_Activate.lua</script>
+	</Skill>
+	<Skill Name="Fire">
+		<type>Action</type>
+		<effect_type>Magical</effect_type>
+		<cast_type>Free</cast_type>
+		<ap_cost>10</ap_cost>
+		<range>6</range>
+		<aoe>0|</aoe>
+		<cast_timers>0.5|0|2|-1</cast_timers>
+		<script>Lua\Ability Scripts\Action_Fire_Activate.lua</script>
+	</Skill>
+	<Skill Name="Vector Plate">
+		<type>Action</type>
+		<effect_type>Magical</effect_type>
+		<cast_type>Free</cast_type>
+		<ap_cost>5</ap_cost>
+		<range>15</range>
+		<aoe>0|</aoe>
+		<cast_timers>0.5|0|2|-1</cast_timers>
+		<script>Lua\Ability Scripts\Action_Vector_Plate_Activate.lua</script>
 	</Skill>
 </Skill_List>
 
@@ -37,6 +60,7 @@
 		<ap_cost></ap_cost>
 		<range></range>
 		<aoe>0|</aoe>
+		<cast_timers>-1|-1|-1|-1</cast_timers>
 		<script></script>
 	</Skill>
 -->

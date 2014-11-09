@@ -2,26 +2,22 @@
 #include "Unit.h"
 
 int Unit::unitCounter = 0;
+float Unit::BASE_MOVE_TIME = 0.25f;
 D3DXVECTOR4 Unit::highlightFinishedTurn = D3DXVECTOR4(0.328f, 0.328f, 0.328f, 1.0f);
 
 Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally/*=true*/) : 
-	VisualElement(filename, layer, width, height, posX, posY)
+	VisualElement(filename, layer, width, height, posX, posY), felled(false), finishedTurn(false), secBetweenTiles(BASE_MOVE_TIME), movementTimer(0),
+	movementFinished(true), status(0)
 {
 	InitProficiency();
-	felled = false;
-	finishedTurn = false;
 	position.x = posX / width;		// width and height are set to TileSize
 	position.y = posY / height;		// PosX and PosY are units from origin to bottom-left corner of tile they are at
-	secBetweenTiles = 0.25f;
-	movementTimer = 0;
-	movementFinished = true;
-	status = 0;
 	unitID = unitCounter++;			// each unit has ID number in order of their creation
 	
 	if(ally)
-		ApplyStatus(ALLY);
+		ApplyStatus(UNIT_STATUS_ALLY);
 	else
-		ApplyStatus(ENEMY);
+		ApplyStatus(UNIT_STATUS_ENEMY);
 
 	// Test stats
 	movement = 8;
@@ -36,6 +32,8 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	LearnAbility("Damage");
 	LearnAbility("Heal");
 	LearnAbility("DoubleStrike");
+	LearnAbility("Fire");
+	LearnAbility("Vector Plate");
 
 	// Initialize matrix, buffers and textures for HP/AP bars
 	hpapHeight = height * 0.1f;
@@ -120,20 +118,51 @@ void Unit::CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int ra
 	magicalDamage = 0;
 }
 
+// Unit takes damage that is un-affected by their resistances
+// Also known as "True Damage"
+// Return total damage done to the unit (value is negative if unit died)
+int Unit::TakeUnscaledDamage(int damage)
+{
+	int curHealth = health;		// Save current health if damage taken kills unit
+	health -= damage;			// Take the damage
+	updateHPAPBuffers = true;
+
+	// Unit has been killed
+	if(health <= 0)				
+		return -1 * curHealth;		// return actual damage taken
+
+	// Unit survived
+	return damage;				// return damage taken
+}
+
+// Unit takes damage that is countered by it's resistances
+// Return total damage done to the unit (value is negative if unit died)
 int Unit::TakeDamage(int physDamage, int magDamage)
 {
-	health -= physDamage + magDamage;
-	if(health < 0)
-		health = 0;
+	int curHealth = health;				// Save current health if damage taken kills unit
+	int phys = physDamage - defense;	// Calculate actual damage done
+	int mag  = magDamage - resistance;	//		against defense/resistance
 
+	// Don't take negative damage if defenses are higher than damage given
+	if(phys < 0) phys = 0;
+	if(mag < 0) mag = 0;
+
+	health -= phys + mag;				// Take the damage
 	updateHPAPBuffers = true;
-	return physDamage + magDamage;	// return damage taken
+
+	// Unit has been killed
+	if(health <= 0)
+		return -curHealth;			// return actual damage taken
+
+	// Unit survived
+	return phys + mag;
 }
 
 // Unit regains HP and returns the amount gained
 int Unit::Heal(int hp)
 {
 	int healed = maximumHealth - health;
+	updateHPAPBuffers = true;
 
 	health += hp;
 	if(health > maximumHealth)
@@ -148,13 +177,13 @@ int Unit::Heal(int hp)
 void Unit::Revive(int health)
 {
 	this->health = health;
-	RemoveStatus(FELLED);
+	RemoveStatus(UNIT_STATUS_FELLED);
 	felled = false;
 }
 
 float Unit::Die()
 {
-	ApplyStatus(FELLED);
+	ApplyStatus(UNIT_STATUS_DYING);
 	felled = true;
 
 	// Play death animation
@@ -217,13 +246,48 @@ void Unit::LevelUp()
 	}
 }
 
-void Unit::SetMovePath(list<Position> path) 
+// Save the path a unit is told to move for its movement phase
+void Unit::SetMovePath(list<Position> path, float moveTime/*=0*/) 
 { 
 	// convert path from tile units to pixels and save
 	for(std::list<Position>::const_iterator iterator = path.begin(); iterator != path.end(); ++iterator)
 		movementPath.push_back(*iterator * tileSize);
 
 	movementFinished = false;
+	if(moveTime != 0)
+		secBetweenTiles = moveTime;
+	ApplyStatus(UNIT_STATUS_MOVING);
+}
+
+// Force a unit to move to a specific tile (by ability/tile effect)
+void Unit::ForceMovement(Position p, float moveTime)
+{
+	// Only allow forced movement in a specific direction
+	if(position.x - p.x != 0 && position.y - p.y != 0)
+		return;
+
+	Position move = p - position, temp = position;
+	if(move.x != 0)	move.x /= abs(move.x);
+	if(move.y != 0) move.y /= abs(move.y);
+
+	movementPath.clear();
+	movementPath.push_back(temp * tileSize);
+	while(temp != p)
+	{
+		temp += move;
+		movementPath.push_back(temp * tileSize);
+	}
+
+	// Save new movement speed for this forced movement
+	secBetweenTiles = moveTime;
+	ApplyStatus(UNIT_STATUS_FORCED_MOVING);
+}
+
+// Force a unit to end its movement phase prematurely
+void Unit::ForceEndMovement()
+{
+	movementPath.clear();
+	movementPath.push_back(position * tileSize);
 }
 
 #pragma region Abilities
@@ -259,22 +323,17 @@ void Unit::SetSelectedAbility(int index) { selectedAbility = index; }
 // Get specific parameters of the currently selected ability
 char* Unit::GetSelectedAbilityName() const { return activeAbilityList[selectedAbility]->Name; }
 int   Unit::GetSelectedAbilityCost() const { return activeAbilityList[selectedAbility]->APCost; }
-int	  Unit::GetSelectedAbilityRange() const { return activeAbilityList[selectedAbility]->Range; }
-void  Unit::SetSelectedAbilityRange(int r) { activeAbilityList[selectedAbility]->Range = r; }
+int	  Unit::GetSelectedAbilityRange() const { return activeAbilityList[selectedAbility]->AbilityType == Ability::Type::Battle ? attackRange : activeAbilityList[selectedAbility]->Range; }
 Ability::CastType Unit::GetSelectedAbilityCastType() const { return activeAbilityList[selectedAbility]->AbilityCastType; }
 vector<Position> Unit::GetSelectedAbilityAoE() const { return activeAbilityList[selectedAbility]->AoE; }
+const float* Unit::GetSelectedAbilityTimers() const { return activeAbilityList[selectedAbility]->GetTimers(); }
 
 // Activate ability (if possible) at target location.
-// Return 1 is ability is cast, 0 if not
-int Unit::ActivateAbility(lua_State* L, Position target)
+void Unit::ActivateAbility(lua_State* L, Position target)
 {
-	if(abilityPoints < activeAbilityList[selectedAbility]->APCost)
-		return 0;
-
 	activeAbilityList[selectedAbility]->Activate(L, target, position);
 	abilityPoints -= activeAbilityList[selectedAbility]->APCost;
 	updateHPAPBuffers = true;
-	return 1;
 }
 
 // Battle Abilities are activated BEFORE their effects go through and can be canceled before as well
@@ -335,23 +394,23 @@ bool Unit::InitializeHPAPBuffers()
 	return true;
 }
 
-// Update Statuses: 0 - None, 1 - Movement between 2 tiles finished, 2 - Dead
+// Update Statuses: 0 - None, 1 - Movement between 2 tiles fini shed, 2 - Dead
 int Unit::Update(float dt)
 {
-	if(CheckStatus(FELLED))
+	if(CheckStatus(UNIT_STATUS_DYING))
 	{
-		highlightColor.w -= (dt / 1.5f);
-		if(highlightColor.w <= 0)
+		highlightColor.w -= (dt / 1.5f) * 0.8f;
+		if(highlightColor.w <= 0.2f)
 		{
-			if(CheckStatus(ALLY))
+			if(CheckStatus(UNIT_STATUS_ALLY))
 			{
 				highlightColor.w = 0.2;
-				RemoveStatus(FELLED);
+				RemoveStatus(UNIT_STATUS_DYING);
+				ApplyStatus(UNIT_STATUS_FELLED);
 				felled = true;
 			}
-			return 2;
+			return UNIT_UPDATE_DEAD;
 		}
-		
 		return 0;
 	}
 
@@ -374,40 +433,48 @@ int Unit::Update(float dt)
 			leftCorner = *nextTile;		// set position exactly on next tile
 			movementPath.pop_front();	// remove the tile we just moved from
 			movementTimer = 0;			// reset timer for next set of movement
+			position = movementPath.front() / tileSize;
 
 			// Movement finished
 			if(movementPath.size() == 1)
 			{
 				movementFinished = true;
+				secBetweenTiles = BASE_MOVE_TIME;
 				movementPath.clear();
 				updateHPAPBuffers = true;
-				return 1;
+				RemoveStatus(UNIT_STATUS_MOVING);
+				RemoveStatus(UNIT_STATUS_FORCED_MOVING);
+				return UNIT_UPDATE_MOVEMENT_END;
 			}
+
+			return UNIT_UPDATE_TILE_REACHED;
 		}
 
 		// Update vertex buffers on movement
 		updateHPAPBuffers = true;
 	}
 
-	return 0;
+	return UNIT_UPDATE_NULL;
 }
 
 void Unit::ApplyStatus(int s) {	status |= s; }
 void Unit::RemoveStatus(int s) { status &= ~s; }
 bool Unit::CheckStatus(int s) { return status & s; }
-bool Unit::IsAlly() { return status & ALLY; }
-bool Unit::IsEnemy() { return status & ENEMY; }
+bool Unit::IsAlly() { return status & UNIT_STATUS_ALLY; }
+bool Unit::IsEnemy() { return status & UNIT_STATUS_ENEMY; }
 
 void Unit::FinishTurn()
 {
 	finishedTurn = true;
-	highlightColor = highlightFinishedTurn;
+	if(!CheckStatus(UNIT_STATUS_FELLED))
+		highlightColor = highlightFinishedTurn;
 }
 
-void Unit::NewTurn()
+void Unit::NewTurn(lua_State* L)
 {
 	finishedTurn = false;
-	highlightColor = highlightNone;
+	if(!CheckStatus(UNIT_STATUS_FELLED))
+		highlightColor = highlightNone;
 }
 
 bool Unit::UpdateHPAPBuffers()

@@ -4,14 +4,10 @@
 D3DXVECTOR4 VisualElement::highlightNone = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
 
 // PosX and PosY are pixel-coordinates in the game with (0,0) being the bottom-left corner
-VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY)
+VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY) : mouseEntered(false), mouseDown(false), texture(0),
+	drawEnabled(true), deleted(false)
 {
 	// Initialize values
-	mouseEntered = false;
-	mouseDown = false;
-	texture = 0;
-	drawEnabled = true;
-	deleted = false;
 	highlightColor.x = highlightColor.y = highlightColor.z = highlightColor.w = 1.0f;
 	uvScale.x = uvScale.y = 1.0f;
 
@@ -23,9 +19,9 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 		tileSize = -1;
 
 	// Load Texture
-	texture = 0;
 	hr = D3DX10CreateShaderResourceViewFromFile(Direct3D::gpInfo->gpDevice, filename, 0, 0, &texture, 0);
 
+	// Set initial left corner
 	leftCorner.x = posX;
 	leftCorner.y = posY;
 

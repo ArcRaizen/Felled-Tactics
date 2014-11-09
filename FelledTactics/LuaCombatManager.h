@@ -3,26 +3,28 @@
 #define LUACOMBAT_H
 
 #include "Luna.h"
-#include "CombatCalculator.h"
+#include "CombatManager.h"
 
-class LuaCombatCalculator
+class LuaCombatManager
 {
 public:
 	static const char className[];
-	static const Luna<LuaCombatCalculator>::PropertyType properties[];
-	static const Luna<LuaCombatCalculator>::FunctionType methods[];
+	static const Luna<LuaCombatManager>::PropertyType properties[];
+	static const Luna<LuaCombatManager>::FunctionType methods[];
 
-	LuaCombatCalculator(lua_State* L);
-	~LuaCombatCalculator(void);
+	LuaCombatManager(lua_State* L);
+	~LuaCombatManager(void);
 
 	int GetAttacker(lua_State* L);
 	int	GetDefender(lua_State* L);
 	int SetCombatParametersAttacker(lua_State* L);
 	int SetCombatParametersDefender(lua_State* L);
+	int SetCombatTimers(lua_State* L);
 	int	DefenderDied(lua_State* L);
 	int AttackerDied(lua_State* L);
+	int UnitKilledByAbility(lua_State* L);
 
 private:
-	CombatCalculator* calc;
+	CombatManager* manager;
 };
 #endif

@@ -20,12 +20,15 @@ const Luna<LuaUnit>::PropertyType LuaUnit::properties[] = {
 // List of class methods to make available to Lua
 const Luna<LuaUnit>::FunctionType LuaUnit::methods[] = {
 	method(LuaUnit, ApplyStatus),
+	method(LuaUnit, TakeUnscaledDamage),
 	method(LuaUnit, TakeDamage),
 	method(LuaUnit, Heal),
 	method(LuaUnit, CalculateBaseCombatDamage),
 	method(LuaUnit, GetPosition),
 	method(LuaUnit, SetCombatCalcAbilityScript),
 	method(LuaUnit, SetCombatExecutionAbilityScript),
+	method(LuaUnit, ForceMovement),
+	method(LuaUnit, ForceEndMovement),
 	{0,0}
 };
 
@@ -74,19 +77,28 @@ int LuaUnit::CalculateBaseCombatDamage(lua_State* L)
 	return 2;
 }
 
+int LuaUnit::TakeUnscaledDamage(lua_State* L)
+{
+	if(realUnit == NULL)
+		lua_pushnil(L);
+	else
+		lua_pushnumber(L, realUnit->TakeUnscaledDamage(lua_tointeger(L,2)));
+	return 1;
+}
+
 int LuaUnit::TakeDamage(lua_State* L)
 {
 	if(realUnit == NULL)
 		lua_pushnil(L);
 	else
 		lua_pushnumber(L, realUnit->TakeDamage(lua_tointeger(L, 2), lua_tointeger(L, 3)));
-
 	return 1;
 }
 
 int LuaUnit::ApplyStatus(lua_State* L)
 {
-	realUnit->ApplyStatus((int)lua_tointeger(L, 2));
+	if(realUnit != NULL)
+		realUnit->ApplyStatus((int)lua_tointeger(L, 2));
 	return 0;
 }
 
@@ -108,6 +120,19 @@ int LuaUnit::Heal(lua_State* L)
 		lua_pushnil(L);
 	else
 		lua_pushnumber(L, realUnit->Heal(lua_tointeger(L, 2)));
-
 	return 1;
+}
+
+int LuaUnit::ForceMovement(lua_State* L)
+{
+	if(realUnit != NULL)
+		realUnit->ForceMovement(Position(lua_tointeger(L, 2), lua_tointeger(L, 3)), lua_tonumber(L, 4));
+	return 0;
+}
+
+int LuaUnit::ForceEndMovement(lua_State* L)
+{
+	if(realUnit != NULL)
+		realUnit->ForceEndMovement();
+	return 0;
 }

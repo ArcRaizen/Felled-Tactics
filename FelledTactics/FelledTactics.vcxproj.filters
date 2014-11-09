@@ -37,6 +37,12 @@
     <Filter Include="Lua">
       <UniqueIdentifier>{3d1566a0-192d-44a5-b659-c570dd2c55e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Interfaces">
+      <UniqueIdentifier>{d8aa8340-dc39-472d-aafc-54cffb753db8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Codes">
+      <UniqueIdentifier>{aff5e5d0-fde8-4215-97f4-502bbb5e01b4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -132,9 +138,6 @@
     <ClInclude Include="TravelNode.h">
       <Filter>Header Files\Structs</Filter>
     </ClInclude>
-    <ClInclude Include="CombatCalculator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TextElement.h">
       <Filter>Menu</Filter>
     </ClInclude>
@@ -147,14 +150,35 @@
     <ClInclude Include="Luna.h">
       <Filter>Lua</Filter>
     </ClInclude>
-    <ClInclude Include="LuaCombatCalculator.h">
-      <Filter>Lua</Filter>
-    </ClInclude>
     <ClInclude Include="LuaLevel.h">
       <Filter>Lua</Filter>
     </ClInclude>
     <ClInclude Include="LuaUnit.h">
       <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaCombatManager.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaTile.h">
+      <Filter>Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelEntity.h">
+      <Filter>Header Files\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitStatusCodes.h">
+      <Filter>Header Files\Codes</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitUpdateCodes.h">
+      <Filter>Header Files\Codes</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatTextUpdateCodes.h">
+      <Filter>Header Files\Codes</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatManagerUpdateCodes.h">
+      <Filter>Header Files\Codes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -224,9 +248,6 @@
     <ClCompile Include="MenuElement.cpp">
       <Filter>Menu</Filter>
     </ClCompile>
-    <ClCompile Include="CombatCalculator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TextElement.cpp">
       <Filter>Menu</Filter>
     </ClCompile>
@@ -239,10 +260,16 @@
     <ClCompile Include="LuaLevel.cpp">
       <Filter>Lua</Filter>
     </ClCompile>
-    <ClCompile Include="LuaCombatCalculator.cpp">
+    <ClCompile Include="LuaUnit.cpp">
       <Filter>Lua</Filter>
     </ClCompile>
-    <ClCompile Include="LuaUnit.cpp">
+    <ClCompile Include="CombatManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaCombatManager.cpp">
+      <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaTile.cpp">
       <Filter>Lua</Filter>
     </ClCompile>
   </ItemGroup>

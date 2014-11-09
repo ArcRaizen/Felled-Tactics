@@ -28,9 +28,9 @@ int CombatText::Update(float dt)
 	lifeCounter += dt;
 
 	if(lifeCounter >= LIFE_TIME)
-		return 2;
+		return COMBAT_TEXT_UPDATE_DEAD;
 
-	return 0;
+	return COMBAT_TEXT_UPDATE_NULL;
 }
 
 void CombatText::SetTileSize(float tSize)

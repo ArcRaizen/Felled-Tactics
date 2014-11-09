@@ -15,8 +15,8 @@
 #ifndef MENU_H
 #include "MenuBox.h"
 #endif
-#ifndef COMBATCAL_H
-#include "CombatCalculator.h"
+#ifndef COMBATMANAGER_H
+#include "CombatManager.h"
 #endif
 #ifndef COMBATEXT_H
 #include "CombatText.h"
@@ -32,9 +32,18 @@
 #include <queue>
 #pragma endregion
 
+// Movement Options
 #define TEST_OBSTRUCTION_ALL_UNITS		(1<<1)
 #define TEST_OBSTRUCTION_ALLY_UNITS		(1<<2)
 #define TEST_OBSTRUCTION_ENEMY_UNITS	(1<<3)
+
+// Tile Mark Types
+#define TILE_MARK_TYPE_MOVEMENT					 (1<<4)
+#define TILE_MARK_TYPE_ATTACK					 (1<<5)
+#define TILE_MARK_TYPE_ALLY_ABILITY_RANGE		 (1<<6)
+#define TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE (1<<7)
+#define TILE_MARK_TYPE_ALLY_ABILITY_AOE			 (1<<8)
+#define TILE_MARK_TYPE_ENEMY_MOVEMENT			 (1<<9)
 
 class Tile; // forward declaration
 //class MenuBox;
@@ -75,6 +84,7 @@ private:
 	void	MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange = vector<Position>());
 	bool	DoMovementEnd(Position start, Position end);
 
+private:
 	void	CreateActionMenu();
 	void	SelectAttack();
 	void	SelectAbility();
@@ -101,6 +111,7 @@ public:
 
 	Tile* GetTile(int x, int y);
 	Unit* GetUnit(int x, int y); Unit* GetEnemyUnit(int x, int y); Unit* GetAllyUnit(int x, int y);
+	bool  IsOccupied(int x, int y);
 #pragma endregion
 
 private:
@@ -118,7 +129,7 @@ private:
 	int						numUnitsMoved;
 	int						maximumDeaths;
 	int						maximumTurns;
-	CombatCalculator		combatCalculator;
+	CombatManager			combatManager;
 
 	// ~~~~ Map ~~~~
 	Tile***					map;			// 2D-Array of all tiles that make up this level
@@ -136,6 +147,7 @@ private:
 	list<Position>			currentMovementPath;// Path currently developed for selected unit to follow for movement
 	list<Position>**		movementMap;		// Map of paths to surrounding tiles for unit selected for movement
 	bool					pathDrawEnabled;	// Is the player drawing a path for their selected unit to follow?
+	vector<Position>		activatedTiles;		// List of tiles whose effects were activated during a single movement phase
 
 	// Actions
 	MenuBox*				actionMenu;				// Menu for selecting action for unit to take

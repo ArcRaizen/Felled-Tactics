@@ -29,6 +29,7 @@ public:
 
 	// Combat
 	int CalculateBaseCombatDamage(lua_State* L);
+	int TakeUnscaledDamage(lua_State* L);
 	int TakeDamage(lua_State* L);
 	int SetCombatCalcAbilityScript(lua_State* L);
 	int SetCombatExecutionAbilityScript(lua_State* L);
@@ -36,6 +37,8 @@ public:
 	int ApplyStatus(lua_State* L);
 	int Heal(lua_State* L);
 
+	int	ForceMovement(lua_State* L);
+	int	ForceEndMovement(lua_State* L);
 
 private:
 	Unit* realUnit;		// Pointer to real Unit wrapped by this class

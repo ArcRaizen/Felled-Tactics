@@ -1,6 +1,6 @@
 #pragma once
-#ifndef COMBATCALC_H
-#define COMBATCALC_H
+#ifndef COMBATMANAGER_H
+#define COMBATMANAGER_H
 
 #ifndef LEVEL_H
 //#include "Level.h"
@@ -9,29 +9,37 @@
 #include "Unit.h"
 #endif
 
+#ifndef COMBATMANAGERUPDATECODES_C
+#include "CombatManagerUpdateCodes.h"
+#endif
+
 #include "Luna.h"
 #include <vector>
 
 class Level;
-class CombatCalculator
+class CombatManager
 {
 public:
-	CombatCalculator(void);
-	~CombatCalculator(void);
+	CombatManager(void);
+	~CombatManager(void);
 
-	void	CalculateCombat();
 	void	CalculateCombat(lua_State* L);
 	void	DoCombat();
-	void	DefenderDied();
-	void	AttackerDied();
+	void	DoAbility(Unit* u, Position p);
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
 	void	SetCombatParametersAttacker(int attPhys, int attMag, int attHit, int attAvoid, int attNumHits);
 	void	SetCombatParametersDefender(int defPhys, int defMag, int defHit, int defAvoid, int defNumHits);
+	void	SetCombatTimers(float pre, float mid, float post, float multi);
+	void	SetCombatTimers(const float timers[4]);
 	void	SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int));
 
-	int		Update(float dt);
-	int		Update2(float dt, lua_State* L);
+	void	DefenderDied();
+	void	AttackerDied();
+	void	UnitKilledByAbility(int x, int y);
+
+	int		 UpdateCombat(float dt, lua_State* L);
+	Position UpdateAbility(float dt, lua_State* L);
 
 #pragma region Properties
 	__declspec(property(get=GetAttacker, put=SetAttacker)) Unit* Attacker;	Unit* GetAttacker();	void SetAttacker(Unit* a);
@@ -53,16 +61,23 @@ private:
 	void	(Level::*CreateCombatText)(Position, Position, const char*, int);
 
 	// Combat timer values
-	static const float  COMBAT_TEXT_LIFE;	// how long each combat text entry lasts / is displayed
-	static const float  PRE_COMBAT_WAIT;	// time after combat is initiated before attacker first strikes
-	static const float	MID_COMBAT_WAIT;	// time after attacker first strikes before defender retaliates
-	static const float	POST_COMBAT_WAIT;	// time after final attack before combat completely ends
-	static const float  MULTI_HIT_WAIT;		// time between multiple hits from a single combatant
+	static const float  COMBAT_TEXT_LIFE;		// how long each combat text entry lasts / is displayed
+	static const float  BASE_PRE_COMBAT_WAIT;	// time after combat is initiated before attacker first strikes
+	static const float	BASE_MID_COMBAT_WAIT;	// time after attacker first strikes before defender retaliates
+	static const float	BASE_POST_COMBAT_WAIT;	// time after final attack before combat completely ends
+	static const float  BASE_MULTI_HIT_WAIT;	// time between multiple hits from a single combatant
+	float	preCombatWait;
+	float	midCombatWait;
+	float	postCombatWait;
+	float	multiHitWait;
 
 	// Default Combat scripts
 	static const std::string BASE_CALC_COMBAT_SCRIPT;
 	static const std::string BASE_COMBAT_ATTACKER_STRIKES_SCRIPT;
 	static const std::string BASE_COMBAT_DEFENDER_STRIKES_SCRIPT;
+
+	// Optional script for Augmentator Abilities
+	std::string combatAugmentationScript;
 
 	// Combat Phase + timer
 	float combatTimer;	// timer to keep track of when each combat phase initiates/ends
@@ -71,21 +86,21 @@ private:
 	// Combat results (for return values)
 	bool defenderDied;
 	bool attackerDied;
+	vector<Position> unitsKilledByAbility;
 	
 	// Battle Statistics
-	int		basePhysicalDamageA, basePhysicalDamageD;		// Physical Damage delt by attacker
-	int		baseMagicalDamageA, baseMagicalDamageD;			// Magical damage delt by attacker
-	float	physicalModifier, magicalModifier;				// Damage modifiers during combat
-	int		numAttackerHits, numDefenderHits;				// Num of times each combatant attacks (default 1)
-	int		attHitCount, defHitCount;						// Counter to track number of attacks on each side
-	float	hitA, hitD;										// Percent chance to hit with attack
-	float	avoidA, avoidD;									// Perecent chance to dodge attack
+	int		physicalDamageA, physicalDamageD;			// Physical Damage delt
+	int		magicalDamageA, magicalDamageD;				// Magical Damage delt
+	int		numAttackerHits, numDefenderHits;			// Num of times each combatant attacks (default 1)
+	int		attHitCount, defHitCount;					// Counter to track number of attacks on each side
+	float	hitA, hitD;									// Percent chance to hit with attack
+	float	avoidA, avoidD;								// Perecent chance to dodge attack
 	int		range;
 
 	// Derived Statistics
-	int		physicalDamageA, physicalDamageD;			// Physical Damage after factoring defence
-	int		magicalDamageA, magicalDamageD;				// Magical Damage after factoring resistance
 	float	accuracyA, accuracyD;						// Overall accuracy of attack (hit - avoid)
-	int		RNG;										// Number 1-100 rolled for hit chance
+
+	// Ability Casting
+	Position target;
 };
 #endif

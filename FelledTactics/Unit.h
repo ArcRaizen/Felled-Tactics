@@ -5,6 +5,9 @@
 #ifndef VISUAL_H
 #include "VisualElement.h"
 #endif
+#ifndef LEVELENTITY_H
+#include "LevelEntity.h"
+#endif
 #ifndef INVENTORY_H
 #include "Inventory.h"
 #endif
@@ -15,19 +18,17 @@
 #include "Ability.h"
 #endif
 
+// Codes
+#ifndef UNITSTATUSCODES_C
+#include "UnitStatusCodes.h"
+#endif
+#ifndef UNITUPDATECODES_C
+#include "UnitUpdateCodes.h"
+#endif
+
 #include <list>
 
-#pragma region Status Codes
-#define FELLED		1 << 0
-#define ALLY		1 << 1
-#define ENEMY		1 << 2
-#pragma endregion
-
-#pragma region Ability Codes
-
-#pragma endregion
-
-class Unit : public VisualElement
+class Unit : public VisualElement, public LevelEntity
 {
 public:
 	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
@@ -37,13 +38,18 @@ public:
 	static int		unitCounter;
 
 	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
+	int				TakeUnscaledDamage(int dmg);
 	int				TakeDamage(int physDamage, int magDamage);
 	int				Heal(int hp);
 	virtual void	Revive(int health);						// Revived by an ally
 	virtual float	Die();									// Defeated in combat - Felled
 	void			GainExperience();
 	virtual void	LevelUp();
-	void			SetMovePath(list<Position> path);
+
+	// Movement
+	void			SetMovePath(list<Position> path, float moveTime=0);
+	void			ForceMovement(Position p, float moveTime);
+	void			ForceEndMovement();
 
 	void			LearnAbility(const char* name);
 	bool			SelectedBattleAbility() const;
@@ -54,7 +60,8 @@ public:
 	void			SetSelectedAbilityRange(int r);
 	Ability::CastType GetSelectedAbilityCastType() const;
 	vector<Position> GetSelectedAbilityAoE() const;
-	int				ActivateAbility(lua_State* L, Position target);
+	const float*    GetSelectedAbilityTimers() const;
+	void			ActivateAbility(lua_State* L, Position target);
 	void			RefundAP();
 	void			ClearBattleScripts();
 	bool			HasAbility(const char* name);
@@ -68,14 +75,16 @@ public:
 	virtual bool	Draw();
 	bool			UpdateHPAPBuffers();
 
+	// Statuses
 	void			ApplyStatus(int s);
 	void			RemoveStatus(int s);
 	bool			CheckStatus(int s);
 	bool			IsAlly();
 	bool			IsEnemy();
 
+
 	void			FinishTurn();
-	void			NewTurn();
+	void			NewTurn(lua_State* L);
 
 #pragma region Property Declaration
 	__declspec(property(put=SetPosition, get=GetPosition)) Position UnitPosition;		void SetPosition(Position p);		Position GetPosition();
@@ -178,6 +187,7 @@ protected:
 	float			secBetweenTiles;
 	float			movementTimer;
 	bool			movementFinished;
+	static float	BASE_MOVE_TIME;
 
 	// Abilities
 	int					numAbilities;

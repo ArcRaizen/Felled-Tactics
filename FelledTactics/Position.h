@@ -38,6 +38,10 @@ struct Position
 		y *= scalar;
 		return *this;
 	}
+	Position operator/(float scalar) const
+	{
+		return Position(x / scalar, y / scalar);
+	}
 	Position operator+(const Position& other) const
 	{
 		return Position(x + other.x, y + other.y);

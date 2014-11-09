@@ -1,8 +1,8 @@
-local combatCalculator = LuaCombatCalculator(CombatCalc)
+local combatManager = LuaCombatManager(CombatMan)
 local level = LuaLevel(Level)
 
-local attacker = LuaUnit(combatCalculator:GetDefender())
-local defender = LuaUnit(combatCalculator:GetAttacker())
+local attacker = LuaUnit(combatManager:GetDefender())
+local defender = LuaUnit(combatManager:GetAttacker())
 
 -- Get Positions of the combatants
 attackerX, attackerY = attacker:GetPosition()
@@ -13,10 +13,10 @@ math.randomseed(os.time())
 RNG = math.random(100)
 if RNG < Accuracy then
 	damage = defender:TakeDamage(PhysicalDamage, MagicalDamage)
-	level:CreateCombatText(defenderX, defenderY, attackerX, attackerY, damage, 0)
+	level:CreateCombatText(defenderX, defenderY, attackerX, attackerY, math.abs(damage), 0)
 
-	if(defender.Health == 0) then
-		combatCalculator:AttackerDies()
+	if(damage < 0) then
+		combatManager:AttackerDied()
 	end
 else
 	level:CreateCombatText(defenderX, defenderY, attackerX, attackerY, "MISS!", 0)

@@ -93,13 +93,20 @@ int Level::Update(float dt, HWND hWnd)
 				// Don't call DoMovementEnd if the unit has renewed motion (from ability/tile effct)
 				if(!unitList[i]->CheckStatus(UNIT_STATUS_MOVING | UNIT_STATUS_FORCED_MOVING))
 				{
-#ifdef DEBUG
-					bool moved = 
-#endif
-					DoMovementEnd(movementBeginning, p);
-					for(auto i = activatedTiles.begin(); i != activatedTiles.end(); i++)	// Re-enable those effects (they disabled themselves after activation)
+					// Re-sort the VisualElements list only on the layer that just changed
+					SortVisualElementsInLayer(unitMap[p.x][p.y]->Layer);
+
+					// Set current unit position for this action
+					currentUnitPosition = p;
+					currentMovementPath.clear();
+
+					// Re-enable tile effects (they disabled themselves after activation)
+					for(auto i = activatedTiles.begin(); i != activatedTiles.end(); i++)
 						map[i->x][i->y]->ReenableEffect();
 					activatedTiles.clear();
+
+					// Create Action Menu now that unit's movement phase is over
+					CreateActionMenu();
 					selectedTile.x = -1;
 				}
 			}
@@ -247,10 +254,10 @@ int Level::Update(float dt, HWND hWnd)
 				if(selectedTile == movementBeginning)
 				{
 #ifdef ALLOW_ZERO_TILE_MOVEMENT
-#ifdef DEBUG
-					bool moved = 
-#endif
-					DoMovementEnd(movementBeginning, movementBeginning);
+					// Create Action Menu now that unit's movement phase is over
+					currentUnitPosition = selectedTile;
+					CreateActionMenu();
+					currentMovementPath.clear();
 #else
 					currentPhase = SelectUnit;
 #endif
@@ -958,36 +965,6 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 			}
 		}
 	}
-}
-
-
-// Finish the movement phase a unit change all properties and statuses to reflect
-bool Level::DoMovementEnd(Position start, Position end)
-{
-	if(start != end)
-	{
-#ifdef DEBUG
-		// Attempting to move unit to occupied space
-		if(unitMap[end.x][end.y] != NULL || map[end.x][end.y]->TileStatus != Tile::Status::Empty)
-			return false;
-
-		// Attempting to move non-existant or felled unit
-		if(unitMap[start.x][start.y] == NULL || map[start.x][start.y]->TileStatus == Tile::Status::Empty || map[start.x][start.y]->TileStatus == Tile::Status::AllyFelled)
-			return false;
-#endif
-
-		// Re-sort the VisualElements list only on the layer that just changed
-		SortVisualElementsInLayer(unitMap[end.x][end.y]->Layer);
-
-		currentMovementPath.clear();
-	}
-
-	// Set current unit position for this action
-	currentUnitPosition = end;
-
-	// Create Action Menu
-	CreateActionMenu();
-	return true;
 }
 
 void Level::CreateActionMenu()

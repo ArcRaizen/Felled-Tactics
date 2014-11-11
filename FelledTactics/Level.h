@@ -82,7 +82,6 @@ private:
 	int		CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove);
 	int 	CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* node);
 	void	MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange = vector<Position>());
-	bool	DoMovementEnd(Position start, Position end);
 
 private:
 	void	CreateActionMenu();

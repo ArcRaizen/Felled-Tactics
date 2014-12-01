@@ -51,7 +51,7 @@ public:
 	void			ForceMovement(Position p, float moveTime);
 	void			ForceEndMovement();
 
-	void			LearnAbility(const char* name);
+	void			LearnAbility(const char* name, int forceRank=0);	// learn ability with given name (specify a rank of the ability with forceRank)
 	bool			SelectedBattleAbility() const;
 	void			SetSelectedAbility(int index);
 	char*			GetSelectedAbilityName() const;

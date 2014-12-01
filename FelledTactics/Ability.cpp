@@ -2,8 +2,14 @@
 #include "Ability.h"
 
 
-Ability::Ability(const char* name)
+Ability::Ability(const char* name) : rank(1)
 {
+	// Temporary variables that will be needed
+	int a, b, i, j, x, y, num;
+	float f;
+	string temp, aoe;
+	stringstream stream;
+
 	tinyxml2::XMLDocument doc;
 	doc.LoadFile("../FelledTactics/Abilities.xml");
 	tinyxml2::XMLElement* abilityList = doc.FirstChildElement();
@@ -58,66 +64,92 @@ Ability::Ability(const char* name)
 	else	// None
 		castType = Free;
 
-	// 4) AP Cost
+	// 4) Max Rank
 	element = element->NextSiblingElement();	// move to next element
-	stringstream stream;
-	stream << element->GetText();				// get ap cost			
-	stream >> apCost;							// convert to int and save
+	stream << element->GetText();				// get maximum rank
+	stream >> maxRank;							// convert to int and save
 	stream.clear();
 
-	// 5) Range
+	// Create arrays for this abilities parameters now that we know its maximum rank
+	apCosts = new int[maxRank];
+	ranges = new int[maxRank];
+	areasOfEffect = new vector<Position>[maxRank];
+
+	// 5) AP Cost
+	element = element->NextSiblingElement();	// move to next element
+	stream << element->GetText();				// get ap cost
+	stream >> temp;
+	stream.clear();
+	for(i = 0; i < maxRank; i++)
+	{
+		x = temp.find("/");
+		apCosts[i] = atoi(temp.substr(0, x).c_str());
+		temp = temp.substr(x+1);
+	}
+	
+
+	// 6) Range
 	element = element->NextSiblingElement();	// move to next element
 	stream << element->GetText();				// get range		
-	stream >> range;							// convert to int and save
+	stream >> temp;								
 	stream.clear();
+	for(i = 0; i < maxRank; i++)
+	{
+		x = temp.find("/");
+		ranges[i] = atoi(temp.substr(0, x).c_str());
+		temp = temp.substr(x+1);
+	}
 
-	// 6) AoE
-	int num;
-	string aoe;
+	// 7) AoE
 	element = element->NextSiblingElement();	// move to next element
 	stream << element->GetText();				// get aoe string
-	stream >> aoe;								// convert to string
+	stream >> temp;								// convert to string
 	stream.clear();
-	stream << aoe.substr(0, aoe.find("|"));		// find first number (number of Positions in the element)
-	stream >> num;								// conver to int and save
-	stream.clear();
-
-	if(num > 0)
+	
+	for(i = 0; i < maxRank; i++)
 	{
-		aoe = aoe.substr(aoe.find("|") + 1).c_str();	// Get list of positions
-		int a, b, x;
-		for(int i = 0; i < num; i++)
-		{
-			x = aoe.find("|");											// Find index of first delimeter
-			a = atoi(aoe.substr(0, x).c_str());							// Get and save x-coordinate of AoE (string before delimeter)
-			aoe = aoe.substr(x+1);										// Remove x-coordinate from string
-			x = aoe.find("|");											// Find index of next delimeter
-			b = atoi(x > 0 ? aoe.substr(0, x).c_str() : aoe.c_str());	// Get and save y-coordinate of AoE (string before delimeter)
-			aoe = aoe.substr(x+1);										// Remove y-coordinate from delimeter
-			areaOfEffect.push_back(Position(a,b));						// Add new Position(x,y) to AoE list - Move to next entry in AoE
-		}
-	}
-	else
-		areaOfEffect.push_back(Position(0,0));
+		y = temp.find("/");
+		aoe = temp.substr(0, y);				// find next set of AoEs (a set for each rank of the ability)
+		stream << aoe.substr(0, aoe.find("|"));	// find first number (number of Positions in the AoE)
+		stream >> num;								// conver to int and save
+		stream.clear();
 
-	// Cast Timers
+		if(num > 0)
+		{
+			aoe = aoe.substr(aoe.find("|") + 1).c_str();	// Get list of positions
+			for(j = 0; j < num; j++)
+			{
+				x = aoe.find("|");											// Find index of first delimeter
+				a = atoi(aoe.substr(0, x).c_str());							// Get and save x-coordinate of AoE (string before delimeter)
+				aoe = aoe.substr(x+1);										// Remove x-coordinate from string
+				x = aoe.find("|");											// Find index of next delimeter
+				b = atoi(x > 0 ? aoe.substr(0, x).c_str() : aoe.c_str());	// Get and save y-coordinate of AoE (string before delimeter)
+				aoe = aoe.substr(x+1);										// Remove y-coordinate from delimeter
+				areasOfEffect[i].push_back(Position(a,b));					// Add new Position(x,y) to AoE list - Move to next entry in AoE
+			}
+		}
+		else
+			areasOfEffect[i].push_back(Position(0,0));
+
+		temp = temp.substr(y+1);
+	}
+
+	// 8) Cast Timers
 	string timers;
 	element = element->NextSiblingElement();	// move to next element
 	stream << element->GetText();				// get timer string
 	stream >> timers;							// convert to string
 	stream.clear();
 	
-	float a;
-	int x;
-	for(int i = 0; i < 4; i++)
+	for(i = 0; i < 4; i++)
 	{
 		 x = timers.find("|");						// Find index of first delimeter
-		 a = atof(timers.substr(0, x).c_str());		// Get and save cast timer (string before delimeter)
+		 f = atof(timers.substr(0, x).c_str());		// Get and save cast timer (string before delimeter)
 		 timers = timers.substr(x+1);				// Remove timer from string
-		 castTimers[i] = a;							// Save timer
+		 castTimers[i] = f;							// Save timer
 	}
 
-	// 7) Script
+	// 9) Script
 	element = element->NextSiblingElement();	// move to next element
 	value = element->GetText();					// get script
 	script.clear();
@@ -128,10 +160,17 @@ Ability::Ability(const char* name)
 
 Ability::~Ability(void)
 {
+	delete [] apCosts;
+	delete [] ranges;
+	delete [] areasOfEffect;
 }
 
 void Ability::Activate(lua_State* L, Position target, Position source)
 {
+	// Tell the script the current rank of the ability
+	lua_pushinteger(L, rank);
+	lua_setglobal(L, "Rank");
+
 	// Create table to tell script where skill was cast from
 	lua_createtable(L, 2, 0);
 	lua_pushinteger(L, source.x);
@@ -141,17 +180,17 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	lua_setglobal(L, "Source");
 
 	// Create tables of tiles where skill  has an effect
-	if(areaOfEffect.size() > 0)
+	if(areasOfEffect[rank-1].size() > 0)
 	{
 		stringstream ss(stringstream::in | stringstream::out);
-		lua_createtable(L, areaOfEffect.size(), 0);		// Create AreaOfEffect
-		for(int i = 0; i < areaOfEffect.size(); i++)
+		lua_createtable(L, areasOfEffect[rank-1].size(), 0);		// Create AreaOfEffect
+		for(int i = 0; i < areasOfEffect[rank-1].size(); i++)
 		{
 			ss << i;
 			lua_createtable(L, 2, 0);					// Create next entry in AoE
-			lua_pushinteger(L, target.x + areaOfEffect[i].x);
+			lua_pushinteger(L, target.x + areasOfEffect[rank-1][i].x);
 			lua_setfield(L, -2, "x");					// Set and name x-coordinate in entry
-			lua_pushinteger(L, target.y + areaOfEffect[i].y);
+			lua_pushinteger(L, target.y + areasOfEffect[rank-1][i].y);
 			lua_setfield(L, -2, "y");					// Set and name y-coordinate in entry 
 			lua_setfield(L, -2, ss.str().c_str());		// Name entry (string of entries index in AoE)
 		}
@@ -183,10 +222,22 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 #endif
 }
 
+bool Ability::RankUp()
+{
+	if(rank < maxRank)
+	{
+		rank++;
+		return true;
+	}
+
+	return false;
+}
+
 char* Ability::GetName() { return name; }
+int Ability::GetRank() { return rank; }
 Ability::Type Ability::GetType() { return type; }
-int Ability::GetCost() { return apCost; }
+int Ability::GetCost() { return apCosts[rank-1]; }
 Ability::CastType Ability::GetCastType() { return castType; }
-int Ability::GetRange() { return range; }
-vector<Position> Ability::GetAOE() { return areaOfEffect; }
+int Ability::GetRange() { return ranges[rank-1]; }
+vector<Position> Ability::GetAOE() { return areasOfEffect[rank-1]; }
 const float* Ability::GetTimers() const { return castTimers; }

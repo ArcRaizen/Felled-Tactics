@@ -29,7 +29,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 
 	// Test Abilities
 	numAbilities = numActionAbilities = numBattleAbilities = 0;
-	LearnAbility("Damage");
+	LearnAbility("Damage", 3);
 	LearnAbility("Heal");
 	LearnAbility("DoubleStrike");
 	LearnAbility("Fire");
@@ -291,10 +291,44 @@ void Unit::ForceEndMovement()
 }
 
 #pragma region Abilities
-void Unit::LearnAbility(const char* name)
+void Unit::LearnAbility(const char* name, int forceRank/*=0*/)
 {
+	if(forceRank == 0)
+	{
+		for(auto i = activeAbilityList.begin(); i != activeAbilityList.end(); i++)
+		{
+			if(!strcmp((*i)->Name, name))
+			{
+				if((*i)->RankUp())	// ranked up
+				{
+				}
+				else{}				// cannot rank up anymore
+
+				return;
+			}
+		}
+
+		for(auto i = passiveAbilityList.begin(); i != passiveAbilityList.end(); i++)
+		{
+			if(!strcmp((*i)->Name, name))
+			{
+				if((*i)->RankUp())	// ranked up
+				{
+				}
+				else{}				// cannot rank up anymore
+
+				return;
+			}
+		}
+	}
+
 	// LEARN NEW ABILITY HERE
 	Ability* a = new Ability(name);
+	while(forceRank > 1)
+	{
+		a->RankUp();
+		forceRank--;
+	}
 
 	numAbilities++;
 	switch(a->AbilityType)
@@ -310,7 +344,6 @@ void Unit::LearnAbility(const char* name)
 			activeAbilityList.push_back(a);
 			break;
 	}
-
 	a = NULL;
 }
 

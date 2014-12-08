@@ -73,15 +73,15 @@ void Direct3D::InitializeDirect3D(bool vsync, HWND hWnd, bool fScreen, float scr
 	fullScreen = fScreen;
 
 	hr = S_OK;	// Used for debugging
-	DefineSwapChain(hWnd);
-	CreateRenderTargetView();
-	CreateDepthStencilBuffer();
-	SetViewport(screenNear, screenFar);
-	InitializeShader(hWnd);
-	InitializeBlendStates();
-	InitFonts();
-	InitializeVertexBuffer();
-	InitializeIndexBuffer();
+	assert(DefineSwapChain(hWnd));
+	assert(CreateRenderTargetView());
+	assert(CreateDepthStencilBuffer());
+	assert(SetViewport(screenNear, screenFar));
+	assert(InitializeShader(hWnd));
+	assert(InitializeBlendStates());
+	assert(InitFonts());
+	assert(InitializeVertexBuffer());
+	assert(InitializeIndexBuffer());
 
 	// Save the graphics info struct so we can pass these things around
 	gpInfo->gpDevice = gpDevice;
@@ -187,6 +187,8 @@ bool Direct3D::DefineSwapChain(HWND hWnd)
 	hr = D3D10CreateDeviceAndSwapChain(NULL, D3D10_DRIVER_TYPE_HARDWARE, NULL,
 		createDeviceFlag, D3D10_SDK_VERSION, &swapChainDesc, &gpSwapChain,	&gpDevice);
 	if(FAILED(hr))	return hr;
+
+	return true;
 }
 
 // Create Render Target View
@@ -204,6 +206,7 @@ bool Direct3D::CreateRenderTargetView()
 	backBuffer = 0;
 
 	//gpDevice->OMSetRenderTargets(1, &gpRenderTargetView, 0);
+	return true;
 }
 bool Direct3D::CreateDepthStencilBuffer()
 {
@@ -264,6 +267,7 @@ bool Direct3D::CreateDepthStencilBuffer()
 	
 	// Bind render target view and depth stencil buffer to output render pipeline
 	gpDevice->OMSetRenderTargets(1, &gpRenderTargetView, gpDepthStencilView);
+	return true;
 }
 
 bool Direct3D::InitializeRasterizerState()
@@ -287,6 +291,7 @@ bool Direct3D::InitializeRasterizerState()
 	if(FAILED(hr)) return hr;
 
 	gpDevice->RSSetState(gpRasterizerState);
+	return true;
 }
 
 bool Direct3D::SetViewport(float screenNear, float screenFar)
@@ -338,7 +343,6 @@ bool Direct3D::SetViewport(float screenNear, float screenFar)
 
 	// Turn Z Buffer Off
 	gpDevice->OMSetDepthStencilState(gpDepthDisabledStencilState, 1);
-
 	return true;
 }
 
@@ -391,6 +395,7 @@ bool Direct3D::InitializeShader(HWND hWnd)
 
 	// Get pointer to texture from the shader
 	gpShaderTexture = gpEffect->GetVariableByName("shaderTexture")->AsShaderResource();
+	return true;
 }
 
 bool Direct3D::InitializeBlendStates()
@@ -444,6 +449,7 @@ bool Direct3D::InitializeBlendStates()
 
 	// Set default blend state
 	gpDevice->OMSetBlendState(blendAlpha, 0, 0xffffffff);
+	return true;
 }
 
 bool Direct3D::InitFonts()
@@ -458,10 +464,11 @@ bool Direct3D::InitFonts()
 	fontDesc.OutputPrecision = OUT_DEFAULT_PRECIS;
 	fontDesc.Quality = DEFAULT_QUALITY;
 	fontDesc.PitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-	wcscpy(fontDesc.FaceName, L"Times New Roman");
+	wcscpy_s(fontDesc.FaceName, L"Times New Roman");
 
 	hr = D3DX10CreateFontIndirect(gpDevice, &fontDesc, &gpFont);
-	return hr;
+	if(FAILED(hr)) return hr;
+	return true;
 }
 
 // Every object drawn in this game is a square, so we can create
@@ -497,6 +504,7 @@ bool Direct3D::InitializeVertexBuffer()
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	gpDevice->IASetVertexBuffers(0, 1, &gpVertexBuffer, &stride, &offset);
+	return true;
 }
 
 bool Direct3D::InitializeIndexBuffer()
@@ -522,14 +530,13 @@ bool Direct3D::InitializeIndexBuffer()
 
 	// Bind index buffer to the pipeline
 	gpDevice->IASetIndexBuffer(gpIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
 	return true;
 }
 
 void Direct3D::StartFrame(D3DXMATRIX view)
 {
 	// Clear background to black
-	gpDevice->ClearRenderTargetView(gpRenderTargetView, D3DXCOLOR(0.392, 0.584, 0.929, 0.0));
+	gpDevice->ClearRenderTargetView(gpRenderTargetView, D3DXCOLOR(0.392f, 0.584f, 0.929f, 0.0f));
 
 	// Clear depth buffer
 	gpDevice->ClearDepthStencilView(gpDepthStencilView, D3D10_CLEAR_DEPTH, 1.0f, 0);

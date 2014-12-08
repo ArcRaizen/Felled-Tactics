@@ -29,9 +29,9 @@ void Camera::Update()
 	D3DXVECTOR3 up (0.0f, 1.0f, 0.0f); 
 	D3DXVECTOR3 position(positionX, positionY, positionZ);
 	D3DXVECTOR3 lookAt(0.0f, 0.0f, 1.0f);
-	float pitch = rotationX * (PI / 180);
-	float yaw = rotationY * (PI / 180);
-	float roll = rotationZ * (PI / 180);
+	float pitch = rotationX * (PI / 180.0f);
+	float yaw = rotationY * (PI / 180.0f);
+	float roll = rotationZ * (PI / 180.0f);
 	D3DXMATRIX rotationMatrix;
 
 	D3DXMatrixRotationYawPitchRoll(&rotationMatrix, yaw, pitch, roll);

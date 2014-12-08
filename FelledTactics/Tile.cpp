@@ -1,8 +1,6 @@
 #include "StdAfx.h"
 #include "Tile.h"
 
-std::wstring Tile::PNG = L".png";
-
 #pragma region Highlight Color Initializations
 D3DXVECTOR4 Tile::highlightAllyMove = D3DXVECTOR4(0.0f, 0.0f, 1.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAllyMoveAlly = D3DXVECTOR4(0.0f, 1.0f, 1.0f, 1.0f);
@@ -94,7 +92,7 @@ void Tile::ActivateNewTurnEffect(lua_State* L)
 	// Run the script
 #ifdef DEBUG
 	int test = luaL_dofile(L, effectNewTurnScript.c_str());
-	if(test == 1)
+	if(test)
 	{
 		std::string error = lua_tostring(L, -1);
 		test++;

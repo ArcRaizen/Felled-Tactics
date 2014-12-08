@@ -37,10 +37,15 @@ void CombatManager::CalculateCombat(lua_State* L)
 	lua_setglobal(L, "Range");
 	lua_pushboolean(L, true);
 	lua_setglobal(L, "isAttacker");
-	if(attacker->CombatCalcScript == "")
-		luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str());
-	else
-		luaL_dofile(L, attacker->CombatCalcScript.c_str());
+	int test = !attacker->CombatCalcScript.compare("") ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
+														luaL_dofile(L, attacker->CombatCalcScript.c_str());
+#ifdef DEBUG
+	if(test)
+	{
+		std::string error = lua_tostring(L, -1);
+		test++;
+	}
+#endif
 
 	// Defender
 	lua_pushlightuserdata(L, (void*)this);
@@ -53,10 +58,16 @@ void CombatManager::CalculateCombat(lua_State* L)
 	lua_setglobal(L, "Range");
 	lua_pushboolean(L, false);
 	lua_setglobal(L, "isAttacker");
-	if(defender->CombatCalcScript == "")
-		luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str());
-	else
-		luaL_dofile(L, defender->CombatCalcScript.c_str());
+	test = !defender->CombatCalcScript.compare("") ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
+												luaL_dofile(L, defender->CombatCalcScript.c_str());
+
+#ifdef DEBUG
+	if(test)
+	{
+		std::string error = lua_tostring(L, -1);
+		test++;
+	}
+#endif
 
 	accuracyA = hitA - avoidD;
 	accuracyD = hitD - avoidA;
@@ -184,10 +195,16 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			lua_setglobal(L, "MagicaDamage");
 			lua_pushinteger(L, accuracyA);
 			lua_setglobal(L, "Accuracy");
-			if(attacker->CombatExecuteScript == "")
-				luaL_dofile(L, BASE_COMBAT_ATTACKER_STRIKES_SCRIPT.c_str());
-			else
-				luaL_dofile(L, attacker->CombatExecuteScript.c_str());
+			test = !attacker->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_ATTACKER_STRIKES_SCRIPT.c_str()) :
+																luaL_dofile(L, attacker->CombatExecuteScript.c_str());
+
+#ifdef DEBUG
+			if(test)
+			{
+				std::string error = lua_tostring(L, -1);
+				test++;
+			}
+#endif
 
 			// If attacker is executing multiple hits, repeate this step appropriately
 			if(numAttackerHits - attHitCount > 1)
@@ -233,10 +250,15 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 				lua_setglobal(L, "MagicaDamage");
 				lua_pushinteger(L, accuracyD);
 				lua_setglobal(L, "Accuracy");
-				if(defender->CombatExecuteScript == "")
-					luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str());
-				else
-					luaL_dofile(L, defender->CombatExecuteScript.c_str());
+				test = defender->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str()) :
+																		luaL_dofile(L, defender->CombatExecuteScript.c_str());
+#ifdef DEBUG
+				if(test)
+				{
+					std::string error = lua_tostring(L, -1);
+					test++;
+				}
+#endif
 			}
 
 			combatTimer = 0.0f;

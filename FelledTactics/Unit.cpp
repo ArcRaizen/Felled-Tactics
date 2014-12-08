@@ -7,7 +7,7 @@ D3DXVECTOR4 Unit::highlightFinishedTurn = D3DXVECTOR4(0.328f, 0.328f, 0.328f, 1.
 
 Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally/*=true*/) : 
 	VisualElement(filename, layer, width, height, posX, posY), felled(false), finishedTurn(false), secBetweenTiles(BASE_MOVE_TIME), movementTimer(0),
-	movementFinished(true), status(0)
+	movementFinished(true), status(0), numAbilities(0), numActionAbilities(0), numBattleAbilities(0)
 {
 	InitProficiency();
 	position.x = posX / width;		// width and height are set to TileSize
@@ -31,7 +31,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	numAbilities = numActionAbilities = numBattleAbilities = 0;
 	LearnAbility("Damage", 3);
 	LearnAbility("Heal");
-	LearnAbility("DoubleStrike");
+	LearnAbility("Double Strike");
 	LearnAbility("Fire");
 	LearnAbility("Vector Plate");
 
@@ -45,6 +45,61 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	drawBars = false;
 }
 
+Unit::Unit(int layer, int width, int height, int posX, int posY, char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap) :
+	VisualElement(L"", layer, width, height, posX, posY), felled(false), finishedTurn(false), secBetweenTiles(BASE_MOVE_TIME), movementTimer(0),
+	movementFinished(true), status(0), numAbilities(0), numActionAbilities(0), numBattleAbilities(0)
+{
+	strcpy_s(this->name, name);
+	string unitClass = unitMap["Class"].get_str();
+	experience = unitMap["Experience"].get_int();
+	health = maximumHealth = unitMap["Health"].get_int();
+	abilityPoints = maximumAbilityPoints = unitMap["AP"].get_int();
+	strength = unitMap["Strength"].get_int();
+	magic = unitMap["Magic"].get_int();
+	skill = unitMap["Skill"].get_int();
+	agility = unitMap["Agility"].get_int();
+	defense = unitMap["Defense"].get_int();
+	resistance = unitMap["Resistance"].get_int();
+	movement = unitMap["Movement"].get_int();
+
+	// Abilities
+	string abilities = unitMap["Abilities"].get_str();
+	int x = 0, y = -1, rank = 0;
+	while(x >= 0)
+	{
+		x = abilities.find("|");
+		string ability = abilities.substr(0, x);
+		y = ability.find(":");
+		if(y != -1)
+		{
+			rank = atoi(ability.substr(y+1).c_str());
+			ability = ability.substr(0, y);
+		}
+		LearnAbility(ability.c_str(), abilityMap.find(ability)->second.get_obj(), rank);
+		abilities = abilities.substr(x+1);
+		rank = 0;
+	}
+
+	// temporary weapon for now
+	attackRange = 5;
+	inventory += new Weapon(Weapon::WeaponClass::Bow, 30, 0, 5);
+
+	InitProficiency();
+	ApplyStatus(UNIT_STATUS_ALLY);
+	SetTexture(L"../FelledTactics/Textures/Units/" + wstring(unitClass.begin(), unitClass.end()) + L".png");
+	position.x = posX / width;		// width and height are set to TileSize
+	position.y = posY / height;		// PosX and PosY are units from origin to bottom-left corner of tile they are at
+	unitID = unitCounter++;			// each unit has ID number in order of their creation
+
+	// Initialize matrix, buffers and textures for HP/AP bars
+	hpapHeight = height * 0.1f;
+	D3DXMatrixIdentity(&hpapWorld);
+	InitializeHPAPBuffers();
+	hr = D3DX10CreateShaderResourceViewFromFile(Direct3D::gpInfo->gpDevice, L"../FelledTactics/Textures/health.png", 0, 0, &hpBarTexture, 0);
+	hr = D3DX10CreateShaderResourceViewFromFile(Direct3D::gpInfo->gpDevice, L"../FelledTactics/Textures/ap.png", 0, 0, &apBarTexture, 0);
+	updateHPAPBuffers = true;	// always do update on first draw
+	drawBars = false;
+}
 
 Unit::~Unit(void)
 {
@@ -53,12 +108,12 @@ Unit::~Unit(void)
 	hpBarTexture->Release();    hpBarTexture = 0;
 	apBarTexture->Release();    apBarTexture = 0;
 
-	for(int i = 0; i < activeAbilityList.size(); i++)
+	for(UINT i = 0; i < activeAbilityList.size(); i++)
 	{
 		delete activeAbilityList[i];
 		activeAbilityList[i] = NULL;
 	}
-	for(int j = 0; j < passiveAbilityList.size(); j++)
+	for(UINT j = 0; j < passiveAbilityList.size(); j++)
 	{
 		delete passiveAbilityList[j];
 		passiveAbilityList[j] = NULL;
@@ -347,6 +402,62 @@ void Unit::LearnAbility(const char* name, int forceRank/*=0*/)
 	a = NULL;
 }
 
+void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank/*=0*/)
+{
+	if(forceRank == 0)
+	{
+		for(auto i = activeAbilityList.begin(); i != activeAbilityList.end(); i++)
+		{
+			if(!strcmp((*i)->Name, name))
+			{
+				if((*i)->RankUp())	// ranked up
+				{
+				}
+				else{}				// cannot rank up anymore
+
+				return;
+			}
+		}
+
+		for(auto i = passiveAbilityList.begin(); i != passiveAbilityList.end(); i++)
+		{
+			if(!strcmp((*i)->Name, name))
+			{
+				if((*i)->RankUp())	// ranked up
+				{
+				}
+				else{}				// cannot rank up anymore
+
+				return;
+			}
+		}
+	}
+
+	// LEARN NEW ABILITY HERE
+	Ability* a = new Ability(name, abilityMap);
+	while(forceRank > 1)
+	{
+		a->RankUp();
+		forceRank--;
+	}
+
+	numAbilities++;
+	switch(a->AbilityType)
+	{
+		case Ability::Type::Passive:
+			passiveAbilityList.push_back(a);
+			break;
+		case Ability::Type::Action:
+			numActionAbilities++;
+			numBattleAbilities--;
+		case Ability::Type::Battle:
+			numBattleAbilities++;
+			activeAbilityList.push_back(a);
+			break;
+	}
+	a = NULL;
+}
+
 // Check if the selected ability is a Battle ability (not action or passive)
 bool Unit::SelectedBattleAbility() const { return activeAbilityList[selectedAbility]->AbilityType == Ability::Type::Battle; }
 
@@ -435,11 +546,13 @@ int Unit::Update(float dt)
 		highlightColor.w -= (dt / 1.5f) * 0.8f;
 		if(highlightColor.w <= 0.2f)
 		{
-			if(CheckStatus(UNIT_STATUS_ALLY))
+			if(CheckStatus(UNIT_STATUS_ALLY | UNIT_STATUS_BOSS))
 			{
-				highlightColor.w = 0.2;
+				highlightColor.w = 0.2f;
 				RemoveStatus(UNIT_STATUS_DYING);
 				ApplyStatus(UNIT_STATUS_FELLED);
+				if(CheckStatus(UNIT_STATUS_BOSS))
+					return UNIT_UPDATE_DEAD;
 				felled = true;
 			}
 			return UNIT_UPDATE_DEAD;
@@ -529,10 +642,10 @@ bool Unit::UpdateHPAPBuffers()
 
 	Vertex verts[] =
 	{	// Cut off percentage of texture proportional to current HP
-		{D3DXVECTOR3(left, top, 0.0f),		D3DXVECTOR2(0.0, 0.0f)},
-		{D3DXVECTOR3(right, top, 0.0f),		D3DXVECTOR2(1.0 * hpRatio, 0.0f)},
-		{D3DXVECTOR3(left, bottom, 0.0f),	D3DXVECTOR2(0.0, 1.0f)},
-		{D3DXVECTOR3(right, bottom, 0.0f),	D3DXVECTOR2(1.0 * hpRatio, 1.0f)}
+		{D3DXVECTOR3(left, top, 0.0f),		D3DXVECTOR2(0.0f, 0.0f)},
+		{D3DXVECTOR3(right, top, 0.0f),		D3DXVECTOR2(1.0f * hpRatio, 0.0f)},
+		{D3DXVECTOR3(left, bottom, 0.0f),	D3DXVECTOR2(0.0f, 1.0f)},
+		{D3DXVECTOR3(right, bottom, 0.0f),	D3DXVECTOR2(1.0f * hpRatio, 1.0f)}
 	};
 	
 	// Set new updated HP Bar Buffer
@@ -553,10 +666,10 @@ bool Unit::UpdateHPAPBuffers()
 
 	Vertex verts2[] = 
 	{	// Cut off percentage of texture proportional to current AP
-		{D3DXVECTOR3(left, top, 0.0f),		D3DXVECTOR2(0.0, 0.0f)},
-		{D3DXVECTOR3(right, top, 0.0f),		D3DXVECTOR2(1.0 * apRatio, 0.0f)},
-		{D3DXVECTOR3(left, bottom, 0.0f),	D3DXVECTOR2(0.0, 1.0f)},
-		{D3DXVECTOR3(right, bottom, 0.0f),	D3DXVECTOR2(1.0 * apRatio, 1.0f)}
+		{D3DXVECTOR3(left, top, 0.0f),		D3DXVECTOR2(0.0f, 0.0f)},
+		{D3DXVECTOR3(right, top, 0.0f),		D3DXVECTOR2(1.0f * apRatio, 0.0f)},
+		{D3DXVECTOR3(left, bottom, 0.0f),	D3DXVECTOR2(0.0f, 1.0f)},
+		{D3DXVECTOR3(right, bottom, 0.0f),	D3DXVECTOR2(1.0f * apRatio, 1.0f)}
 	};
 
 	// Set new updated AP Bar Buffer
@@ -639,9 +752,9 @@ void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }
 void  Unit::SetCombatCalcScript(std::string s) { combatCalculationAbilityScript = s; }
-std::string Unit::GetCombatCalcScript() { return combatCalculationAbilityScript; }
+std::string Unit::GetCombatCalcScript() { assert(combatCalculationAbilityScript.size() > 0); return combatCalculationAbilityScript; }
 void  Unit::SetCombatExecuteScript(std::string s) { combatExecutionAbilityScript = s; }
-std::string Unit::GetCombatExecuteScript() { return combatExecutionAbilityScript; }
+std::string Unit::GetCombatExecuteScript() { assert(combatExecutionAbilityScript.size() > 0); return combatExecutionAbilityScript; }
 void  Unit::SetDrawBars(bool db) { drawBars = db; }
 int	  Unit::GetUnitID() const { return unitID; }
 

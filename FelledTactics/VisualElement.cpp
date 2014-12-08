@@ -2,6 +2,7 @@
 #include "VisualElement.h"
 
 D3DXVECTOR4 VisualElement::highlightNone = D3DXVECTOR4(1.0f, 1.0f, 1.0f, 1.0f);
+std::wstring VisualElement::PNG = L".png";
 
 // PosX and PosY are pixel-coordinates in the game with (0,0) being the bottom-left corner
 VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY) : mouseEntered(false), mouseDown(false), texture(0),
@@ -151,6 +152,8 @@ int VisualElement::Update(float dt)
 
 bool VisualElement::Draw()
 {
+	assert(texture);
+
 	// Set world matrix
 	Direct3D::gpInfo->gpShaderWorldMatrix->SetMatrix((float*)world);
 
@@ -164,7 +167,7 @@ bool VisualElement::Draw()
 	// Bind texture to pipeline to draw
 	Direct3D::gpInfo->gpShaderTexture->SetResource(texture);
 
-	D3D10_TECHNIQUE_DESC techniqueDesc;
+	//D3D10_TECHNIQUE_DESC techniqueDesc;
 	Direct3D::gpInfo->gpDevice->IASetInputLayout(Direct3D::gpInfo->gpLayout);
 	//gpInfo->gpTechnique->GetDesc(&techniqueDesc);
 	//for(int i = 0; i < techniqueDesc.Passes; ++i)
@@ -178,6 +181,12 @@ bool VisualElement::Draw()
 		Direct3D::gpInfo->gpShaderHighlightColor->SetFloatVector((float*)Direct3D::gpInfo->gpShaderDefaultColor);
 
 	return true;
+}
+
+void VisualElement::SetTexture(std::wstring filename)
+{
+	// Load Texture
+	hr = D3DX10CreateShaderResourceViewFromFile(Direct3D::gpInfo->gpDevice, filename.c_str(), 0, 0, &texture, 0);
 }
 
 // Turn off this element drawing by making it invisible

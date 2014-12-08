@@ -123,9 +123,6 @@
     <ClInclude Include="Direct3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tinyxml2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MenuBox.h">
       <Filter>Menu</Filter>
     </ClInclude>
@@ -236,9 +233,6 @@
     <ClCompile Include="Direct3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tinyxml2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MenuBox.cpp">
       <Filter>Menu</Filter>
     </ClCompile>
@@ -271,6 +265,15 @@
     </ClCompile>
     <ClCompile Include="LuaTile.cpp">
       <Filter>Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="json\json_spirit_reader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json\json_spirit_value.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="json\json_spirit_writer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

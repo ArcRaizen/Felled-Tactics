@@ -10,7 +10,7 @@
 #include <WindowsX.h>
 const int ARRAY_SIZE = 256;
 
-static class InputManager
+class InputManager
 {
 public:
 	InputManager(void);

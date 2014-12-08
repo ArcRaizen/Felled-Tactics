@@ -4,7 +4,7 @@
 
 #include <Windows.h>
 
-static class GameTimer
+class GameTimer
 {
 public:
 	GameTimer(void);

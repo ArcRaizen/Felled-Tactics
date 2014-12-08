@@ -1,98 +1,79 @@
 #include "stdafx.h"
 #include "Ability.h"
 
-
 Ability::Ability(const char* name) : rank(1)
 {
+	// Pair is a struct that holds a string and a Value
+	// Value is a class that can be: string/int/double/bool/null/Array/Object
+	// Object is a vector or Pairs - mObject is a map of of Pairs
+	// Array is a vector of Values
+
 	// Temporary variables that will be needed
 	int a, b, i, j, x, y, num;
 	float f;
 	string temp, aoe;
-	stringstream stream;
 
-	tinyxml2::XMLDocument doc;
-	doc.LoadFile("../FelledTactics/Abilities.xml");
-	tinyxml2::XMLElement* abilityList = doc.FirstChildElement();
-	tinyxml2::XMLElement* ability = abilityList->FirstChildElement();
-	const char* value = ability->Attribute("Name");
+	// Open and read the json document of all the abilities
+	ifstream is("../FelledTactics/Abilities.json");
+	json_spirit::mValue value;
+	json_spirit::read(is, value);
 
-	// Loop through all skills until correct skill is located
-	while(strcmp(value, name) && ability != abilityList->LastChildElement())
-	{ 
-		ability = ability->NextSiblingElement();
-		value = ability->Attribute("Name");
-	}
-
-	// Save name
+	// Get the ability we're looking for (as a special std::map)
+	json_spirit::mObject abilityMap = value.get_obj();
+	json_spirit::mObject ability = abilityMap.find(name)->second.get_obj();
 	strcpy(this->name, name);
 
-	// Set Skill from XML file
-	// 1) Skill Type
-	tinyxml2::XMLElement* element = ability->FirstChildElement();
-	value = element->GetText();
-	if(!strcmp(value, "Action"))
+	// ~~Get the ability information out of the map~~
+	// 1) Ability Type
+	temp = ability["type"].get_str();
+	if(!temp.compare("Action"))
 		type = Action;
-	else if(!strcmp(value, "Battle"))
+	else if(!temp.compare("Battle"))
 		type = Battle;
 	else	// Passive
 		type = Passive;
 
 	// 2) Effect Type
-	element = element->NextSiblingElement();
-	value = element->GetText();
-	if(!strcmp(value, "Physical"))
+	temp = ability["effect_type"].get_str();
+	if(!temp.compare("Physical"))
 		effect = Physical;
-	else if(!strcmp(value, "Magical"))
+	else if(!temp.compare("Magical"))
 		effect = Magical;
-	else if(!strcmp(value, "Heal"))
+	else if(!temp.compare("Heal"))
 		effect = Heal;
-	else if(!strcmp(value, "Status"))
+	else if(!temp.compare("Status"))
 		effect = Status;
 	else	// None
 		effect = None;
 
-
 	// 3) Cast Type
-	element = element->NextSiblingElement();
-	value = element->GetText();
-	if(!strcmp(value, "SelfCast"))
+	temp = ability["cast_type"].get_str();
+	if(!temp.compare("SelfCast"))
 		castType = SelfCast;
-	else if(!strcmp(value, "Ally"))
+	else if(!temp.compare("Ally"))
 		castType = Ally;
-	else if(!strcmp(value, "Enemy"))
+	else if(!temp.compare("Enemy"))
 		castType = Enemy;
 	else	// None
 		castType = Free;
 
 	// 4) Max Rank
-	element = element->NextSiblingElement();	// move to next element
-	stream << element->GetText();				// get maximum rank
-	stream >> maxRank;							// convert to int and save
-	stream.clear();
-
-	// Create arrays for this abilities parameters now that we know its maximum rank
-	apCosts = new int[maxRank];
-	ranges = new int[maxRank];
-	areasOfEffect = new vector<Position>[maxRank];
+	maxRank = ability["max_rank"].get_int();
+	apCosts = new int[maxRank];						// ~~
+	ranges = new int[maxRank];						// Create arrays for this abilities parameters now that we know its maximum rank
+	areasOfEffect = new vector<Position>[maxRank];	// ~~
 
 	// 5) AP Cost
-	element = element->NextSiblingElement();	// move to next element
-	stream << element->GetText();				// get ap cost
-	stream >> temp;
-	stream.clear();
+	temp = ability["ap_cost"].get_str();
 	for(i = 0; i < maxRank; i++)
 	{
 		x = temp.find("/");
 		apCosts[i] = atoi(temp.substr(0, x).c_str());
 		temp = temp.substr(x+1);
 	}
-	
 
 	// 6) Range
-	element = element->NextSiblingElement();	// move to next element
-	stream << element->GetText();				// get range		
-	stream >> temp;								
-	stream.clear();
+	temp = ability["range"].get_str();
 	for(i = 0; i < maxRank; i++)
 	{
 		x = temp.find("/");
@@ -100,19 +81,13 @@ Ability::Ability(const char* name) : rank(1)
 		temp = temp.substr(x+1);
 	}
 
-	// 7) AoE
-	element = element->NextSiblingElement();	// move to next element
-	stream << element->GetText();				// get aoe string
-	stream >> temp;								// convert to string
-	stream.clear();
-	
+	// 7) Area of Effect
+	temp = ability["aoe"].get_str();
 	for(i = 0; i < maxRank; i++)
 	{
 		y = temp.find("/");
 		aoe = temp.substr(0, y);				// find next set of AoEs (a set for each rank of the ability)
-		stream << aoe.substr(0, aoe.find("|"));	// find first number (number of Positions in the AoE)
-		stream >> num;								// conver to int and save
-		stream.clear();
+		num = atoi(aoe.substr(0, aoe.find("|")).c_str());	// find first number (number of Positions in the AoE) convert to int and save
 
 		if(num > 0)
 		{
@@ -135,28 +110,128 @@ Ability::Ability(const char* name) : rank(1)
 	}
 
 	// 8) Cast Timers
-	string timers;
-	element = element->NextSiblingElement();	// move to next element
-	stream << element->GetText();				// get timer string
-	stream >> timers;							// convert to string
-	stream.clear();
-	
+	temp = ability["cast_timers"].get_str();
 	for(i = 0; i < 4; i++)
 	{
-		 x = timers.find("|");						// Find index of first delimeter
-		 f = atof(timers.substr(0, x).c_str());		// Get and save cast timer (string before delimeter)
-		 timers = timers.substr(x+1);				// Remove timer from string
-		 castTimers[i] = f;							// Save timer
+		 x = temp.find("|");					// Find index of first delimeter
+		 f = atof(temp.substr(0, x).c_str());	// Get and save cast timer (string before delimeter)
+		 temp = temp.substr(x+1);				// Remove timer from string
+		 castTimers[i] = f;						// Save timer
 	}
 
 	// 9) Script
-	element = element->NextSiblingElement();	// move to next element
-	value = element->GetText();					// get script
-	script.clear();
-	if(value != NULL)
-		script = value;
+	script = ability["script"].get_str();
 }
 
+Ability::Ability(const char* name, json_spirit::mObject abilityMap) : rank(1)
+{
+	// Temporary variables that will be needed
+	int a, b, i, j, x, y, num;
+	float f;
+	string temp, aoe;
+
+	// Save name
+	strcpy(this->name, name);
+
+	// ~~Get the ability information out of the ability map~~
+	// 1) Ability Type
+	temp = abilityMap["type"].get_str();
+	if(!temp.compare("Action"))
+		type = Action;
+	else if(!temp.compare("Battle"))
+		type = Battle;
+	else	// Passive
+		type = Passive;
+
+	// 2) Effect Type
+	temp = abilityMap["effect_type"].get_str();
+	if(!temp.compare("Physical"))
+		effect = Physical;
+	else if(!temp.compare("Magical"))
+		effect = Magical;
+	else if(!temp.compare("Heal"))
+		effect = Heal;
+	else if(!temp.compare("Status"))
+		effect = Status;
+	else	// None
+		effect = None;
+
+	// 3) Cast Type
+	temp = abilityMap["cast_type"].get_str();
+	if(!temp.compare("SelfCast"))
+		castType = SelfCast;
+	else if(!temp.compare("Ally"))
+		castType = Ally;
+	else if(!temp.compare("Enemy"))
+		castType = Enemy;
+	else	// None
+		castType = Free;
+
+	// 4) Max Rank
+	maxRank = abilityMap["max_rank"].get_int();
+	apCosts = new int[maxRank];						// ~~
+	ranges = new int[maxRank];						// Create arrays for this abilities parameters now that we know its maximum rank
+	areasOfEffect = new vector<Position>[maxRank];	// ~~
+
+	// 5) AP Cost
+	temp = abilityMap["ap_cost"].get_str();
+	for(i = 0; i < maxRank; i++)
+	{
+		x = temp.find("/");
+		apCosts[i] = atoi(temp.substr(0, x).c_str());
+		temp = temp.substr(x+1);
+	}
+
+	// 6) Range
+	temp = abilityMap["range"].get_str();
+	for(i = 0; i < maxRank; i++)
+	{
+		x = temp.find("/");
+		ranges[i] = atoi(temp.substr(0, x).c_str());
+		temp = temp.substr(x+1);
+	}
+
+	// 7) Area of Effect
+	temp = abilityMap["aoe"].get_str();
+	for(i = 0; i < maxRank; i++)
+	{
+		y = temp.find("/");
+		aoe = temp.substr(0, y);				// find next set of AoEs (a set for each rank of the ability)
+		num = atoi(aoe.substr(0, aoe.find("|")).c_str());	// find first number (number of Positions in the AoE) convert to int and save
+
+		if(num > 0)
+		{
+			aoe = aoe.substr(aoe.find("|") + 1).c_str();	// Get list of positions
+			for(j = 0; j < num; j++)
+			{
+				x = aoe.find("|");											// Find index of first delimeter
+				a = atoi(aoe.substr(0, x).c_str());							// Get and save x-coordinate of AoE (string before delimeter)
+				aoe = aoe.substr(x+1);										// Remove x-coordinate from string
+				x = aoe.find("|");											// Find index of next delimeter
+				b = atoi(x > 0 ? aoe.substr(0, x).c_str() : aoe.c_str());	// Get and save y-coordinate of AoE (string before delimeter)
+				aoe = aoe.substr(x+1);										// Remove y-coordinate from delimeter
+				areasOfEffect[i].push_back(Position(a,b));					// Add new Position(x,y) to AoE list - Move to next entry in AoE
+			}
+		}
+		else
+			areasOfEffect[i].push_back(Position(0,0));
+
+		temp = temp.substr(y+1);
+	}
+
+	// 8) Cast Timers
+	temp = abilityMap["cast_timers"].get_str();
+	for(i = 0; i < 4; i++)
+	{
+		 x = temp.find("|");					// Find index of first delimeter
+		 f = atof(temp.substr(0, x).c_str());	// Get and save cast timer (string before delimeter)
+		 temp = temp.substr(x+1);				// Remove timer from string
+		 castTimers[i] = f;						// Save timer
+	}
+
+	// 9) Script
+	script = abilityMap["script"].get_str();
+}
 
 Ability::~Ability(void)
 {
@@ -212,7 +287,7 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	// Run script
 #ifdef DEBUG
 	int test = luaL_dofile(L, script.c_str());
-	if(test == 1)
+	if(test)
 	{
 		std::string error = lua_tostring(L, -1);
 		test++;

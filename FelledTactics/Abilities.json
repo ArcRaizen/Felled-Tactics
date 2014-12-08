@@ -1,0 +1,57 @@
+{
+	"Damage" : {
+		"type" : "Action",
+		"effect_type" : "Physical",
+		"cast_type" : "Free",
+		"max_rank" : 3,
+		"ap_cost" : "20/20/20",
+		"range" : "6/7/8",
+		"aoe" : "3|-1|-1|1|1|1|0/4|-1|-1|1|1|1|0|-1|0/5|-1|-1|1|1|1|0|-1|0|0|0",
+		"cast_timers" : "1|1|2|-1",
+		"script" : "Lua\\Ability Scripts\\Action_Damage_Activate.lua"
+	},
+	"Heal" : {
+		"type" : "Action",
+		"effect_type" : "Heal",
+		"cast_type" : "Ally",
+		"max_rank" : 1,
+		"ap_cost" : "30",
+		"range" : "4",
+		"aoe" : "0|",
+		"cast_timers" : "1|0|2|-1",
+		"script" : "Lua\\Ability Scripts\\Action_Heal_Activate.lua"
+	},
+	"Double Strike" : {
+		"type" : "Battle",
+		"effect_type" : "Physical",
+		"cast_type" : "Enemy",
+		"max_rank" : 1,
+		"ap_cost" : "15",
+		"range" : "-1",
+		"aoe" : "0|",
+		"cast_timers" : "1|-1|-1|0.5",
+		"script" : "Lua\\Ability Scripts\\Battle_Double_Strike_Activate.lua"
+	},
+	"Fire" : {
+		"type" : "Action",
+		"effect_type" : "Magical",
+		"cast_type" : "Free",
+		"max_rank" : 1,
+		"ap_cost" : "10",
+		"range" : "6",
+		"aoe" : "0|",
+		"cast_timers" : "0.5|0|2|-1",
+		"script" : "Lua\\Ability Scripts\\Action_Fire_Activate.lua"
+	},
+	"Vector Plate" : {
+		"type" : "Action",
+		"effect_type" : "Magical",
+		"cast_type" : "Free",
+		"max_rank" : 1,
+		"ap_cost" : "5",
+		"range" : "15",
+		"aoe" : "0|",
+		"cast_timers" : "0.5|0|2|-1",
+		"script" : "Lua\\Ability Scripts\\Action_Vector_Plate_Activate.lua"
+	}
+}

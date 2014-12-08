@@ -6,7 +6,7 @@
 #include "Core.h"
 #endif
 
-static class Direct3D
+class Direct3D
 {
 public:
 	Direct3D(void);

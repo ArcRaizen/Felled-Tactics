@@ -60,7 +60,6 @@ private:
 	std::string effectNewTurnScript;	// Script file to run for this tile's effect (if it has one) when a unit begins a new turn on it
 	
 	std::wstring defaultTexturePath;	// File path for the tile's base texture
-	static std::wstring PNG;			// String representation of ".png" (cached for ease later)
 
 	// Highlight Color Marks (for each Mark)
 	static D3DXVECTOR4 highlightAllyMove;

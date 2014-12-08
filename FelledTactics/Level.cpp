@@ -11,12 +11,6 @@ void Delete(T*& t)
 
 Level::Level(lua_State* luaState, int width, int height, int tSize = 50) : mapWidth(width), mapHeight(height), tileSize(tSize), GameMaster(luaState)
 {
-	turn = 0;
-	numEnemyDeaths = numAllyDeaths = 0;
-	numAllies = numEnemies = 0;
-	numUnitsMoved = 0;
-	currentPhase = SelectUnit;
-	selectedTile.x = selectedTile.y = -1;
 	pathDrawEnabled = false;
 	actionMenu = secondaryMenu = NULL;
 
@@ -101,12 +95,20 @@ int Level::Update(float dt, HWND hWnd)
 					currentMovementPath.clear();
 
 					// Re-enable tile effects (they disabled themselves after activation)
-					for(auto i = activatedTiles.begin(); i != activatedTiles.end(); i++)
-						map[i->x][i->y]->ReenableEffect();
+					for(auto j = activatedTiles.begin(); j != activatedTiles.end(); j++)
+						map[j->x][j->y]->ReenableEffect();
 					activatedTiles.clear();
 
-					// Create Action Menu now that unit's movement phase is over
-					CreateActionMenu();
+					if(unitList[i]->CheckStatus(UNIT_STATUS_ALLY))
+					{	
+						CheckWin(WIN_CONDITION_CAPTURE); // TODO
+						// Create Action Menu now that unit's movement phase is over
+						CreateActionMenu();
+					}
+					else
+					{
+						CheckLoss(LOSE_CONDITION_SURRENDER); // TODO
+					}
 					selectedTile.x = -1;
 				}
 			}
@@ -118,15 +120,24 @@ int Level::Update(float dt, HWND hWnd)
 			{
 				map[unitList[i]->UnitPosition.x][unitList[i]->UnitPosition.y]->TileStatus = Tile::Status::AllyFelled;
 				numAllyDeaths++;
+				CheckLoss(LOSE_CONDITION_DEATH);	// TODO
+				CheckLoss(LOSE_CONDITION_SURVIVE);  // TODO
 			}
 			else	// Remove dead enemy from the level permanently
 			{
-				Position p = unitList[i]->UnitPosition;				// Save position temporarily
-				Delete<Unit>(unitList[i]);							// Delete unit	
-				unitList.erase(unitList.begin() + i--);				// Remove from unit list
-				map[p.x][p.y]->TileStatus = Tile::Status::Empty;	// Clear tile it was on
-				unitMap[p.x][p.y] = NULL;							// Reset tile
-				numEnemyDeaths++;
+				if(CheckWin(WIN_CONDITION_DEFEAT)) {/*TODO*/}
+				else
+				{
+					Position p = unitList[i]->UnitPosition;				// Save position temporarily
+					Delete<Unit>(unitList[i]);							// Delete unit	
+					unitList.erase(unitList.begin() + i--);				// Remove from unit list
+					map[p.x][p.y]->TileStatus = Tile::Status::Empty;	// Clear tile it was on
+					unitMap[p.x][p.y] = NULL;							// Reset tile
+					numEnemyDeaths++;
+					numEnemies--;
+					CheckWin(WIN_CONDITION_ELIMINATE);
+					CheckWin(WIN_CONDITION_ROUT);
+				}
 			}
 
 			// Allow user to interact again now that gameplay has restarted
@@ -518,12 +529,25 @@ void Level::GenerateLevel()
 		}
 	}
 
+	ifstream is("../FelledTactics/Units.json");
+	ifstream is2("../FelledTactics/Abilities.json");
+	json_spirit::mValue value, value2;
+	json_spirit::read(is, value);
+	json_spirit::read(is2, value2);
+	json_spirit::mObject units = value.get_obj();
+	json_spirit::mObject abilities = value2.get_obj();
+
+	unitMap[0][0] = new Unit(UNIT_LAYER, tileSize, tileSize, 0, 0, "Lyn", units.find("Lyn")->second.get_obj(), abilities);
+	unitMap[1][1] = new Unit(UNIT_LAYER, tileSize, tileSize, 50, 50, "Lyn2", units.find("Lyn2")->second.get_obj(), abilities);
+	unitMap[2][2] = new Unit(UNIT_LAYER, tileSize, tileSize, 100, 100, "Lyn3", units.find("Lyn3")->second.get_obj(), abilities);
+	unitMap[4][4] = new Unit(UNIT_LAYER, tileSize, tileSize, 200, 200, "Lyn4", units.find("Lyn4")->second.get_obj(), abilities);
+
 	// Create units
-	unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,0,0);
-	unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,50,50);
-	unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
+	//unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,0,0);
+	//unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,50,50);
+	//unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
 	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,150,false);
-	unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
+	//unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
 	unitMap[7][7] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,350,false);
 	unitMap[7][6] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,300,false);
 	unitMap[2][8] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,100,400,false);
@@ -559,6 +583,18 @@ void Level::GenerateLevel()
 	combatManager.SetCombatTextCallback(this, &Level::CreateCombatText);
 	CombatText::SetTileSize(tileSize);
 
+	// Set basic parameters
+	turn = 0;
+	numEnemyDeaths = numAllyDeaths = 0;
+	numUnitsMoved = 0;
+
+	// Set win/lose conditions
+	boss = survivor = NULL;
+	targetTile = defenseTile = NULL;
+	targetEnemyDeaths = 1000;
+	maximumDeaths = 1000;
+	maximumTurns = 1000;
+
 	StartNewTurn();
 }
 
@@ -579,35 +615,74 @@ void Level::StartNewTurn()
 	numUnitsMoved = 0;
 	turn++;
 	currentPhase = SelectUnit;
+
+	CheckWin(WIN_CONDITION_DEFEND);
+	CheckLoss(LOSE_CONDITION_TURN);
 }
 
-bool Level::CheckWin()
+bool Level::CheckWin(int cond)
 {
+	if(!(cond & winConditions))
+		return false;
+
+	switch(cond)
+	{
+		case WIN_CONDITION_ELIMINATE:
+			if(numEnemies == 0)
+				winConditionCheck |= WIN_CONDITION_ELIMINATE;
+			break;
+		case WIN_CONDITION_ROUT:
+			if(numEnemyDeaths >= targetEnemyDeaths)
+				winConditionCheck |= WIN_CONDITION_ROUT;
+			break;
+		case WIN_CONDITION_CAPTURE:
+			if(targetTile->TileStatus == Tile::Status::AllyUnit)
+				winConditionCheck |= WIN_CONDITION_CAPTURE;
+			break;
+		case WIN_CONDITION_DEFEAT:
+			if(boss->CheckStatus(UNIT_STATUS_FELLED))
+				winConditionCheck |= WIN_CONDITION_DEFEAT;
+			break;
+		case WIN_CONDITION_DEFEND:
+			if(turn >= maximumTurns && defenseTile->TileStatus == Tile::Status::Empty)
+				winConditionCheck |= WIN_CONDITION_DEFEND;
+			break;
+		case WIN_CONDITION_COLLECT:
+			break;
+	}
+
+	if(winConditionCheck == winConditions) {/*TODO*/}
 	return false;
 }
 
-bool Level::CheckLoss()
+bool Level::CheckLoss(int cond)
 {
-	bool hasLost = false;
+	if(!(cond & loseConditions)) 
+		return false;
 
-	for(int i = 0; i < loseConditions.size(); i++)
+	bool result = false;
+	switch(cond)
 	{
-		switch(loseConditions[i])
-		{
-			case Death:
-				if(numAllyDeaths > maximumDeaths)
-					hasLost = true;
-				break;
-			case Turn:
-				if(turn > maximumTurns)
-					hasLost = true;
-				break;
-			case Surrender:
-				break;
-		}
+		case LOSE_CONDITION_DEATH:
+			if(numAllyDeaths > maximumDeaths)
+				result = true;
+			break;
+		case LOSE_CONDITION_TURN:
+			if(turn > maximumTurns)
+				result = true;
+			break;
+		case LOSE_CONDITION_SURRENDER:
+			if(defenseTile->TileStatus == Tile::Status::EnemyUnit)
+				result = true;
+			break;
+		case LOSE_CONDITION_SURVIVE:
+			if(survivor->CheckStatus(UNIT_STATUS_FELLED))
+				result = true;
+			break;
 	}
 
-	return hasLost;
+	if(result) {/*TODO*/}
+	return false;
 }
 
 // Allow player to draw a custom movement path for the selected Unit to follow for their movement phase

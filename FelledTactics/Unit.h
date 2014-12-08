@@ -32,6 +32,7 @@ class Unit : public VisualElement, public LevelEntity
 {
 public:
 	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
+	Unit(int layer, int width, int height, int posX, int posY, char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
 	virtual ~Unit(void);
 
 	enum Phylum		{Martial, Mystical, Support};
@@ -52,6 +53,7 @@ public:
 	void			ForceEndMovement();
 
 	void			LearnAbility(const char* name, int forceRank=0);	// learn ability with given name (specify a rank of the ability with forceRank)
+	void			LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank = 0);
 	bool			SelectedBattleAbility() const;
 	void			SetSelectedAbility(int index);
 	char*			GetSelectedAbilityName() const;

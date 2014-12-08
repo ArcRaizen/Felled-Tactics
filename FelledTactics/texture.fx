@@ -11,7 +11,7 @@ matrix viewMatrix;
 matrix projectionMatrix;
 Texture2D shaderTexture;
 float4 highlightColor = float4(1.0f, 1.0f, 1.0f, 1.0f);	// default highlight to white (no highlight)
-
+float4 test = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
 ///////////////////
 // SAMPLE STATES //
@@ -22,7 +22,6 @@ SamplerState SampleType
     AddressU = Wrap;
     AddressV = Wrap;
 };
-
 
 //////////////
 // TYPEDEFS //
@@ -69,13 +68,8 @@ PixelInputType TextureVertexShader(VertexInputType input)
 ////////////////////////////////////////////////////////////////////////////////
 float4 TexturePixelShader(PixelInputType input) : SV_Target
 {
-	float4 textureColor;
-
-
-	// Sample the pixel color from the texture using the sampler at this texture coordinate location.
-	textureColor = shaderTexture.Sample(SampleType, input.tex) * highlightColor;
-
-    return textureColor;
+	float4 textureColor = shaderTexture.Sample(SampleType, input.tex);	
+	return textureColor * highlightColor;
 }
 
 
@@ -89,5 +83,5 @@ technique10 TextureTechnique
         SetVertexShader(CompileShader(vs_4_0, TextureVertexShader()));
 		SetGeometryShader(NULL);
         SetPixelShader(CompileShader(ps_4_0, TexturePixelShader()));
-    }
+	}
 }

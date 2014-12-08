@@ -30,6 +30,8 @@
 
 #include <list>
 #include <queue>
+#include <iostream>
+#include <fstream>
 #pragma endregion
 
 // Movement Options
@@ -45,6 +47,20 @@
 #define TILE_MARK_TYPE_ALLY_ABILITY_AOE			 (1<<8)
 #define TILE_MARK_TYPE_ENEMY_MOVEMENT			 (1<<9)
 
+// Win Conditions
+#define WIN_CONDITION_ELIMINATE  (1<<10)	// Kill all enemies on the map
+#define WIN_CONDITION_ROUT		 (1<<11)	// Kill a specific amount of enemies
+#define WIN_CONDITION_CAPTURE	 (1<<12)	// Capture a specific point on the map
+#define WIN_CONDITION_DEFEAT	 (1<<13)	// Defeat a specific enemy on the map
+#define WIN_CONDITION_DEFEND	 (1<<14)	// Defend a specific point for a certain number of turns
+#define WIN_CONDITION_COLLECT	 (1<<15)	// Find, Collect, and Retrieve tokens somewhere on the map
+
+// Lose Conditions
+#define LOSE_CONDITION_DEATH	 (1<<16)	// Too many ally units were felled
+#define LOSE_CONDITION_TURN		 (1<<17)	// Too many turns have passed
+#define LOSE_CONDITION_SURRENDER (1<<18)	// Specific point on map was captured by enemy units
+#define LOSE_CONDITION_SURVIVE   (1<<19)	// Specific ally unit was felled
+
 class Tile; // forward declaration
 //class MenuBox;
 class Level : public GameMaster
@@ -54,8 +70,6 @@ public:
 	~Level(void);
 
 #pragma region Enums
-	enum WinCondition	{Rout, Capture, Defeat, Defend, Collect};	// Possible Conditions for winning a specific level
-	enum LoseCondition	{Death, Turn, Surrender};					// Possible Conditions for losing a specific level
 	enum Phase			{SelectUnit, SelectMove, ExecuteMove, SelectPrimaryAction, SelectSecondaryAction, SelectTarget, SelectAbilityTarget, ExecuteAttack, ExecuteAbility, EnemyTurn};
 #pragma endregion
 
@@ -70,8 +84,8 @@ public:
 	void	GenerateLevel();
 private:
 	void	StartNewTurn();
-	bool	CheckWin();
-	bool	CheckLoss();
+	bool	CheckWin(int cond);
+	bool	CheckLoss(int cond);
 #pragma endregion
 
 #pragma region Map Functions
@@ -115,20 +129,27 @@ public:
 
 private:
 	// ~~~~ Level ~~~~
-	vector<WinCondition>	winConditions;	// List of any/all conditions that must be met to win a level
-	vector<LoseCondition>	loseConditions;	// List of any/all conditions that will result in losing a level
-	Phase					currentPhase;	// What current action is to be taken (select a unit to move, select what action to take, etc/)
-	int						turn;			// Current Turn of the level (Player Phase + Enemy Phase = 1 turn)
+	int						winConditions;		// List of any/all conditions that must be met to win a level
+	int						loseConditions;		// List of any/all conditions that will result in losing a level
+	int						winConditionCheck;	// 
+	Phase					currentPhase;		// What current action is to be taken (select a unit to move, select what action to take, etc/)
+	int						turn;				// Current Turn of the level (Player Phase + Enemy Phase = 1 turn)
 
-	Unit*					boss;
-	int						numEnemyDeaths;
-	int						numAllyDeaths;
-	int						numAllies;
-	int						numEnemies;
-	int						numUnitsMoved;
-	int						maximumDeaths;
-	int						maximumTurns;
+	Unit*					boss;				// Enemy unit that must be killed to win level
+	Unit*					survivor;			// Ally unit that must survive to not lose level
+	Tile*					targetTile;			// Tile that must be capture by ally units to win level
+	Tile*					defenseTile;		// Tile that must not be captured by enemy units to lose level
+	int						targetEnemyDeaths;	// Number of enemy units that must be killed to win level 
+	int						maximumDeaths;		// Maximum number of ally deaths allowed before losing level
+	int						maximumTurns;		// Maximum number of turns allowed to pass before for this level
 	CombatManager			combatManager;
+
+	int						numEnemyDeaths;		// Total number of enemy deaths in this level
+	int						numAllyDeaths;		// Total number of ally deaths in this level
+	int						numAllies;			// Total number of allies in this level
+	int						numEnemies;			// Total number of enemies in this level
+	int						numUnitsMoved;		// Number of ally units who have moved/taken action this turn
+
 
 	// ~~~~ Map ~~~~
 	Tile***					map;			// 2D-Array of all tiles that make up this level

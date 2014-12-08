@@ -13,8 +13,8 @@
 #include "Core.h"
 #endif
 
+#include <fstream>
 #include <stdio.h>
-#include "tinyxml2.h"
 #include <vector>
 #pragma endregion
 
@@ -22,6 +22,7 @@ class Ability
 {
 public:
 	Ability(const char* name);
+	Ability(const char* name, json_spirit::mObject abilityMap);
 	~Ability(void);
 
 	enum	Type {Action, Battle, Passive};						// Skills activated in place of combat, skills that boost regular combat, or skills that provide a constant passive bonus

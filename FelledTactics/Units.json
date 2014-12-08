@@ -1,0 +1,58 @@
+{
+	"Lyn" : {
+		"Class" : "Bladedge",
+		"Experience" : 0,
+		"Health" : 100,
+		"AP" : 50,
+		"Strength" : 10,
+		"Magic" : 10,
+		"Skill" : 10,
+		"Agility" : 10,
+		"Defense" : 10,
+		"Resistance" : 10,
+		"Movement" : 8,
+		"Abilities" : "Damage:3|Heal|Fire|Vector Plate"	
+	},
+	"Lyn2" : {
+		"Class" : "Bladedge",
+		"Experience" : 0,
+		"Health" : 100,
+		"AP" : 50,
+		"Strength" : 10,
+		"Magic" : 10,
+		"Skill" : 10,
+		"Agility" : 10,
+		"Defense" : 10,
+		"Resistance" : 10,
+		"Movement" : 8,
+		"Abilities" : "Damage:2|Heal|Fire|Vector Plate"		
+	},
+	"Lyn3" : {
+		"Class" : "Bladedge",
+		"Experience" : 0,
+		"Health" : 100,
+		"AP" : 50,
+		"Strength" : 10,
+		"Magic" : 10,
+		"Skill" : 10,
+		"Agility" : 10,
+		"Defense" : 10,
+		"Resistance" : 10,
+		"Movement" : 8,
+		"Abilities" : "Damage:1|Heal"		
+	},
+	"Lyn4" : {
+		"Class" : "Bladedge",
+		"Experience" : 0,
+		"Health" : 100,
+		"AP" : 50,
+		"Strength" : 10,
+		"Magic" : 10,
+		"Skill" : 10,
+		"Agility" : 10,
+		"Defense" : 10,
+		"Resistance" : 10,
+		"Movement" : 8,
+		"Abilities" : "Damage:3|Heal|Double Strike|Fire"	
+	}
+}

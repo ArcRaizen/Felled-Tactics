@@ -16,7 +16,8 @@ extern "C"{
 #include "lauxlib.h"
 #include "lualib.h"
 }
-#include "Luna.h"
+//#include "Luna.h"
+//#include "json_spirit.h"
 using namespace std;
 
 #define PI		3.141592653589793238462

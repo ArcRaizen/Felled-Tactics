@@ -33,6 +33,7 @@ public:
 	virtual int		Update(float dt);
 	virtual bool	Draw();
 
+	void			SetTexture(std::wstring filename);
 	virtual void	DisableDraw();
 	virtual void	EnableDraw();
 	void			Delete();
@@ -72,6 +73,7 @@ protected:
 	D3DXVECTOR2 uvScale;
 
 	static D3DXVECTOR4 highlightNone;
+	static std::wstring PNG;			// String representation of ".png" (cached for ease later)
 
 	// Convert between in-game coordinates (Origin at bottom-left corner, X postive right, Y positive Up)
 	// and DirectX drawing coordinates
@@ -85,11 +87,11 @@ protected:
 	}
 	inline int ReverseConvertCoordinatesX(int posX)
 	{
-		return posX + (int)screenWidth/2 - world._11/2;
+		return posX + (int)screenWidth/2 - (int)(world._11/2);
 	}
 	inline int ReverseConvertCoordinatesY(int posY)
 	{
-		return posY + (int)screenHeight/2 - world._22/2;
+		return posY + (int)screenHeight/2 - (int)(world._22/2);
 	}
 
 	// Quick inlines for element dimensions and position (in DirectX coords) since variables for width/height were removed

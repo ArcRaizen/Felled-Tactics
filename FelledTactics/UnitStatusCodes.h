@@ -11,4 +11,5 @@
 #define UNIT_STATUS_ENEMY			1 << 3
 #define UNIT_STATUS_MOVING			1 << 4
 #define UNIT_STATUS_FORCED_MOVING	1 << 5
+#define UNIT_STATUS_BOSS			1 << 6
 #endif

@@ -21,8 +21,8 @@
 class Ability
 {
 public:
-	Ability(const char* name);
-	Ability(const char* name, json_spirit::mObject abilityMap);
+	Ability(const char* name, int rank);
+	Ability(const char* name, json_spirit::mObject abilityMap, int rank);
 	~Ability(void);
 
 	enum	Type {Action, Battle, Passive};						// Skills activated in place of combat, skills that boost regular combat, or skills that provide a constant passive bonus
@@ -31,6 +31,9 @@ public:
 
 	void	Activate(lua_State* L, Position target, Position source);
 	bool	RankUp();
+	void	SetAPCost(json_spirit::mObject abilityMap);
+	void	SetRange(json_spirit::mObject abilityMap);
+	void	SetAoE(json_spirit::mObject abilityMap);
 
 	__declspec(property(get=GetName)) char* Name;					char* GetName();
 	__declspec(property(get=GetRank)) int Rank;						int GetRank();
@@ -38,8 +41,10 @@ public:
 	__declspec(property(get=GetCost)) int APCost;					int GetCost();
 	__declspec(property(get=GetCastType)) CastType AbilityCastType;	CastType GetCastType();
 	__declspec(property(get=GetRange,put=SetRange))int Range;		int	GetRange();
-	__declspec(property(get=GetAOE)) vector<Position> AoE;			vector<Position> GetAOE();
 	const float* GetTimers() const;
+	bool HasDynamicAoE() const;
+	vector<Position> GetAoE(Position p = Position(0,0));
+	vector<Position> GetDynamicAoERange();
 
 private:
 	char				name[15];
@@ -47,12 +52,16 @@ private:
 	Type				type;
 	EffectType			effect;
 	CastType			castType;
-	int*				apCosts;		// array of the AP Costs for this ability at each rank
-	int*				ranges;			// array of the Cast Ranges for this at each rank
-	vector<Position>*	areasOfEffect;	// array of [lists(std::vectors) of all tiles the spell is cast] on at each rank
+	int					apCost;			// array of the AP Costs for this ability at each rank
+	int					range;			// array of the Cast Ranges for this at each rank
 	float				castTimers[4];	//
 	float				proficiency;
 	std::string			script;			// script file to run for this ability
+	map<Position, vector<Position>>	areaOfEffect;	// Map of all possible Areas of Effect for this ability
+													// If an Ability has different AoE's based on where it is cast (usually rotational around the caster),
+														// each AoE is saved in the map with the index being the cast position relative to the caster
+													// An ability with a static AoE that doesn't change depending on cast location is at index [Position(0,0)]
+													// Each AoE is a list(std::vector) of Positions relative to the casting location of tiles the ability will affect
 };
 #endif
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

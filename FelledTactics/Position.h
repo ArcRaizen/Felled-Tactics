@@ -8,9 +8,13 @@ struct Position
 	int y;
 	Position(){ x = 0;	y = 0; }
 	Position(int _x, int _y){ x = _x;	y = _y; }
-	bool operator==(const Position& other)
+	bool const operator==(const Position& other) const
 	{
 		return x == other.x && y == other.y;
+	}
+	bool const operator<(const Position& other) const
+	{
+		return x < other.x || (x == other.x && y < other.y);
 	}
 	bool operator!=(const Position& other)
 	{

@@ -37,7 +37,7 @@ void CombatManager::CalculateCombat(lua_State* L)
 	lua_setglobal(L, "Range");
 	lua_pushboolean(L, true);
 	lua_setglobal(L, "isAttacker");
-	int test = !attacker->CombatCalcScript.compare("") ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
+	int test = attacker->CombatCalcScript == "" ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
 														luaL_dofile(L, attacker->CombatCalcScript.c_str());
 #ifdef DEBUG
 	if(test)
@@ -58,7 +58,7 @@ void CombatManager::CalculateCombat(lua_State* L)
 	lua_setglobal(L, "Range");
 	lua_pushboolean(L, false);
 	lua_setglobal(L, "isAttacker");
-	test = !defender->CombatCalcScript.compare("") ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
+	test = defender->CombatCalcScript == "" ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
 												luaL_dofile(L, defender->CombatCalcScript.c_str());
 
 #ifdef DEBUG

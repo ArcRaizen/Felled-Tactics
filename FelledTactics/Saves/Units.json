@@ -10,7 +10,7 @@
 		"Agility" : 10,
 		"Defense" : 10,
 		"Resistance" : 10,
-		"Movement" : 8,
+		"Movement" : 20,
 		"Abilities" : "Damage:3|Heal|Fire|Vector Plate"	
 	},
 	"Lyn2" : {
@@ -53,6 +53,6 @@
 		"Defense" : 10,
 		"Resistance" : 10,
 		"Movement" : 8,
-		"Abilities" : "Damage:3|Heal|Double Strike|Fire"	
+		"Abilities" : "Damage:3|Heal|Double Strike|Fire|Crescent"	
 	}
 }

@@ -45,7 +45,7 @@ Unit::Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY
 	drawBars = false;
 }
 
-Unit::Unit(int layer, int width, int height, int posX, int posY, char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap) :
+Unit::Unit(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap) :
 	VisualElement(L"", layer, width, height, posX, posY), felled(false), finishedTurn(false), secBetweenTiles(BASE_MOVE_TIME), movementTimer(0),
 	movementFinished(true), status(0), numAbilities(0), numActionAbilities(0), numBattleAbilities(0)
 {
@@ -64,7 +64,7 @@ Unit::Unit(int layer, int width, int height, int posX, int posY, char* name, jso
 
 	// Abilities
 	string abilities = unitMap["Abilities"].get_str();
-	int x = 0, y = -1, rank = 0;
+	int x = 0, y = -1, rank = 1;
 	while(x >= 0)
 	{
 		x = abilities.find("|");
@@ -77,7 +77,7 @@ Unit::Unit(int layer, int width, int height, int posX, int posY, char* name, jso
 		}
 		LearnAbility(ability.c_str(), abilityMap.find(ability)->second.get_obj(), rank);
 		abilities = abilities.substr(x+1);
-		rank = 0;
+		rank = 1;
 	}
 
 	// temporary weapon for now
@@ -345,8 +345,22 @@ void Unit::ForceEndMovement()
 	movementPath.push_back(position * tileSize);
 }
 
+void Unit::FinishTurn()
+{
+	finishedTurn = true;
+	if(!CheckStatus(UNIT_STATUS_FELLED))
+		highlightColor = highlightFinishedTurn;
+}
+
+void Unit::NewTurn(lua_State* L)
+{
+	finishedTurn = false;
+	if(!CheckStatus(UNIT_STATUS_FELLED))
+		highlightColor = highlightNone;
+}
+
 #pragma region Abilities
-void Unit::LearnAbility(const char* name, int forceRank/*=0*/)
+void Unit::LearnAbility(const char* name, int forceRank/*=1*/)
 {
 	if(forceRank == 0)
 	{
@@ -378,12 +392,7 @@ void Unit::LearnAbility(const char* name, int forceRank/*=0*/)
 	}
 
 	// LEARN NEW ABILITY HERE
-	Ability* a = new Ability(name);
-	while(forceRank > 1)
-	{
-		a->RankUp();
-		forceRank--;
-	}
+	Ability* a = new Ability(name, forceRank);
 
 	numAbilities++;
 	switch(a->AbilityType)
@@ -402,7 +411,7 @@ void Unit::LearnAbility(const char* name, int forceRank/*=0*/)
 	a = NULL;
 }
 
-void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank/*=0*/)
+void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank/*=1*/)
 {
 	if(forceRank == 0)
 	{
@@ -434,12 +443,7 @@ void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int f
 	}
 
 	// LEARN NEW ABILITY HERE
-	Ability* a = new Ability(name, abilityMap);
-	while(forceRank > 1)
-	{
-		a->RankUp();
-		forceRank--;
-	}
+	Ability* a = new Ability(name, abilityMap, forceRank);
 
 	numAbilities++;
 	switch(a->AbilityType)
@@ -461,6 +465,9 @@ void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int f
 // Check if the selected ability is a Battle ability (not action or passive)
 bool Unit::SelectedBattleAbility() const { return activeAbilityList[selectedAbility]->AbilityType == Ability::Type::Battle; }
 
+// Check if selected ability has a Dynamic AoE
+bool Unit::SelectedAbilityHasDynamicAoE() const { return activeAbilityList[selectedAbility]->HasDynamicAoE(); }
+
 // Set a new ability as the currently selected ability
 void Unit::SetSelectedAbility(int index) { selectedAbility = index; }
 
@@ -469,7 +476,8 @@ char* Unit::GetSelectedAbilityName() const { return activeAbilityList[selectedAb
 int   Unit::GetSelectedAbilityCost() const { return activeAbilityList[selectedAbility]->APCost; }
 int	  Unit::GetSelectedAbilityRange() const { return activeAbilityList[selectedAbility]->AbilityType == Ability::Type::Battle ? attackRange : activeAbilityList[selectedAbility]->Range; }
 Ability::CastType Unit::GetSelectedAbilityCastType() const { return activeAbilityList[selectedAbility]->AbilityCastType; }
-vector<Position> Unit::GetSelectedAbilityAoE() const { return activeAbilityList[selectedAbility]->AoE; }
+vector<Position> Unit::GetSelectedAbilityAoE(Position p/*=Position(0, 0)*/) const { return activeAbilityList[selectedAbility]->GetAoE(p); }
+vector<Position> Unit::GetSelectedAbilityDynamicAoERange() const { return activeAbilityList[selectedAbility]->GetDynamicAoERange(); }
 const float* Unit::GetSelectedAbilityTimers() const { return activeAbilityList[selectedAbility]->GetTimers(); }
 
 // Activate ability (if possible) at target location.
@@ -609,18 +617,42 @@ bool Unit::CheckStatus(int s) { return status & s; }
 bool Unit::IsAlly() { return status & UNIT_STATUS_ALLY; }
 bool Unit::IsEnemy() { return status & UNIT_STATUS_ENEMY; }
 
-void Unit::FinishTurn()
+json_spirit::Object Unit::Serialize()
 {
-	finishedTurn = true;
-	if(!CheckStatus(UNIT_STATUS_FELLED))
-		highlightColor = highlightFinishedTurn;
-}
+	json_spirit::Object o;
+	o.push_back(json_spirit::Pair("Class", "Bladedge"));
+	o.push_back(json_spirit::Pair("Experience", experience));
+	o.push_back(json_spirit::Pair("Health", maximumHealth));
+	o.push_back(json_spirit::Pair("AP", maximumAbilityPoints));
+	o.push_back(json_spirit::Pair("Strength", strength));
+	o.push_back(json_spirit::Pair("Magic", magic));
+	o.push_back(json_spirit::Pair("Skill", skill));
+	o.push_back(json_spirit::Pair("Agility", agility));
+	o.push_back(json_spirit::Pair("Defense", defense));
+	o.push_back(json_spirit::Pair("Resistance", resistance));
+	o.push_back(json_spirit::Pair("Movement", movement));
 
-void Unit::NewTurn(lua_State* L)
-{
-	finishedTurn = false;
-	if(!CheckStatus(UNIT_STATUS_FELLED))
-		highlightColor = highlightNone;
+	string abilities;
+	int i, rank;
+	for(i = 0; i < activeAbilityList.size(); i++)
+	{
+		abilities.append(activeAbilityList[i]->Name);
+		rank = activeAbilityList[i]->Rank;
+		if(rank > 1)
+			abilities.append(":" + std::to_string(static_cast<long long>(rank)));
+		abilities.append("|");
+	}
+	for(i = 0; i < passiveAbilityList.size(); i++)
+	{
+		abilities.append(passiveAbilityList[i]->Name);
+		rank = passiveAbilityList[i]->Rank;
+		if(rank > 1)
+			abilities.append(":" + std::to_string(static_cast<long long>(rank)));
+		abilities.append("|");
+	}
+
+	o.push_back(json_spirit::Pair("Abilities", abilities.substr(0, abilities.size()-1)));
+	return o;
 }
 
 bool Unit::UpdateHPAPBuffers()
@@ -752,9 +784,9 @@ void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }
 void  Unit::SetCombatCalcScript(std::string s) { combatCalculationAbilityScript = s; }
-std::string Unit::GetCombatCalcScript() { assert(combatCalculationAbilityScript.size() > 0); return combatCalculationAbilityScript; }
+std::string Unit::GetCombatCalcScript() { return combatCalculationAbilityScript; }
 void  Unit::SetCombatExecuteScript(std::string s) { combatExecutionAbilityScript = s; }
-std::string Unit::GetCombatExecuteScript() { assert(combatExecutionAbilityScript.size() > 0); return combatExecutionAbilityScript; }
+std::string Unit::GetCombatExecuteScript() { return combatExecutionAbilityScript; }
 void  Unit::SetDrawBars(bool db) { drawBars = db; }
 int	  Unit::GetUnitID() const { return unitID; }
 

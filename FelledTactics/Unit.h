@@ -32,7 +32,7 @@ class Unit : public VisualElement, public LevelEntity
 {
 public:
 	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
-	Unit(int layer, int width, int height, int posX, int posY, char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
+	Unit(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
 	virtual ~Unit(void);
 
 	enum Phylum		{Martial, Mystical, Support};
@@ -51,17 +51,21 @@ public:
 	void			SetMovePath(list<Position> path, float moveTime=0);
 	void			ForceMovement(Position p, float moveTime);
 	void			ForceEndMovement();
+	void			FinishTurn();
+	void			NewTurn(lua_State* L);
 
-	void			LearnAbility(const char* name, int forceRank=0);	// learn ability with given name (specify a rank of the ability with forceRank)
-	void			LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank = 0);
+	void			LearnAbility(const char* name, int forceRank=1);	// learn ability with given name (specify a rank of the ability with forceRank)
+	void			LearnAbility(const char* name, json_spirit::mObject abilityMap, int forceRank = 1);
 	bool			SelectedBattleAbility() const;
+	bool			SelectedAbilityHasDynamicAoE() const;
 	void			SetSelectedAbility(int index);
 	char*			GetSelectedAbilityName() const;
 	int				GetSelectedAbilityCost() const;
 	int				GetSelectedAbilityRange() const;
 	void			SetSelectedAbilityRange(int r);
 	Ability::CastType GetSelectedAbilityCastType() const;
-	vector<Position> GetSelectedAbilityAoE() const;
+	vector<Position> GetSelectedAbilityAoE(Position p = Position(0,0)) const;
+	vector<Position> GetSelectedAbilityDynamicAoERange() const;
 	const float*    GetSelectedAbilityTimers() const;
 	void			ActivateAbility(lua_State* L, Position target);
 	void			RefundAP();
@@ -84,9 +88,7 @@ public:
 	bool			IsAlly();
 	bool			IsEnemy();
 
-
-	void			FinishTurn();
-	void			NewTurn(lua_State* L);
+	json_spirit::Object Serialize();
 
 #pragma region Property Declaration
 	__declspec(property(put=SetPosition, get=GetPosition)) Position UnitPosition;		void SetPosition(Position p);		Position GetPosition();

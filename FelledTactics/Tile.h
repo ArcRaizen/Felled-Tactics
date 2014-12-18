@@ -20,7 +20,7 @@ public:
 	~Tile(void);
 
 	enum	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
-	enum	Mark	{ Blank, AllyMove, AllyMovePath, AllyMovePathFail, AllySkillRange, AllySkillAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
+	enum	Mark	{ Blank, AllyMove, AllyMovePath, AllyMovePathFail, AllyAbilityRange, AllyAbilityAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
 	enum	Effect  { None, Fire, Vector_Plate_Left, Vector_Plate_Right, Vector_Plate_Up, Vector_Plate_Down };
 
 	void	NewTurn(lua_State* L);	// Update Tile for new turn

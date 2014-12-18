@@ -95,7 +95,8 @@ private:
 	void	CalcShortestPathAStar(Position start, Position end, int unitMove, list<Position> &path, int options);
 	int		CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove);
 	int 	CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* node);
-	void	MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange = vector<Position>());
+	void	MarkTilesInRange(bool undo, Position start, int range, int markType);
+	void	MarkTiles(bool undo, int markType, vector<Position> aoe, Position start = Position(0, 0));
 
 private:
 	void	CreateActionMenu();

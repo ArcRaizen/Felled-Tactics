@@ -203,7 +203,7 @@ int Level::Update(float dt, HWND hWnd)
 				}
 
 				movementBeginning = selectedTile;
-				MarkTiles(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
+				MarkTilesInRange(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 				unitMap[selectedTile.x][selectedTile.y]->DrawBars = false;
 
 				selectedTile.x = -1;
@@ -259,7 +259,7 @@ int Level::Update(float dt, HWND hWnd)
 			else if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllyMovePath)
 			{
 				// Unmark movement tiles
-				MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
+				MarkTilesInRange(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 
 				// No movement for this Unit
 				if(selectedTile == movementBeginning)
@@ -314,7 +314,7 @@ int Level::Update(float dt, HWND hWnd)
 				combatManager.DoCombat();
 
 				// Unmark all enemies in range of unit
-				MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
+				MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 
 				PauseUserInputIndefinite();
 				currentPhase = ExecuteAttack;
@@ -324,13 +324,14 @@ int Level::Update(float dt, HWND hWnd)
 			// Target location for skill has moved
 			if(lastHoveredTile != hoveredTile)
 			{
-				// Remove AoE marks now that the target for the skill has changed
-				if(lastHoveredTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
-					MarkTiles(true, lastHoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+				// Remove AoE marks now that the target for the skill has changed (if marks still exist)
+				if(map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange || 
+					map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityAoE)
+					MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(lastHoveredTile-currentUnitPosition), lastHoveredTile);
 
 				// Re-draw AoE marks when the target is a new valid tile
-				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-					MarkTiles(false, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange)
+					MarkTiles(false, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(hoveredTile-currentUnitPosition), hoveredTile);
 
 				// Special Considerations must be made for Battle Abilities that tie-in to regular combat
 				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
@@ -354,7 +355,35 @@ int Level::Update(float dt, HWND hWnd)
 			if(selectedTile.x == -1)	break;
 
 			// Skill has been activated at target location
-			if(selectedTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
+			if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedAbilityHasDynamicAoE())
+			{
+				vector<Position> ranges = unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityDynamicAoERange();
+				bool isInRanges = false;
+				for(int i = 0; i < ranges.size(); i++)
+				{
+					if(ranges[i] == selectedTile)
+					{
+						isInRanges = true;
+						break;
+					}
+				}
+
+				if(isInRanges)
+				{
+					target = selectedTile;
+
+					// Remove marks from tiles
+					MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(selectedTile-currentUnitPosition), selectedTile);
+					MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_RANGE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityDynamicAoERange(), currentUnitPosition);
+
+					// Activate Skill
+					combatManager.SetCombatTimers(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityTimers());
+					combatManager.DoAbility(unitMap[currentUnitPosition.x][currentUnitPosition.y], selectedTile);
+					currentPhase = ExecuteAbility;
+				}
+
+			}
+			else if(selectedTile.DistanceTo(currentUnitPosition) <= unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange())
 			{
 				// Battle Abilities proceed to Combat Phase when their target is selected
 				if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
@@ -364,8 +393,8 @@ int Level::Update(float dt, HWND hWnd)
 						combatManager.DoCombat();
 
 						// Remove marks from tiles
-						MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
+						MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(), hoveredTile);
+						MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
 						PauseUserInputIndefinite();
 						currentPhase = ExecuteAttack;
@@ -383,16 +412,14 @@ int Level::Update(float dt, HWND hWnd)
 						ct == Ability::CastType::Free)
 					{
 						target = selectedTile;
-						currentPhase = ExecuteAbility;
 
 						// Remove marks from tiles
-						MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-						MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
+						MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(), hoveredTile);
+						MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
 						// Activate Skill
 						combatManager.SetCombatTimers(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityTimers());
 						combatManager.DoAbility(unitMap[currentUnitPosition.x][currentUnitPosition.y], selectedTile);
-					//	unitMap[currentUnitPosition.x][currentUnitPosition.y]->ActivateAbility(L, selectedTile);
 						currentPhase = ExecuteAbility;
 					}
 				}
@@ -458,7 +485,7 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectMove:				// Cancel move, return to SelectUnit
 			// Unmark movement tiles
-			MarkTiles(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
+			MarkTilesInRange(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
 			currentPhase = SelectUnit;
 			selectedTile.x = -1;
 			return;
@@ -476,7 +503,7 @@ void Level::HandleRightClick()
 			break;
 /**/	case Phase::SelectTarget:			// Cancel Action, return to SelectAction
 			// Unmark all enemies in range of unit
-			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
+			MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
@@ -484,8 +511,11 @@ void Level::HandleRightClick()
 			return;
 /**/	case Phase::SelectAbilityTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
-			MarkTiles(true, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
-			MarkTiles(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
+			MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(hoveredTile-currentUnitPosition), hoveredTile);
+			if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedAbilityHasDynamicAoE())	// Dynamic Ability
+				MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_RANGE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityDynamicAoERange(), currentUnitPosition);
+			else	// Static Ability
+				MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 			unitMap[currentUnitPosition.x][currentUnitPosition.y]->ClearBattleScripts();
 			if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedBattleAbility())
 				unitMap[currentUnitPosition.x][currentUnitPosition.y]->RefundAP();
@@ -529,7 +559,11 @@ void Level::GenerateLevel()
 		}
 	}
 
-	ifstream is("../FelledTactics/Units.json");
+	// Starting Positions of the Units on this level
+	Position startingPositions[4] = {Position(0,0), Position(1,1), Position(2,2), Position(4,4)};
+	Position enemyStartingPositions[5] = {Position(3,3), Position(7,7), Position(7,6), Position(2,8), Position(3,8)};
+
+	ifstream is("../FelledTactics/Saves/Units.json");
 	ifstream is2("../FelledTactics/Abilities.json");
 	json_spirit::mValue value, value2;
 	json_spirit::read(is, value);
@@ -537,42 +571,26 @@ void Level::GenerateLevel()
 	json_spirit::mObject units = value.get_obj();
 	json_spirit::mObject abilities = value2.get_obj();
 
-	unitMap[0][0] = new Unit(UNIT_LAYER, tileSize, tileSize, 0, 0, "Lyn", units.find("Lyn")->second.get_obj(), abilities);
-	unitMap[1][1] = new Unit(UNIT_LAYER, tileSize, tileSize, 50, 50, "Lyn2", units.find("Lyn2")->second.get_obj(), abilities);
-	unitMap[2][2] = new Unit(UNIT_LAYER, tileSize, tileSize, 100, 100, "Lyn3", units.find("Lyn3")->second.get_obj(), abilities);
-	unitMap[4][4] = new Unit(UNIT_LAYER, tileSize, tileSize, 200, 200, "Lyn4", units.find("Lyn4")->second.get_obj(), abilities);
+	// Create Units
+	i = 0;
+	for(auto it = units.begin(); it != units.end(); it++)
+	{
+		unitMap[startingPositions[i].x][startingPositions[i].y] = new Unit(UNIT_LAYER, tileSize, tileSize, startingPositions[i].x*tileSize, startingPositions[i].y*tileSize,
+			it->first.c_str(), it->second.get_obj(), abilities);
+		unitList.push_back(unitMap[startingPositions[i].x][startingPositions[i].y]);
+		map[startingPositions[i].x][startingPositions[i].y]->TileStatus = Tile::Status::AllyUnit;
+		i++;
+		numAllies++;
+	}
 
-	// Create units
-	//unitMap[0][0] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,0,0);
-	//unitMap[1][1] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,50,50);
-	//unitMap[2][2] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,100,100);
-	unitMap[3][3] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,150,false);
-	//unitMap[4][4] = new Unit(L"../FelledTactics/Textures/Units/Bladedge.png", UNIT_LAYER, tileSize, tileSize,200,200);
-	unitMap[7][7] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,350,false);
-	unitMap[7][6] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,350,300,false);
-	unitMap[2][8] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,100,400,false);
-	unitMap[3][8] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize,150,400,false);
-	unitList.push_back(unitMap[0][0]);
-	unitList.push_back(unitMap[1][1]);
-	unitList.push_back(unitMap[2][2]);
-	unitList.push_back(unitMap[3][3]);
-	unitList.push_back(unitMap[4][4]);
-	unitList.push_back(unitMap[7][7]);
-	unitList.push_back(unitMap[7][6]);
-	unitList.push_back(unitMap[2][8]);
-	unitList.push_back(unitMap[3][8]);
-	map[0][0]->TileStatus = Tile::Status::AllyUnit;
-	map[1][1]->TileStatus = Tile::Status::AllyUnit;
-	map[2][2]->TileStatus = Tile::Status::AllyUnit;
-	map[3][3]->TileStatus = Tile::Status::EnemyUnit;
-	map[4][4]->TileStatus = Tile::Status::AllyUnit;
-	map[7][7]->TileStatus = Tile::Status::EnemyUnit;
-	map[7][6]->TileStatus = Tile::Status::EnemyUnit;
-	map[2][8]->TileStatus = Tile::Status::EnemyUnit;
-	map[3][8]->TileStatus = Tile::Status::EnemyUnit;
-
-	numAllies = 4;
-	numEnemies = 5;
+	for(i = 0; i < 5; i++)
+	{
+		unitMap[enemyStartingPositions[i].x][enemyStartingPositions[i].y] = new Unit(L"../FelledTactics/Textures/Units/Axereaver.png", UNIT_LAYER, tileSize, tileSize, 
+			enemyStartingPositions[i].x*tileSize, enemyStartingPositions[i].y*tileSize, false);
+		unitList.push_back(unitMap[enemyStartingPositions[i].x][enemyStartingPositions[i].y]);
+		map[enemyStartingPositions[i].x][enemyStartingPositions[i].y]->TileStatus = Tile::Status::EnemyUnit;
+		numEnemies++;
+	}
 
 	// Add units to the VisualElements list
 	for(int i = 0; i < unitList.size(); i++)
@@ -595,6 +613,20 @@ void Level::GenerateLevel()
 	maximumDeaths = 1000;
 	maximumTurns = 1000;
 
+	// Test outputting save file
+/*	json_spirit::Object save;
+	json_spirit::Object jsonUnits;
+	for(int i = 0; i < unitList.size(); i++)
+	{
+		if(unitList[i]->CheckStatus(UNIT_STATUS_ALLY))
+			jsonUnits.push_back(json_spirit::Pair(unitList[i]->Name, unitList[i]->Serialize()));
+	}
+	save.push_back(json_spirit::Pair("Units", jsonUnits));
+
+	ofstream os("../FelledTactics/Saves/Save1.json", ofstream::binary);
+	json_spirit::write(jsonUnits, os, json_spirit::pretty_print);
+	os.close();
+*/
 	StartNewTurn();
 }
 
@@ -955,34 +987,9 @@ int Level::CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* no
 }
 
 // Visual Mark all tiles in range of a given action (movement, ability cast, etc.)
-// Mark Type 0 = Movement, 1 = Attack, 2 = Ally Skill Range, 3 = Ally Skill AoE, 4 = Enemy Movement
-void Level::MarkTiles(bool undo, Position start, int range, int markType, vector<Position> skillRange)
+// Mark Type 0 = Movement, 1 = Attack, 2 = Ally Ability Range, 3 = Ally Ability AoE, 4 = Enemy Movement
+void Level::MarkTilesInRange(bool undo, Position start, int range, int markType)
 {
-	if(markType == TILE_MARK_TYPE_ALLY_ABILITY_AOE)
-	{
-		if(!undo)
-		{
-			// A skill can have a custom Area of Effect (aoe) that requires extra markings
-			for(int k = 0; k < skillRange.size(); k++)
-			{
-				if(!IsValidPosition(start.x+skillRange[k].x,start.y+skillRange[k].y)) continue;
-				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark;
-				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark = Tile::Mark::AllySkillAoE;
-			}
-		}
-		else	// Undo the change as the cast location of the skill moves or the skill is cast or cancelled
-		{
-			for(int k = 0; k < skillRange.size(); k++)
-			{
-				if(!IsValidPosition(start.x+skillRange[k].x,start.y+skillRange[k].y)) continue;
-				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->TileMark = map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark;
-				map[start.x+skillRange[k].x][start.y+skillRange[k].y]->PrevTileMark = Tile::Mark::Blank;
-			}
-		}
-
-		return;	// Do not bother with the rest, this section is for AllySkillAoE only
-	}
-
 	// Search through all tiles in range
 	for(int i = start.x - range; i <= start.x + range; i++)
 	{
@@ -1024,11 +1031,11 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 								map[i][j]->TileMark = Tile::Mark::Attack;
 							break;
 						case TILE_MARK_TYPE_ALLY_ABILITY_RANGE:
-							map[i][j]->TileMark = Tile::Mark::AllySkillRange;
+							map[i][j]->TileMark = Tile::Mark::AllyAbilityRange;
 							break;
 						case TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE:
 							if(map[i][j]->TileStatus == Tile::Status::EnemyUnit)
-								map[i][j]->TileMark = Tile::Mark::AllySkillRange;
+								map[i][j]->TileMark = Tile::Mark::AllyAbilityRange;
 							break;
 						case TILE_MARK_TYPE_ENEMY_MOVEMENT:
 							map[i][j]->TileMark = Tile::Mark::EnemyMove;
@@ -1038,6 +1045,40 @@ void Level::MarkTiles(bool undo, Position start, int range, int markType, vector
 				else	// Undo any markings - Just reset to prev tile status
 					map[i][j]->TileMark = map[i][j]->PrevTileMark;
 			}
+		}
+	}
+}
+
+// Mark a set of tiles with a given markType. The set can be absolute Positions or relative Positions given a starting Position
+void Level::MarkTiles(bool undo, int markType, vector<Position> tileSet, Position start/*=Position(0, 0)*/)
+{
+	Tile::Mark mark;
+	switch(markType)
+	{
+		case TILE_MARK_TYPE_MOVEMENT:	mark = Tile::Mark::AllyMove;	break;
+		case TILE_MARK_TYPE_ATTACK:		mark = Tile::Mark::Attack;		break;
+		case TILE_MARK_TYPE_ALLY_ABILITY_RANGE:
+		case TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE:	mark = Tile::Mark::AllyAbilityRange;	break;
+		case TILE_MARK_TYPE_ALLY_ABILITY_AOE:	mark = Tile::Mark::AllyAbilityAoE;	break;
+		case TILE_MARK_TYPE_ENEMY_MOVEMENT:		mark = Tile::Mark::EnemyMove;		break;
+	}
+
+	if(!undo)
+	{
+		for(int k = 0; k < tileSet.size(); k++)
+		{
+			if(!IsValidPosition(start.x + tileSet[k].x, start.y + tileSet[k].y)) continue;
+			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark = map[start.x + tileSet[k].x][start.y + tileSet[k].y]->TileMark;
+			map[start.x + tileSet[k].x][start.y+  tileSet[k].y]->TileMark = mark;
+		}
+	}
+	else
+	{
+		for(int k = 0; k < tileSet.size(); k++)
+		{
+			if(!IsValidPosition(start.x + tileSet[k].x,start.y + tileSet[k].y)) continue;
+			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->TileMark = map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark;
+			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark = Tile::Mark::Blank;
 		}
 	}
 }
@@ -1063,7 +1104,7 @@ void Level::CreateActionMenu()
 void Level::SelectAttack()
 {
 	// Mark all enemies in range of unit - Loop through all tiles in attack range of unit and check for enemies
-	MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
+	MarkTilesInRange(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 
 	// Set 1st Combatant in the CombatCalculator
 	combatManager.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
@@ -1156,15 +1197,17 @@ void Level::ActivateAbility(int selectedAbility)
 		// Set 1st Combatant in the CombatCalculator
 		combatManager.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
-		// Set Range of Battle Ability to the Attack Range of the Activating Unit
-		MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE);
+		// Mark Range of Battle Ability
+		MarkTilesInRange(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE);
 	}
-	else
-		MarkTiles(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
+	else if(unitMap[currentUnitPosition.x][currentUnitPosition.y]->SelectedAbilityHasDynamicAoE())	// Mark Range of Dynamic Ability
+		MarkTiles(false, TILE_MARK_TYPE_ALLY_ABILITY_RANGE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityDynamicAoERange(), currentUnitPosition);
+	else	// Mark Range of regular Ability
+		MarkTilesInRange(false, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
-	// Mark Range and AoE of ability - Range = Attack Range if Battle Ability and no AoE
-	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllySkillRange)
-		MarkTiles(false, hoveredTile, 0, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE());
+	// Mark AoE of ability - Range = Attack Range if Battle Ability and no AoE
+	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange)
+		MarkTiles(false, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(hoveredTile-currentUnitPosition), hoveredTile);
 
 	// Allow targeting on tiles
 	RemoveActiveLayer(SECONDARY_MENU_LAYER);

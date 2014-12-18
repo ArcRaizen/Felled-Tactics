@@ -216,10 +216,10 @@ void Tile::SetMark(Tile::Mark m)
 		case Tile::Mark::AllyMovePathFail:
 			highlightColor = highlightEnemyMove;
 			break;
-		case Tile::Mark::AllySkillAoE:
+		case Tile::Mark::AllyAbilityAoE:
 			highlightColor = highlightAllySkillAoE;
 			break;
-		case Tile::Mark::AllySkillRange:
+		case Tile::Mark::AllyAbilityRange:
 			highlightColor = highlightAllySkillRange;
 			break;
 		case Tile::Mark::EnemyMove:

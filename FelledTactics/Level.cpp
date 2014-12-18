@@ -361,7 +361,7 @@ int Level::Update(float dt, HWND hWnd)
 				bool isInRanges = false;
 				for(int i = 0; i < ranges.size(); i++)
 				{
-					if(ranges[i] == selectedTile)
+					if(ranges[i] == selectedTile-currentUnitPosition)
 					{
 						isInRanges = true;
 						break;

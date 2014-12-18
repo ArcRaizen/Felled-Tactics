@@ -138,10 +138,6 @@ Ability::Ability(const char* name, json_spirit::mObject abilityMap, int r) : ran
 	SetRange(abilityMap);
 	
 	// 7) Area of Effect
-	map<int, char> test;
-	auto a = test.insert(pair<int,char>(1,'a'));
-	test[1]='b';
-
 	SetAoE(abilityMap);
 
 	// 8) Cast Timers
@@ -203,9 +199,9 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 		{
 			ss << i;
 			lua_createtable(L, 2, 0);					// Create next entry in AoE
-			lua_pushinteger(L, source.x + areaOfEffect[index][i].x);
+			lua_pushinteger(L, target.x + areaOfEffect[index][i].x);
 			lua_setfield(L, -2, "x");					// Set name and x-coordinate in entry
-			lua_pushinteger(L, source.x + areaOfEffect[index][i].y);
+			lua_pushinteger(L, target.x + areaOfEffect[index][i].y);
 			lua_setfield(L, -2, "y");					// Set name and y-coordinate in entry
 			lua_setfield(L, -2, ss.str().c_str());		// Name entry (string of entries index in AoE)
 		}
@@ -281,7 +277,7 @@ void Ability::SetAoE(json_spirit::mObject abilityMap)
 	string temp, aoe;
 	int i, j, a, b, x, y, num, numDynamic=1;
 
-//	areaOfEffect.clear();
+	areaOfEffect.clear();
 
 	bool dynamic = abilityMap["aoe_type"].get_str() == "Dynamic";
 	if(maxRank > 1)
@@ -354,7 +350,11 @@ vector<Position> Ability::GetAoE(Position p/*=Position(0,0)*/)
 	if(areaOfEffect.size() == 1) 
 	{ return areaOfEffect[Position(0,0)]; } 
 	
-	return areaOfEffect[p]; 
+	auto i = areaOfEffect.find(p);
+	if(i != areaOfEffect.end())
+		return areaOfEffect[p];
+
+	return vector<Position>();
 }
 const float* Ability::GetTimers() const { return castTimers; }
 bool Ability::HasDynamicAoE() const { return areaOfEffect.size() > 1; }

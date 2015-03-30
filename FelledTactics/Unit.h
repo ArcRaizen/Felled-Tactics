@@ -14,8 +14,11 @@
 #ifndef POSITION_S
 #include "Position.h"
 #endif
-#ifndef SKILL_H
+#ifndef ABILITY_H
 #include "Ability.h"
+#endif
+#ifndef AUGMENT_H
+#include "Augment.h"
 #endif
 
 // Codes
@@ -35,7 +38,6 @@ public:
 	Unit(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
 	virtual ~Unit(void);
 
-	enum Phylum		{Martial, Mystical, Support};
 	static int		unitCounter;
 
 	virtual void	CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range);	// Damage done by unit to enemy before enemy defences are factored in
@@ -104,7 +106,6 @@ public:
 	__declspec(property(put=SetResistance, get=GetResistance)) int Resistance;			void SetResistance(int r);			int GetResistance();
 	__declspec(property(put=SetMovement, get=GetMovement)) int Movement;				void SetMovement(int m);			int GetMovement();
 	__declspec(property(put=SetAttackRange, get=GetAttackRange)) int AttackRange;		void SetAttackRange(int r);			int GetAttackRange();
-	__declspec(property(get=GetPhylum)) Phylum UnitPhylum;																	Phylum GetPhylum();
 	__declspec(property(get=GetMovementFinished)) bool MovementFinished;													bool GetMovementFinished();
 	__declspec(property(put=SetFinished, get=GetFinished)) bool FinishedTurn;			void SetFinished(bool f);			bool GetFinished();
 	__declspec(property(put=SetCombatCalcScript, get=GetCombatCalcScript)) std::string CombatCalcScript;
@@ -141,7 +142,6 @@ protected:
 	int		resistance;
 	int		movement;
 	int		attackRange;
-	Phylum	phylum;
 	int		unitID;
 
 	// Growth Rates

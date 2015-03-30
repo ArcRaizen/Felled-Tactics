@@ -11,7 +11,8 @@ D3DXVECTOR4 Tile::highlightAttack = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 #pragma endregion
 
 Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, Position gp) :
-	VisualElement(filename, layer, width, height, posX, posY), level(l), gridPosition(gp), effectTimer(0), status(Empty), mark(Blank), effect(None), effectEnabled(false)
+	VisualElement(filename, layer, width, height, posX, posY), level(l), gridPosition(gp), effectTimer(0), 
+	status(Status::Empty), mark(Mark::Blank), prevMark(Mark::Blank), effect(Effect::None), effectEnabled(false)
 {
 	// Save the path of the tiles default texture (removing the ".png" portion)
 	defaultTexturePath = filename;
@@ -36,7 +37,7 @@ void Tile::NewTurn(lua_State* L)
 	else if(effectTimer == 1)	// Clear tile effect once its timer has elapsed
 	{
 		effectTimer = 0;
-		effect = None;
+		effect = Effect::None;
 		effectMovementScript = effectNewTurnScript = "";
 		std::wstring texturePath = defaultTexturePath + L"" + PNG;
 		hr = D3DX10CreateShaderResourceViewFromFile(Direct3D::gpInfo->gpDevice, texturePath.c_str(), 0, 0, &texture, 0);
@@ -45,9 +46,9 @@ void Tile::NewTurn(lua_State* L)
 
 void Tile::Clear()
 {
-	status = Empty;
-	mark = Blank;
-	effect = None;
+	status = Status::Empty;
+	mark = Mark::Blank;
+	effect = Effect::None;
 	effectTimer = 0;
 }
 
@@ -120,12 +121,12 @@ void Tile::SetTileEffect(int e, int effectLength)
 
 	switch(e)
 	{
-		case 0: effect = None; fileExtension = L""; scriptType = 0; break;
-		case 1: effect = Fire; fileExtension = L"_Fire"; scriptType = 3; break;
-		case 2: effect = Vector_Plate_Left; fileExtension = L"_Vector_Plate_Left"; scriptType = 1; break;
-		case 3: effect = Vector_Plate_Right; fileExtension = L"_Vector_Plate_Right"; scriptType = 1; break;
-		case 4: effect = Vector_Plate_Up; fileExtension = L"_Vector_Plate_Up"; scriptType = 1; break;
-		case 5: effect = Vector_Plate_Down; fileExtension = L"_Vector_Plate_Down"; scriptType = 1; break;
+		case 0: effect = Effect::None; fileExtension = L""; scriptType = 0; break;
+		case 1: effect = Effect::Fire; fileExtension = L"_Fire"; scriptType = 3; break;
+		case 2: effect = Effect::Vector_Plate_Left; fileExtension = L"_Vector_Plate_Left"; scriptType = 1; break;
+		case 3: effect = Effect::Vector_Plate_Right; fileExtension = L"_Vector_Plate_Right"; scriptType = 1; break;
+		case 4: effect = Effect::Vector_Plate_Up; fileExtension = L"_Vector_Plate_Up"; scriptType = 1; break;
+		case 5: effect = Effect::Vector_Plate_Down; fileExtension = L"_Vector_Plate_Down"; scriptType = 1; break;
 	}
 	effectTimer = effectLength;		// Save the effect length
 	effectEnabled = true;
@@ -144,12 +145,12 @@ void Tile::SetTileEffect(int e, int effectLength)
 
 bool Tile::HasEffect()
 {
-	return effectEnabled && (effect != None || effectTimer > 0);
+	return effectEnabled && (effect != Effect::None || effectTimer > 0);
 }
 
 bool Tile::IsObstructed()
 {
-	return !status == Empty /*|| mark == None*/;
+	return !(status == Status::Empty /*|| mark == None*/);
 }
 
 bool Tile::IsObstructedPlayer()
@@ -157,7 +158,7 @@ bool Tile::IsObstructedPlayer()
 	/*if(IsObstructed())
 		return true;
 	else*/
-		return status == EnemyUnit || status == AllyFelled;
+		return status == Status::EnemyUnit || status == Status::AllyFelled;
 }
 
 bool Tile::IsObstructedEnemy()
@@ -165,7 +166,7 @@ bool Tile::IsObstructedEnemy()
 	/*if(IsObstructed())
 		return true;
 	else*/
-		return status == AllyUnit || status == AllyFelled;
+		return status == Status::AllyUnit || status == Status::AllyFelled;
 }
 
 #pragma region MouseEvents
@@ -187,6 +188,7 @@ void Tile::MouseOut()
 { 
 	mouseEntered = false; 
 	mouseDown = false;
+	level->ClearHoveredTile(gridPosition);
 }
 #pragma endregion
 
@@ -195,8 +197,6 @@ void Tile::SetStatus(Tile::Status s) { status = s; }
 Tile::Status Tile::GetStatus() { return status; }
 Tile::Effect Tile::GetEffect() { return effect; }
 Tile::Mark Tile::GetMark() { return mark; }
-void Tile::SetPrevMark(Tile::Mark s) { prevMark = s; }
-Tile::Mark Tile::GetPrevMark() { return prevMark; }
 void Tile::SetMark(Tile::Mark m)
 {
 	mark = m; 
@@ -233,4 +233,6 @@ void Tile::SetMark(Tile::Mark m)
 			break;
 	}
 }
+void Tile::SaveMark() { prevMark = mark; }
+void Tile::ResetMark() { SetMark(prevMark); mark = Mark::Blank; }
 #pragma endregion

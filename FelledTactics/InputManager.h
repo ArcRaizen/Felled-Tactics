@@ -34,6 +34,7 @@ public:
 	static bool IsKeyPressed(DWORD key);
 	static void Analyze();
 	static D3DXVECTOR3 GetMouseWorldCoords(HWND hWnd, D3DXVECTOR3 cameraPosition);
+	static D3DXVECTOR2 GetMouseUV(HWND hWnd);
 	static D3DXVECTOR3 GetMouseClient(HWND hWnd);
 
 	static IDirectInput8*		diObject;

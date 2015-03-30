@@ -313,12 +313,14 @@ bool Direct3D::SetViewport(float screenNear, float screenFar)
 
 	// Projection Matrix for 3D rendering
 	D3DXMatrixPerspectiveFovLH(&projection, fieldOfView, screenAspect, screenNear, screenFar);
+	gpInfo->gpProjectionMatrix = projection;
 	
 	// Set World Matrix to Identity for now
 //	D3DXMatrixIdentity(&world);
 
 	// Ortographic Projection Matrix for 2D rendering
 	D3DXMatrixOrthoLH(&ortho, (float)screenWidth, (float)screenHeight, screenNear, screenFar);
+	//gpInfo->gpProjectionMatrix = ortho;
 
 	// Create description for depth stencil state that turns off Z Buffer for 2D rendering
 	D3D10_DEPTH_STENCIL_DESC depthDisabledStencilDesc;
@@ -544,7 +546,11 @@ void Direct3D::StartFrame(D3DXMATRIX view)
 	// Update WVP matrices for rendering
 //	gpShaderWorldMatrix->SetMatrix((float*)&world);
 	gpShaderViewMatrix->SetMatrix((float*)&view);
+#ifdef PERSPECTIVE_PROJECTION
+	gpShaderProjectionMatrix->SetMatrix((float*)&projection);
+#else
 	gpShaderProjectionMatrix->SetMatrix((float*)&ortho);
+#endif
 
 //	gpInfo->gpShaderWorldMatrix = gpShaderWorldMatrix;
 //	gpInfo->gpShaderViewMatrix= gpShaderViewMatrix;

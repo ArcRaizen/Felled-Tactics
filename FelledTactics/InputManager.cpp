@@ -233,9 +233,30 @@ D3DXVECTOR3 InputManager::GetMouseWorldCoords(HWND hWnd, D3DXVECTOR3 cameraPosit
 	mouseWorldX = (((cursorPos->x / clientWidth) * (int)screenWidth) - (int)screenWidth/2) + cameraPosition.x;
 	mouseWorldY = (-((cursorPos->y / clientHeight) * (int)screenHeight) + (int)screenHeight/2) + cameraPosition.y;
 
-
 	return D3DXVECTOR3(mouseWorldX, mouseWorldY, 0.0f);
 }
+
+D3DXVECTOR2 InputManager::GetMouseUV(HWND hWnd)
+{
+	RECT clientRect;
+	GetClientRect(hWnd, (LPRECT)&clientRect);
+	float clientWidth = clientRect.right;
+	float clientHeight = clientRect.bottom;
+
+	// Get cursor position on the screen, convert to client coordinates
+	LPPOINT cursorPos = new POINT;
+	GetCursorPos(cursorPos);
+	ScreenToClient(hWnd, cursorPos);
+
+	// Convert cursor coords to [-1,1]
+	float mouseU, mouseV;
+	mouseU = ((2.0f * cursorPos->x) / clientWidth) - 1.0f;
+	mouseV = (((2.0f * cursorPos->y) / clientHeight) -1.0f) * -1.0f;
+
+	return D3DXVECTOR2(mouseU, mouseV);
+}
+
+
 
 D3DXVECTOR3 InputManager::GetMouseClient(HWND hWnd)
 {

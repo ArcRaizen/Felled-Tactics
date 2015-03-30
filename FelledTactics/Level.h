@@ -70,7 +70,8 @@ public:
 	~Level(void);
 
 #pragma region Enums
-	enum Phase			{SelectUnit, SelectMove, ExecuteMove, SelectPrimaryAction, SelectSecondaryAction, SelectTarget, SelectAbilityTarget, ExecuteAttack, ExecuteAbility, EnemyTurn};
+	enum class Phase	{SelectUnit, SelectMove, ExecuteMove, SelectPrimaryAction, SelectSecondaryAction, SelectTarget, 
+							SelectAbilityTarget, ExecuteAttack, ExecuteAbility, EnemyTurn};
 #pragma endregion
 
 	int		Update(float dt, HWND hWnd);
@@ -95,6 +96,8 @@ private:
 	void	CalcShortestPathAStar(Position start, Position end, int unitMove, list<Position> &path, int options);
 	int		CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove);
 	int 	CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* node);
+	void	CalcMovementFlood(Position start, int unitMove, int options);
+	void	CalcDirectionPriority(Position start, Position end, Position* directions);
 	void	MarkTilesInRange(bool undo, Position start, int range, int markType);
 	void	MarkTiles(bool undo, int markType, vector<Position> aoe, Position start = Position(0, 0));
 
@@ -114,6 +117,7 @@ public:
 	void	CreateCombatText(Position target, Position source, const char* t, int damageType);
 	void	SetSelectedTile(Position p);
 	void	SetHoveredTile(Position p);
+	void	ClearHoveredTile(Position p);
 #pragma endregion 
 
 #pragma region Properties
@@ -181,8 +185,8 @@ private:
 
 #pragma region Utility Functions
 private:
-	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x >= mapWidth || p.y >= mapWidth) { return false; } return true; }
-	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(y >= mapWidth || y >= mapWidth) { return false; } return true; }
+	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x >= mapWidth || p.y >= mapHeight) { return false; } return true; }
+	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(x >= mapWidth || y >= mapHeight) { return false; } return true; }
 	inline bool IsValidUnit(Position p) { if(!IsValidPosition(p) || unitMap[p.x][p.y] == NULL) { return false; } return true; }
 	inline bool IsValidUnit(int x, int y) { if(!IsValidPosition(x,y) || unitMap[x][y] == NULL) { return false; } return true; }
 #pragma endregion

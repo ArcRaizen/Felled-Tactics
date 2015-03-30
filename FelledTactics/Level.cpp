@@ -61,16 +61,6 @@ int Level::Update(float dt, HWND hWnd)
 		{
 			Position p = unitList[i]->UnitPosition;
 
-			// Move unit from to new tile
-			unitMap[p.x][p.y] = unitMap[movementBeginning.x][movementBeginning.y];
-			unitMap[movementBeginning.x][movementBeginning.y] = NULL;
-
-			// Change tile statuses to reflect
-			map[p.x][p.y]->TileStatus = map[movementBeginning.x][movementBeginning.y]->TileStatus;
-			map[movementBeginning.x][movementBeginning.y]->TileStatus = Tile::Status::Empty;
-
-			movementBeginning = p;
-
 			// Do effect of tile unit is currently on
 			if(map[p.x][p.y]->HasEffect())
 			{
@@ -87,6 +77,14 @@ int Level::Update(float dt, HWND hWnd)
 				// Don't call DoMovementEnd if the unit has renewed motion (from ability/tile effct)
 				if(!unitList[i]->CheckStatus(UNIT_STATUS_MOVING | UNIT_STATUS_FORCED_MOVING))
 				{
+					// Move unit from original to new tile
+					unitMap[p.x][p.y] = unitMap[movementBeginning.x][movementBeginning.y];
+					unitMap[movementBeginning.x][movementBeginning.y] = NULL;
+
+					// Change tile statuses to reflect
+					map[p.x][p.y]->TileStatus = map[movementBeginning.x][movementBeginning.y]->TileStatus;
+					map[movementBeginning.x][movementBeginning.y]->TileStatus = Tile::Status::Empty;
+
 					// Re-sort the VisualElements list only on the layer that just changed
 					SortVisualElementsInLayer(unitMap[p.x][p.y]->Layer);
 
@@ -169,14 +167,15 @@ int Level::Update(float dt, HWND hWnd)
 	switch(currentPhase)
 	{
 /**/	case Phase::SelectUnit:
+
 			// Turn on/off HP/AP bars on hovered units
 			if(lastHoveredTile != hoveredTile)
 			{	// Turn off drawing HP/AP bars on old tile
-				if(unitMap[lastHoveredTile.x][lastHoveredTile.y] != NULL)
+				if(lastHoveredTile.x >= 0 && unitMap[lastHoveredTile.x][lastHoveredTile.y] != NULL)
 					unitMap[lastHoveredTile.x][lastHoveredTile.y]->DrawBars = false;
-	
+
 				// Turn on drawing HP/AP bars on new tile
-				if(unitMap[hoveredTile.x][hoveredTile.y] != NULL)
+				if(hoveredTile.x >= 0 && unitMap[hoveredTile.x][hoveredTile.y] != NULL)
 					unitMap[hoveredTile.x][hoveredTile.y]->DrawBars = true;
 			}
 
@@ -203,7 +202,7 @@ int Level::Update(float dt, HWND hWnd)
 				}
 
 				movementBeginning = selectedTile;
-				MarkTilesInRange(false, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
+				CalcMovementFlood(movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TEST_OBSTRUCTION_ALLY_UNITS);
 				unitMap[selectedTile.x][selectedTile.y]->DrawBars = false;
 
 				selectedTile.x = -1;
@@ -244,7 +243,7 @@ int Level::Update(float dt, HWND hWnd)
 					i = currentMovementPath.begin();
 					i++;
 					for(; i != currentMovementPath.end(); i++)
-						map[i->x][i->y]->TileMark = Tile::Mark::AllyMove;
+						map[i->x][i->y]->SetMark(Tile::Mark::AllyMove);
 				}
 
 				// Activate pre-calculated movement path
@@ -254,7 +253,7 @@ int Level::Update(float dt, HWND hWnd)
 				i = currentMovementPath.begin();
 				i++;
 				for(; i != currentMovementPath.end(); i++)
-					map[i->x][i->y]->TileMark = Tile::Mark::AllyMovePath;
+					map[i->x][i->y]->SetMark(Tile::Mark::AllyMovePath);
 			} // Selected Tile is valid. Proceed with movement
 			else if(map[selectedTile.x][selectedTile.y]->TileMark == Tile::Mark::AllyMovePath)
 			{
@@ -279,6 +278,14 @@ int Level::Update(float dt, HWND hWnd)
 				// Tell the unit to move
 				unitMap[movementBeginning.x][movementBeginning.y]->SetMovePath(currentMovementPath);
 				currentMovementPath.pop_front();
+
+				// Clear movement map
+				for(int i = 0; i < mapWidth; i++)
+				{
+					for(int j = 0; j < mapHeight; j++)
+						movementMap[i][j].clear();
+				}
+
 				currentPhase = ExecuteMove;	// Go to next phase
 			}
 			break;
@@ -288,6 +295,8 @@ int Level::Update(float dt, HWND hWnd)
 /**/	case Phase::SelectSecondaryAction:
 			break;
 /**/	case Phase::SelectTarget:
+			if(hoveredTile.x < 0) break;
+
 			if(lastHoveredTile != hoveredTile)
 			{
 				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::Attack)
@@ -325,12 +334,12 @@ int Level::Update(float dt, HWND hWnd)
 			if(lastHoveredTile != hoveredTile)
 			{
 				// Remove AoE marks now that the target for the skill has changed (if marks still exist)
-				if(map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange || 
-					map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityAoE)
+				if(lastHoveredTile.x >= 0 && (map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange || 
+					map[lastHoveredTile.x][lastHoveredTile.y]->TileMark == Tile::Mark::AllyAbilityAoE))
 					MarkTiles(true, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(lastHoveredTile-currentUnitPosition), lastHoveredTile);
 
 				// Re-draw AoE marks when the target is a new valid tile
-				if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange)
+				if(hoveredTile.x >= 0 && map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyAbilityRange)
 					MarkTiles(false, TILE_MARK_TYPE_ALLY_ABILITY_AOE, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityAoE(hoveredTile-currentUnitPosition), hoveredTile);
 
 				// Special Considerations must be made for Battle Abilities that tie-in to regular combat
@@ -405,7 +414,7 @@ int Level::Update(float dt, HWND hWnd)
 					Ability::CastType ct = unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityCastType();
 					Tile::Status ts = map[selectedTile.x][selectedTile.y]->TileStatus;
 
-					// Check Ability CastType is being respected
+					// Check if Ability CastType is being respected
 					if((ct == Ability::CastType::Ally && ts == Tile::Status::AllyUnit) || 
 						(ct == Ability::CastType::Enemy && ts == Tile::Status::EnemyUnit) || 
 						(ct == Ability::CastType::SelfCast && selectedTile == currentUnitPosition) ||
@@ -486,6 +495,12 @@ void Level::HandleRightClick()
 /**/	case Phase::SelectMove:				// Cancel move, return to SelectUnit
 			// Unmark movement tiles
 			MarkTilesInRange(true, movementBeginning, unitMap[movementBeginning.x][movementBeginning.y]->Movement, TILE_MARK_TYPE_MOVEMENT);
+			// Clear movement map
+			for(int i = 0; i < mapWidth; i++)
+			{
+				for(int j = 0; j < mapHeight; j++)
+					movementMap[i][j].clear();
+			}
 			currentPhase = SelectUnit;
 			selectedTile.x = -1;
 			return;
@@ -563,8 +578,8 @@ void Level::GenerateLevel()
 	Position startingPositions[4] = {Position(0,0), Position(1,1), Position(2,2), Position(4,4)};
 	Position enemyStartingPositions[5] = {Position(3,3), Position(7,7), Position(7,6), Position(2,8), Position(3,8)};
 
-	ifstream is("../FelledTactics/Saves/Units.json");
-	ifstream is2("../FelledTactics/Abilities.json");
+	ifstream is(UNIT_JSON);
+	ifstream is2(ABILITY_JSON);
 	json_spirit::mValue value, value2;
 	json_spirit::read(is, value);
 	json_spirit::read(is2, value2);
@@ -572,7 +587,7 @@ void Level::GenerateLevel()
 	json_spirit::mObject abilities = value2.get_obj();
 
 	// Create Units
-	i = 0;
+	i = 0, numAllies = 0;
 	for(auto it = units.begin(); it != units.end(); it++)
 	{
 		unitMap[startingPositions[i].x][startingPositions[i].y] = new Unit(UNIT_LAYER, tileSize, tileSize, startingPositions[i].x*tileSize, startingPositions[i].y*tileSize,
@@ -623,7 +638,7 @@ void Level::GenerateLevel()
 	}
 	save.push_back(json_spirit::Pair("Units", jsonUnits));
 
-	ofstream os("../FelledTactics/Saves/Save1.json", ofstream::binary);
+	ofstream os(SAVE_JSON, ofstream::binary);
 	json_spirit::write(jsonUnits, os, json_spirit::pretty_print);
 	os.close();
 */
@@ -720,6 +735,8 @@ bool Level::CheckLoss(int cond)
 // Allow player to draw a custom movement path for the selected Unit to follow for their movement phase
 void Level::PlayerDrawPath()
 {
+	if(hoveredTile.x < 0) return;
+
 	// If the selected tile (new tile the mouse is hovering over) being added is valid
 	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMove)
 	{
@@ -735,7 +752,7 @@ void Level::PlayerDrawPath()
 			// Test newPath for doubling back and remove redundant tile in both paths
 			if(currentMovementPath.size() != 1)
 			{
-				map[currentMovementPath.back().x][currentMovementPath.back().y]->TileMark = Tile::Mark::AllyMove;
+				map[currentMovementPath.back().x][currentMovementPath.back().y]->SetMark(Tile::Mark::AllyMove);
 				currentMovementPath.pop_back();		// delete last tile in path (it already exists in newPath)
 						
 				bool finished = false;
@@ -748,7 +765,7 @@ void Level::PlayerDrawPath()
 						{
 							// Reset Mark for tiles no longer in the path
 							for(list<Position>::iterator it = cpIT; it != currentMovementPath.end(); it++)
-								map[it->x][it->y]->TileMark = Tile::Mark::AllyMove;
+								map[it->x][it->y]->SetMark(Tile::Mark::AllyMove);
 								
 							currentMovementPath.erase(cpIT, currentMovementPath.end());	// remove tiles from path
 							newPath.erase(newPath.begin(), npIT);
@@ -776,9 +793,9 @@ void Level::PlayerDrawPath()
 
 			// Change color to show player the path he has drawn (red if the path is too large for the unit moving)
 			if(currentMovementPath.size() <= unitMap[movementBeginning.x][movementBeginning.y]->Movement+1)
-				map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePath;
+				map[npIT->x][npIT->y]->SetMark(Tile::Mark::AllyMovePath);
 			else
-				map[npIT->x][npIT->y]->TileMark = Tile::Mark::AllyMovePathFail;
+				map[npIT->x][npIT->y]->SetMark(Tile::Mark::AllyMovePathFail);
 		}
 	}// Selected tile already in the path (overlap) - find it in the list and remove all entries after it
 	else if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePath || map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePathFail)
@@ -788,7 +805,7 @@ void Level::PlayerDrawPath()
 			if(hoveredTile == *i)
 			{	// Reset the color of the tiles being removed
 				for(std::list<Position>::const_iterator j = ++i; j != currentMovementPath.end(); j++)
-					map[(*j).x][(*j).y]->TileMark = Tile::Mark::AllyMove;
+					map[(*j).x][(*j).y]->SetMark(Tile::Mark::AllyMove);
 
 				// Remove tiles
 				currentMovementPath.erase(i, currentMovementPath.end());
@@ -801,6 +818,8 @@ void Level::PlayerDrawPath()
 // Draw pre-calculated path between Moving Unit's tile and the tile the mouse is currently hovering over
 void Level::AutoDrawPath()
 {
+	if(hoveredTile.x < 0) return;
+
 	// Only change path if mouse is hovering over a tile that can be moved too
 	if(map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMove || map[hoveredTile.x][hoveredTile.y]->TileMark == Tile::Mark::AllyMovePath)
 	{
@@ -813,7 +832,7 @@ void Level::AutoDrawPath()
 			{
 				currentMovementPath.pop_front();
 				j = currentMovementPath.front();
-				map[j.x][j.y]->TileMark = Tile::Mark::AllyMove;
+				map[j.x][j.y]->SetMark(Tile::Mark::AllyMove);
 			}
 		}
 		currentMovementPath.clear();
@@ -825,7 +844,7 @@ void Level::AutoDrawPath()
 		list<Position>::const_iterator it = currentMovementPath.begin();
 		it++;
 		for(; it != currentMovementPath.end(); it++)
-			map[it->x][it->y]->TileMark = Tile::Mark::AllyMovePath;
+			map[it->x][it->y]->SetMark(Tile::Mark::AllyMovePath);
 	}
 }
 
@@ -986,8 +1005,127 @@ int Level::CheckListContainsTravelNode(vector<TravelNode*> &list, TravelNode* no
 	return -1;
 }
 
+void Level::CalcMovementFlood(Position start, int unitMove, int options)
+{
+	queue<Position> pathQueue;		// Queue of tiles we are going to calculate the movement path to
+	vector<Position> test;
+	Position cur = start, p;		// Position of current tile being examined and temp position
+	Position directions[4];			// Tell which direction we check 1st when calculation path
+	int i, curLength;
+
+	// pointer to evaluation function
+	bool (Level::*ObstructedFunction)(Position) = &Level::IsObstructed;
+	if(options & TEST_OBSTRUCTION_ALLY_UNITS)
+		ObstructedFunction = &Level::IsObstructedPlayer;
+	else if(options & TEST_OBSTRUCTION_ENEMY_UNITS)
+		ObstructedFunction = &Level::IsObstructedEnemy;
+
+	// Fill in base-case movementMap and add 1st entry to queue
+	map[start.x][start.y]->SaveMark();
+	map[start.x][start.y]->SetMark(Tile::Mark::AllyMovePath);
+	movementMap[start.x][start.y].push_front(start);
+
+	// Push 4 tiles surrounding current tile onto queue
+	if(IsValidPosition(cur.x+1, cur.y) && !(*this.*ObstructedFunction)(Position(cur.x+1, cur.y))) 
+		pathQueue.push(Position(cur.x+1, cur.y));
+	if(IsValidPosition(cur.x-1, cur.y) && !(*this.*ObstructedFunction)(Position(cur.x-1, cur.y))) 
+		pathQueue.push(Position(cur.x-1, cur.y));
+	if(IsValidPosition(cur.x, cur.y+1) && !(*this.*ObstructedFunction)(Position(cur.x, cur.y+1))) 
+		pathQueue.push(Position(cur.x, cur.y+1));
+	if(IsValidPosition(cur.x, cur.y-1) && !(*this.*ObstructedFunction)(Position(cur.x, cur.y-1))) 
+		pathQueue.push(Position(cur.x, cur.y-1));
+
+	while(!pathQueue.empty())
+	{
+		// Take next tile in queue
+		cur = pathQueue.front();
+
+		// Choose the correct direction priorities
+		CalcDirectionPriority(start, cur, directions);
+
+		// Pick shortest already calculated path from the surrounding tiles as a start
+		curLength = 1000;
+		for(i = 0; i < 4; i++)
+		{
+			p = cur - directions[i];
+			directions[i].x = directions[i].y = 0;		// Reset directions before next tile
+			if(!IsValidPosition(p) || p.DistanceTo(start) > unitMove) continue;			// Tile cannot be moved to, skip it
+			else if(!(*this.*ObstructedFunction)(p))									// Is tile open to be moved onto?
+			{
+				if(movementMap[p.x][p.y].empty())										// Has path to tile has  been calculated yet?
+				{																			// No
+					if(std::find(test.begin(), test.end(), p) == test.end())				// Has this tile already been added to the queue?
+					{																			// No
+						pathQueue.push(p);													// Push it onto queue to calculate later
+						test.push_back(p);													// Track it
+					}
+				}																			// Yes
+				else if(movementMap[p.x][p.y].size() > 0 &&								// Does path to p exist? (it won't if p is out of movement range)
+					movementMap[p.x][p.y].size() <  curLength)							// Is path to p the shortest path adjacent to current tile?
+				{
+
+					movementMap[cur.x][cur.y] = movementMap[p.x][p.y];					// Set path for now equal to the shortest adjacent path
+					curLength = movementMap[cur.x][cur.y].size();						// Save length of current path
+				}
+			}
+		}
+
+		// Add current tile onto end of path to itself, mark tile 
+		//	(only if the path to it isn't greater than the unit's movement)
+		if(movementMap[cur.x][cur.y].size() <= unitMove && movementMap[cur.x][cur.y].size() > 0)
+		{
+			// Push current position onto end of path to current tile and mark it
+			movementMap[cur.x][cur.y].push_back(cur);
+			if(map[cur.x][cur.y]->TileMark == Tile::Mark::Blank)
+			{
+				map[cur.x][cur.y]->SaveMark();
+				if(options & TILE_MARK_TYPE_ENEMY_MOVEMENT)
+					map[cur.x][cur.y]->SetMark(Tile::Mark::EnemyMove);
+				else
+					map[cur.x][cur.y]->SetMark(Tile::Mark::AllyMove);
+			}
+		}
+		else // Otherwise, it can't be moved to, clear it
+			movementMap[cur.x][cur.y].clear();
+
+		// Pop current tile off queue, path to it has been calculated
+		pathQueue.pop();
+	}
+
+}
+
+// Decide which directions to favor for path-construction based on start/end locations - makes it "more dynamic" because I feel like it
+void Level::CalcDirectionPriority(Position start, Position end, Position* directions)
+{
+	// Direction selection prioritization based off difference between desired position and current position
+	Position diff = end - start;
+
+	if(abs(diff.x) > abs(diff.y))	// left or right - prioritize vertical > horizontal
+	{
+		directions[0].y = diff.y != 0 ? ((diff.y) / (abs(diff.y))) * -1 : ((diff.x) / (abs(diff.x))) * -1;
+		directions[1].y = diff.y != 0 ? diff.y / abs(diff.y) : diff.x / abs(diff.x);
+		directions[2].x = ((diff.x) / (abs(diff.x))) * -1;
+		directions[3].x = diff.x / abs(diff.x);
+	}
+	else if(abs(diff.x) < abs(diff.y)) // up or down - prioritize horizontal > vertical
+	{
+		directions[0].x = diff.x != 0 ? ((diff.x) / (abs(diff.x))) * -1 : ((diff.y) / (abs(diff.y))) * -1;
+		directions[1].x = diff.x != 0 ? diff.x / abs(diff.x) : diff.y / abs(diff.y);
+		directions[2].y = ((diff.y) / (abs(diff.y))) * -1;
+		directions[3].y = diff.y / abs(diff.y);
+	}
+	else if(diff.x == diff.y && diff.x > 0) // diagonal up/right - prioritize down > left > up > right
+	{	directions[0].y = directions[1].x = -1; directions[2].y = directions[3].x = 1; }
+	else if(diff.x == diff.y && diff.x < 0) // diagonal down/left - prioritize up > right > down > left
+	{	directions[0].y = directions[1].x = 1; directions[2].y = directions[3].x = -1; }
+	else if(diff.x == (diff.y * -1) && diff.x > 0) // diagonal down/right - prioritize left > up > right > down
+	{	directions[0].x = -1; directions[1].y = 1; directions[2].x = 1; directions[3].y = -1; }
+	else if(diff.x == (diff.y * -1) && diff.x < 0) // diagonal up/left - prioritize right > down > left > up
+	{	directions[0].x = 1; directions[1].y = -1; directions[2].x = -1; directions[3].y = 1; }
+}
+
 // Visual Mark all tiles in range of a given action (movement, ability cast, etc.)
-// Mark Type 0 = Movement, 1 = Attack, 2 = Ally Ability Range, 3 = Ally Ability AoE, 4 = Enemy Movement
+// Mark Type 0 = Attack, 1 = Ally Ability Range, 2 = Ally Ability AoE, 3 = Enemy Movement
 void Level::MarkTilesInRange(bool undo, Position start, int range, int markType)
 {
 	// Search through all tiles in range
@@ -1004,46 +1142,26 @@ void Level::MarkTilesInRange(bool undo, Position start, int range, int markType)
 				if(!undo)
 				{
 					// Save mark for simple undo later
-					map[i][j]->PrevTileMark = map[i][j]->TileMark;
+					map[i][j]->SaveMark();
 
 					// Mark tile - Visual Change will be done by the tile itself
 					switch(markType)
 					{
-						case TILE_MARK_TYPE_MOVEMENT:
-							// Mark starting movement position as part of the path
-							if(Position(i,j) == start)
-							{
-								map[i][j]->TileMark = Tile::Mark::AllyMovePath;
-								movementMap[i][j].clear();
-								movementMap[i][j].push_back(Position(i,j));
-								continue;
-							}
-
-							CalcShortestPathAStar(start, Position(i,j), unitMap[start.x][start.y]->Movement, movementMap[i][j], TEST_OBSTRUCTION_ALLY_UNITS);
-							if(movementMap[i][j].size() <= range+1)	// +1 because the path includes the starting location of the movement
-								map[i][j]->TileMark = Tile::Mark::AllyMove;
-							else
-								movementMap[i][j].clear();
-
-							break;
 						case TILE_MARK_TYPE_ATTACK:
 							if(map[i][j]->TileStatus == Tile::Status::EnemyUnit)
-								map[i][j]->TileMark = Tile::Mark::Attack;
+								map[i][j]->SetMark(Tile::Mark::Attack);
 							break;
 						case TILE_MARK_TYPE_ALLY_ABILITY_RANGE:
-							map[i][j]->TileMark = Tile::Mark::AllyAbilityRange;
+							map[i][j]->SetMark(Tile::Mark::AllyAbilityRange);
 							break;
 						case TILE_MARK_TYPE_ALLY_BATTLE_ABILITY_RANGE:
 							if(map[i][j]->TileStatus == Tile::Status::EnemyUnit)
-								map[i][j]->TileMark = Tile::Mark::AllyAbilityRange;
-							break;
-						case TILE_MARK_TYPE_ENEMY_MOVEMENT:
-							map[i][j]->TileMark = Tile::Mark::EnemyMove;
+								map[i][j]->SetMark(Tile::Mark::AllyAbilityRange);
 							break;
 					}
 				}
 				else	// Undo any markings - Just reset to prev tile status
-					map[i][j]->TileMark = map[i][j]->PrevTileMark;
+					map[i][j]->ResetMark();
 			}
 		}
 	}
@@ -1068,8 +1186,8 @@ void Level::MarkTiles(bool undo, int markType, vector<Position> tileSet, Positio
 		for(int k = 0; k < tileSet.size(); k++)
 		{
 			if(!IsValidPosition(start.x + tileSet[k].x, start.y + tileSet[k].y)) continue;
-			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark = map[start.x + tileSet[k].x][start.y + tileSet[k].y]->TileMark;
-			map[start.x + tileSet[k].x][start.y+  tileSet[k].y]->TileMark = mark;
+			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->SaveMark();
+			map[start.x + tileSet[k].x][start.y+  tileSet[k].y]->SetMark(mark);
 		}
 	}
 	else
@@ -1077,8 +1195,7 @@ void Level::MarkTiles(bool undo, int markType, vector<Position> tileSet, Positio
 		for(int k = 0; k < tileSet.size(); k++)
 		{
 			if(!IsValidPosition(start.x + tileSet[k].x,start.y + tileSet[k].y)) continue;
-			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->TileMark = map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark;
-			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->PrevTileMark = Tile::Mark::Blank;
+			map[start.x + tileSet[k].x][start.y + tileSet[k].y]->ResetMark();
 		}
 	}
 }
@@ -1244,8 +1361,14 @@ void Level::SetSelectedTile(Position p)
 void Level::SetHoveredTile(Position p)
 {
 	hoveredTile = p;
-	if(lastHoveredTile.y == -1)
-		lastHoveredTile = p;
+//	if(lastHoveredTile.y == -1)
+//		lastHoveredTile = p;
+}
+
+void Level::ClearHoveredTile(Position p)
+{
+	if(hoveredTile == p)
+		hoveredTile.x = hoveredTile.y = -1;
 }
 
 void Level::Draw()

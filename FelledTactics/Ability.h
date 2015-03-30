@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SKILL_H
-#define SKILL_H
+#ifndef ABILITY_H
+#define ABILITY_H
 
 #pragma region Includes
 #ifndef VISUAL_H
@@ -25,9 +25,9 @@ public:
 	Ability(const char* name, json_spirit::mObject abilityMap, int rank);
 	~Ability(void);
 
-	enum	Type {Action, Battle, Passive};						// Skills activated in place of combat, skills that boost regular combat, or skills that provide a constant passive bonus
-	enum	EffectType {Physical, Magical, Heal, Status, None};	// Skills do Physical damage, Magical Damage, Heal a unit, Apply a Status or do no damage
-	enum	CastType {SelfCast, Ally, Enemy, Free};				// Type of units the skill can be used on
+	enum class	Type {Action, Battle, Passive};						// Skills activated in place of combat, skills that boost regular combat, or skills that provide a constant passive bonus
+	enum class	EffectType {Physical, Magical, Heal, Status, None};	// Skills do Physical damage, Magical Damage, Heal a unit, Apply a Status or do no damage
+	enum class	CastType {SelfCast, Ally, Enemy, Free};				// Type of units the skill can be used on
 
 	void	Activate(lua_State* L, Position target, Position source);
 	bool	RankUp();

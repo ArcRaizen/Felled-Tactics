@@ -237,9 +237,10 @@ BOOL DXInit(HWND hWnd)
 {
 	hr = S_OK;	// Used for debugging
 
-	Direct3D::InitializeDirect3D(vsync, hWnd, fullscreen, 1000.0f, 0.1f);
+	Direct3D::InitializeDirect3D(vsync, hWnd, fullscreen, 10000.0f, 0.1f);
 	Camera::Initialize();
-	Camera::SetPosition(0.0f, 0.0f, -10.0f);
+	Camera::SetPosition(0.0f, 0.0f, -950.0f);
+	//Camera::SetRotation(-25.0f, 0.0f, 0.0f);
 
 	return true;
 }

@@ -19,9 +19,9 @@ public:
 	Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, Position gp);
 	~Tile(void);
 
-	enum	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
-	enum	Mark	{ Blank, AllyMove, AllyMovePath, AllyMovePathFail, AllyAbilityRange, AllyAbilityAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
-	enum	Effect  { None, Fire, Vector_Plate_Left, Vector_Plate_Right, Vector_Plate_Up, Vector_Plate_Down };
+	enum class	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
+	enum class	Mark	{ Blank, AllyMove, AllyMovePath, AllyMovePathFail, AllyAbilityRange, AllyAbilityAoE, EnemyMove, Attack };	// What markings the tile has / how is the tile being drawn
+	enum class	Effect  { None, Fire, Vector_Plate_Left, Vector_Plate_Right, Vector_Plate_Up, Vector_Plate_Down };
 
 	void	NewTurn(lua_State* L);	// Update Tile for new turn
 	void	Clear();				// Tile reset to default state
@@ -38,10 +38,13 @@ public:
 	void	MouseOver();
 	void	MouseOut();
 
-	__declspec(property(put=SetStatus, get=GetStatus)) Status TileStatus;				void SetStatus(Status s);		Status GetStatus();
-	__declspec(property(put=SetMark, get=GetMark))	Mark TileMark;						void SetMark(Mark m);			Mark GetMark();
-	__declspec(property(get=GetEffect)) Effect TileEffect;																Effect GetEffect();
-	__declspec(property(put=SetPrevMark, get=GetPrevMark)) Mark PrevTileMark;			void SetPrevMark(Mark m);		Mark GetPrevMark();
+	void	SetMark(Mark m);
+	void	SaveMark();
+	void	ResetMark();
+
+	__declspec(property(put=SetStatus, get=GetStatus)) Status TileStatus;	void SetStatus(Status s);		Status GetStatus();
+	__declspec(property(get=GetMark))	Mark TileMark;														Mark GetMark();
+	__declspec(property(get=GetEffect)) Effect TileEffect;													Effect GetEffect();
 	
 	void	SetTileEffect(int e, int effectLength);
 	bool	HasEffect();

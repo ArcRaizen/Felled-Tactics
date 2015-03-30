@@ -779,7 +779,6 @@ int   Unit::GetMovement() { return movement; }
 void  Unit::SetMovement(int m) { movement = m; }
 int   Unit::GetAttackRange() { return attackRange; }
 void  Unit::SetAttackRange(int r) { attackRange = r; }
-Unit::Phylum Unit::GetPhylum() { return phylum; }
 void  Unit::SetFinished(bool f) { finishedTurn = f; }
 bool  Unit::GetMovementFinished() { return movementFinished; }
 bool  Unit::GetFinished() { return finishedTurn; }

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -20,12 +20,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -53,14 +55,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Program Files\boost\boost_1_57_0;D:\My Documents\Felled-Tactics\FelledTactics\json;D:\My Documents\Felled-Tactics\FelledTactics\Lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\boost_1_57_0;$(ProjectDir)\json;$(ProjectDir)\Lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4482;4800;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;d3d10.lib;d3dx10.lib;dxerr.lib;dxgi.lib;winmm.lib;lua5.2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\My Documents\Felled-Tactics\FelledTactics\Lua\src;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\Lua\src;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -89,6 +91,7 @@
     <None Include="texture.fx" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Augment.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CombatManager.h" />
     <ClInclude Include="CombatManagerUpdateCodes.h" />
@@ -110,11 +113,9 @@
     <ClInclude Include="LuaTile.h" />
     <ClInclude Include="LuaUnit.h" />
     <ClInclude Include="Luna.h" />
-    <ClInclude Include="Matrix.h" />
     <ClInclude Include="MenuBox.h" />
     <ClInclude Include="MenuElement.h" />
     <ClInclude Include="Position.h" />
-    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Ability.h" />
     <ClInclude Include="Staff.h" />
@@ -126,11 +127,11 @@
     <ClInclude Include="Unit.h" />
     <ClInclude Include="UnitStatusCodes.h" />
     <ClInclude Include="UnitUpdateCodes.h" />
-    <ClInclude Include="Vector.h" />
     <ClInclude Include="VisualElement.h" />
     <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Augment.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CombatManager.cpp" />
     <ClCompile Include="CombatText.cpp" />
@@ -150,10 +151,8 @@
     <ClCompile Include="LuaLevel.cpp" />
     <ClCompile Include="LuaTile.cpp" />
     <ClCompile Include="LuaUnit.cpp" />
-    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="MenuBox.cpp" />
     <ClCompile Include="MenuElement.cpp" />
-    <ClCompile Include="Quaternion.cpp" />
     <ClCompile Include="Ability.cpp" />
     <ClCompile Include="Staff.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -163,7 +162,6 @@
     <ClCompile Include="TextElement.cpp" />
     <ClCompile Include="Tile.cpp" />
     <ClCompile Include="Unit.cpp" />
-    <ClCompile Include="Vector.cpp" />
     <ClCompile Include="VisualElement.cpp" />
     <ClCompile Include="Weapon.cpp" />
   </ItemGroup>

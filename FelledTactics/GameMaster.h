@@ -33,7 +33,8 @@ public:
 
 protected:
 	void			UpdateNoInput();
-	void			UpdateMouseEvents(HWND hWnd);
+	void			UpdateMouseEventsOrtho(HWND hWnd);
+	void			UpdateMouseEventsPerspective(HWND hWnd);
 	void			UpdateKeyboardEvents();
 	void			PauseUserInput(float t);
 	void			PauseUserInputIndefinite();

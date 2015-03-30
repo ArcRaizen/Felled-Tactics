@@ -15,7 +15,7 @@ Ability::Ability(const char* name, int r) : rank(r)
 	string numbers[] = {"1", "2", "3", "4", "5", "6"};
 
 	// Open and read the json document of all the abilities
-	ifstream is("../FelledTactics/Abilities.json");
+	ifstream is(ABILITY_JSON);
 	json_spirit::mValue value;
 	json_spirit::read(is, value);
 
@@ -238,7 +238,7 @@ bool Ability::RankUp()
 	if(rank < maxRank)
 	{
 		rank++;
-		ifstream is("../FelledTactics/Abilities.json");
+		ifstream is(ABILITY_JSON);
 		json_spirit::mValue value;
 		json_spirit::read(is, value);
 		json_spirit::mObject abilityMap = value.get_obj().find(name)->second.get_obj();

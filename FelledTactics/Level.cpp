@@ -206,7 +206,7 @@ int Level::Update(float dt, HWND hWnd)
 				unitMap[selectedTile.x][selectedTile.y]->DrawBars = false;
 
 				selectedTile.x = -1;
-				currentPhase = SelectMove; // Jump to next phase
+				currentPhase = Phase::SelectMove; // Jump to next phase
 			}
 
 			break;
@@ -268,6 +268,13 @@ int Level::Update(float dt, HWND hWnd)
 					currentUnitPosition = selectedTile;
 					CreateActionMenu();
 					currentMovementPath.clear();
+
+					// Clear movement map
+					for(int i = 0; i < mapWidth; i++)
+					{
+						for(int j = 0; j < mapHeight; j++)
+							movementMap[i][j].clear();
+					}
 #else
 					currentPhase = SelectUnit;
 #endif
@@ -286,7 +293,7 @@ int Level::Update(float dt, HWND hWnd)
 						movementMap[i][j].clear();
 				}
 
-				currentPhase = ExecuteMove;	// Go to next phase
+				currentPhase = Phase::ExecuteMove;	// Go to next phase
 			}
 			break;
 //		case Phase::ExecuteMove: 
@@ -326,7 +333,7 @@ int Level::Update(float dt, HWND hWnd)
 				MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->AttackRange, TILE_MARK_TYPE_ATTACK);
 
 				PauseUserInputIndefinite();
-				currentPhase = ExecuteAttack;
+				currentPhase = Phase::ExecuteAttack;
 			}
 			break;
 /**/	case Phase::SelectAbilityTarget:
@@ -388,7 +395,7 @@ int Level::Update(float dt, HWND hWnd)
 					// Activate Skill
 					combatManager.SetCombatTimers(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityTimers());
 					combatManager.DoAbility(unitMap[currentUnitPosition.x][currentUnitPosition.y], selectedTile);
-					currentPhase = ExecuteAbility;
+					currentPhase = Phase::ExecuteAbility;
 				}
 
 			}
@@ -406,7 +413,7 @@ int Level::Update(float dt, HWND hWnd)
 						MarkTilesInRange(true, currentUnitPosition, unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityRange(), TILE_MARK_TYPE_ALLY_ABILITY_RANGE);
 
 						PauseUserInputIndefinite();
-						currentPhase = ExecuteAttack;
+						currentPhase = Phase::ExecuteAttack;
 					}
 				}
 				else
@@ -429,7 +436,7 @@ int Level::Update(float dt, HWND hWnd)
 						// Activate Skill
 						combatManager.SetCombatTimers(unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetSelectedAbilityTimers());
 						combatManager.DoAbility(unitMap[currentUnitPosition.x][currentUnitPosition.y], selectedTile);
-						currentPhase = ExecuteAbility;
+						currentPhase = Phase::ExecuteAbility;
 					}
 				}
 			}
@@ -501,7 +508,7 @@ void Level::HandleRightClick()
 				for(int j = 0; j < mapHeight; j++)
 					movementMap[i][j].clear();
 			}
-			currentPhase = SelectUnit;
+			currentPhase = Phase::SelectUnit;
 			selectedTile.x = -1;
 			return;
 /**/	case Phase::ExecuteMove:			// Do nothing
@@ -514,7 +521,7 @@ void Level::HandleRightClick()
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(SECONDARY_MENU_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
-			currentPhase = SelectPrimaryAction;
+			currentPhase = Phase::SelectPrimaryAction;
 			break;
 /**/	case Phase::SelectTarget:			// Cancel Action, return to SelectAction
 			// Unmark all enemies in range of unit
@@ -522,7 +529,7 @@ void Level::HandleRightClick()
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(ACTION_MENU_LAYER);
-			currentPhase = SelectPrimaryAction;
+			currentPhase = Phase::SelectPrimaryAction;
 			return;
 /**/	case Phase::SelectAbilityTarget:		// Cancel Secondary Action, return to SelectSecondary Action
 			// Unmark Skill Range/AoE
@@ -538,7 +545,7 @@ void Level::HandleRightClick()
 			actionMenu->EnableDraw();
 			RemoveActiveLayer(TILE_LAYER);
 			AddActiveLayer(SECONDARY_MENU_LAYER);
-			currentPhase = SelectSecondaryAction;
+			currentPhase = Phase::SelectSecondaryAction;
 			break;
 /**/	case Phase::ExecuteAttack:			// Do Nothing
 			return;
@@ -661,7 +668,7 @@ void Level::StartNewTurn()
 	selectedTile.Reset();
 	numUnitsMoved = 0;
 	turn++;
-	currentPhase = SelectUnit;
+	currentPhase = Phase::SelectUnit;
 
 	CheckWin(WIN_CONDITION_DEFEND);
 	CheckLoss(LOSE_CONDITION_TURN);
@@ -980,7 +987,7 @@ void Level::CalcShortestPathAStar(Position start, Position end, int unitMove, li
 int Level::CalcPathHeuristic(Position p, Position target, int pathNum, int unitMove)
 {
 	// This check is only relevant when the user is trying to draw a path outside a unit's movement range
-	if(currentPhase == SelectMove && map[p.x][p.y]->TileMark == Tile::Mark::Blank)
+	if(currentPhase == Phase::SelectMove && map[p.x][p.y]->TileMark == Tile::Mark::Blank)
 		return 100000;
 
 	if(p.DistanceTo(movementBeginning) > unitMove)
@@ -1214,7 +1221,7 @@ void Level::CreateActionMenu()
 	// Set active layers to ignore everything but this Menu
 	RemoveActiveLayer(TILE_LAYER);
 	AddActiveLayer(ACTION_MENU_LAYER);
-	currentPhase = SelectPrimaryAction;
+	currentPhase = Phase::SelectPrimaryAction;
 }
 
 // Player has selected for a Unit to attack
@@ -1227,7 +1234,7 @@ void Level::SelectAttack()
 	combatManager.SetAttacker(unitMap[currentUnitPosition.x][currentUnitPosition.y]);
 
 	// Go to Next Phase - Select Target for attack
-	currentPhase = SelectTarget;
+	currentPhase = Phase::SelectTarget;
 	actionMenu->DisableDraw();
 	RemoveActiveLayer(ACTION_MENU_LAYER);	// Change active layers
 	AddActiveLayer(TILE_LAYER);				//	to the tiles to allow player to select a target
@@ -1245,7 +1252,7 @@ void Level::SelectAbility()
 			unitMap[currentUnitPosition.x][currentUnitPosition.y]->GetAbilityName(i));
 	}
 
-	currentPhase = SelectSecondaryAction;
+	currentPhase = Phase::SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 
@@ -1258,7 +1265,7 @@ void Level::SelectItem()
 {
 	secondaryMenu = new MenuBox(this, L"../FelledTactics/Textures/MenuBackground.png", SECONDARY_MENU_LAYER, 100, 200, 950, 100, 1, 4);
 
-	currentPhase = SelectSecondaryAction;
+	currentPhase = Phase::SelectSecondaryAction;
 	AddVisualElement(secondaryMenu);
 //	SortVisualElements();
 
@@ -1285,9 +1292,9 @@ void Level::ActivateEndTurn()
 
 	// Go to next phase
 	if(numUnitsMoved == numAllies)
-		currentPhase = EnemyTurn;
+		currentPhase = Phase::EnemyTurn;
 	else
-		currentPhase = SelectUnit;
+		currentPhase = Phase::SelectUnit;
 }
 
 void Level::CreateCombatUI()
@@ -1335,7 +1342,7 @@ void Level::ActivateAbility(int selectedAbility)
 	secondaryMenu->DisableDraw();
 
 	// Move to proper gameplay phase
-	currentPhase = SelectAbilityTarget;
+	currentPhase = Phase::SelectAbilityTarget;
 }
 
 void Level::CreateCombatText(Position target, Position source, const char* t, int damageType)

@@ -234,5 +234,5 @@ void Tile::SetMark(Tile::Mark m)
 	}
 }
 void Tile::SaveMark() { prevMark = mark; }
-void Tile::ResetMark() { SetMark(prevMark); mark = Mark::Blank; }
+void Tile::ResetMark() { SetMark(prevMark); prevMark = Mark::Blank; }
 #pragma endregion

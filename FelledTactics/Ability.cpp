@@ -28,35 +28,35 @@ Ability::Ability(const char* name, int r) : rank(r)
 	// 1) Ability Type
 	temp = ability["type"].get_str();
 	if(!temp.compare("Action"))
-		type = Action;
+		type = Type::Action;
 	else if(!temp.compare("Battle"))
-		type = Battle;
+		type = Type::Battle;
 	else	// Passive
-		type = Passive;
+		type = Type::Passive;
 
 	// 2) Effect Type
 	temp = ability["effect_type"].get_str();
 	if(!temp.compare("Physical"))
-		effect = Physical;
+		effect = EffectType::Physical;
 	else if(!temp.compare("Magical"))
-		effect = Magical;
+		effect = EffectType::Magical;
 	else if(!temp.compare("Heal"))
-		effect = Heal;
+		effect = EffectType::Heal;
 	else if(!temp.compare("Status"))
-		effect = Status;
+		effect = EffectType::Status;
 	else	// None
-		effect = None;
+		effect = EffectType::None;
 
 	// 3) Cast Type
 	temp = ability["cast_type"].get_str();
 	if(!temp.compare("SelfCast"))
-		castType = SelfCast;
+		castType = CastType::SelfCast;
 	else if(!temp.compare("Ally"))
-		castType = Ally;
+		castType = CastType::Ally;
 	else if(!temp.compare("Enemy"))
-		castType = Enemy;
+		castType = CastType::Enemy;
 	else	// None
-		castType = Free;
+		castType = CastType::Free;
 
 	// 4) Max Rank
 	maxRank = ability["max_rank"].get_int();
@@ -98,35 +98,35 @@ Ability::Ability(const char* name, json_spirit::mObject abilityMap, int r) : ran
 	// 1) Ability Type
 	temp = abilityMap["type"].get_str();
 	if(temp == "Action")
-		type = Action;
+		type = Type::Action;
 	else if(temp == "Battle")
-		type = Battle;
+		type = Type::Battle;
 	else	// Passive
-		type = Passive;
+		type = Type::Passive;
 
 	// 2) Effect Type
 	temp = abilityMap["effect_type"].get_str();
 	if(temp == "Physical")
-		effect = Physical;
+		effect = EffectType::Physical;
 	else if(temp == "Magical")
-		effect = Magical;
+		effect = EffectType::Magical;
 	else if(temp == "Heal")
-		effect = Heal;
+		effect = EffectType::Heal;
 	else if(temp == "Status")
-		effect = Status;
+		effect = EffectType::Status;
 	else	// None
-		effect = None;
+		effect = EffectType::None;
 
 	// 3) Cast Type
 	temp = abilityMap["cast_type"].get_str();
 	if(temp == "SelfCast")
-		castType = SelfCast;
+		castType = CastType::SelfCast;
 	else if(temp == "Ally")
-		castType = Ally;
+		castType = CastType::Ally;
 	else if(temp == "Enemy")
-		castType = Enemy;
+		castType = CastType::Enemy;
 	else	// None
-		castType = Free;
+		castType = CastType::Free;
 
 	// 4) Max Rank
 	maxRank = abilityMap["max_rank"].get_int();
@@ -176,8 +176,8 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	if(areaOfEffect.size() == 1)
 	{
 		stringstream ss(stringstream::in | stringstream::out);
-		lua_createtable(L, areaOfEffect.size(), 0);		// Create AreaOfEffect
-		for(int i = 0; i < areaOfEffect.size(); i++)
+		lua_createtable(L, areaOfEffect[Position(0,0)].size(), 0);		// Create AreaOfEffect
+		for(int i = 0; i < areaOfEffect[Position(0,0)].size(); i++)
 		{
 			ss << i;
 			lua_createtable(L, 2, 0);					// Create next entry in AoE
@@ -201,7 +201,7 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 			lua_createtable(L, 2, 0);					// Create next entry in AoE
 			lua_pushinteger(L, target.x + areaOfEffect[index][i].x);
 			lua_setfield(L, -2, "x");					// Set name and x-coordinate in entry
-			lua_pushinteger(L, target.x + areaOfEffect[index][i].y);
+			lua_pushinteger(L, target.y + areaOfEffect[index][i].y);
 			lua_setfield(L, -2, "y");					// Set name and y-coordinate in entry
 			lua_setfield(L, -2, ss.str().c_str());		// Name entry (string of entries index in AoE)
 		}

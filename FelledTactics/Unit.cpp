@@ -178,39 +178,68 @@ void Unit::CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int ra
 // Return total damage done to the unit (value is negative if unit died)
 int Unit::TakeUnscaledDamage(int damage)
 {
-	int curHealth = health;		// Save current health if damage taken kills unit
-	health -= damage;			// Take the damage
-	updateHPAPBuffers = true;
+	if(
+#if defined GOD_MODE_ALLY && defined GOD_MODE_ENEMY
+		false)
+#elif defined GOD_MODE_ALLY
+		!CheckStatus(UNIT_STATUS_ALLY))
+#elif defined GOD_MODE_ENEMY
+		!CheckStatus(UNIT_STATUS_ENEMY))
+#else
+		true)
+#endif
+	{
+		int curHealth = health;		// Save current health if damage taken kills unit
+		health -= damage;		// Take the damage
+		updateHPAPBuffers = true;
 
-	// Unit has been killed
-	if(health <= 0)				
-		return -1 * curHealth;		// return actual damage taken
+		// Unit has been killed
+		if(health <= 0)				
+			return -1 * curHealth;		// return actual damage taken
 
-	// Unit survived
-	return damage;				// return damage taken
+		// Unit survived
+		return damage;				// return damage taken
+	}
+
+	return 0;
 }
 
 // Unit takes damage that is countered by it's resistances
 // Return total damage done to the unit (value is negative if unit died)
 int Unit::TakeDamage(int physDamage, int magDamage)
 {
-	int curHealth = health;				// Save current health if damage taken kills unit
-	int phys = physDamage - defense;	// Calculate actual damage done
-	int mag  = magDamage - resistance;	//		against defense/resistance
+	if(
+#if defined GOD_MODE_ALLY && defined GOD_MODE_ENEMY
+		false)
+#elif defined GOD_MODE_ALLY
+		!CheckStatus(UNIT_STATUS_ALLY))
+#elif defined GOD_MODE_ENEMY
+		!CheckStatus(UNIT_STATUS_ENEMY))
+#else
+		true)
+#endif
+	{
 
-	// Don't take negative damage if defenses are higher than damage given
-	if(phys < 0) phys = 0;
-	if(mag < 0) mag = 0;
+		int curHealth = health;				// Save current health if damage taken kills unit
+		int phys = physDamage - defense;	// Calculate actual damage done
+		int mag  = magDamage - resistance;	//		against defense/resistance
 
-	health -= phys + mag;				// Take the damage
-	updateHPAPBuffers = true;
+		// Don't take negative damage if defenses are higher than damage given
+		if(phys < 0) phys = 0;
+		if(mag < 0) mag = 0;
 
-	// Unit has been killed
-	if(health <= 0)
-		return -curHealth;			// return actual damage taken
+		health -= phys + mag;				// Take the damage
+		updateHPAPBuffers = true;
 
-	// Unit survived
-	return phys + mag;
+		// Unit has been killed
+		if(health <= 0)
+			return -curHealth;			// return actual damage taken
+
+		// Unit survived
+		return phys + mag;
+	}
+
+	return 0;
 }
 
 // Unit regains HP and returns the amount gained

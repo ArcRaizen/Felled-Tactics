@@ -25,6 +25,7 @@ const Luna<LuaUnit>::FunctionType LuaUnit::methods[] = {
 	method(LuaUnit, Heal),
 	method(LuaUnit, CalculateBaseCombatDamage),
 	method(LuaUnit, GetPosition),
+	method(LuaUnit, GetUnitID),
 	method(LuaUnit, SetCombatCalcAbilityScript),
 	method(LuaUnit, SetCombatExecutionAbilityScript),
 	method(LuaUnit, ForceMovement),
@@ -65,6 +66,12 @@ int LuaUnit::GetPosition(lua_State* L)
 	lua_pushnumber(L, realUnit->UnitPosition.x);
 	lua_pushnumber(L, realUnit->UnitPosition.y);
 	return 2;
+}
+
+int LuaUnit::GetUnitID(lua_State* L)
+{
+	lua_pushinteger(L, realUnit->GetUnitID());
+	return 1;
 }
 #pragma endregion
 

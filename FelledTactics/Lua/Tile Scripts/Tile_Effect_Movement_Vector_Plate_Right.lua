@@ -6,14 +6,15 @@
 
 local level = LuaLevel(Level)
 local unit = LuaUnit(Unit)
+local unitID = unit:GetUnitID()
 
--- Push the unit up to 3 tiles to theleft (stop at occupied tiles)
-local isFirstOccupied = level:IsOccupied(Position["x"] + 1, Position["y"])
-local isSecondOccuPied = level:IsOccupied(Position["x"] + 2, Position["y"])
-local isThirdOccupied = level:IsOccupied(Position["x"] + 3, Position["y"])
+-- Push the unit up to 3 tiles to the right (stop at occupied tiles)
+local isFirstOccupied = level:IsOccupied(Position["x"] + 1, Position["y"]) and (unitID ~= level:GetOccupantID(Position["x"] + 1, Position["y"]))
+local isSecondOccuPied = level:IsOccupied(Position["x"] + 2, Position["y"]) and (unitID ~= level:GetOccupantID(Position["x"] + 2, Position["y"]))
+local isThirdOccupied = level:IsOccupied(Position["x"] + 3, Position["y"]) and (unitID ~= level:GetOccupantID(Position["x"] + 3, Position["y"]))
 
 if isFirstOccupied == false then
-	if isSecondOccuPied== false then
+	if isSecondOccuPied == false then
 		if isThirdOccupied == false then
 			unit:ForceMovement(Position["x"] + 3, Position["y"], 0.0625)
 		else

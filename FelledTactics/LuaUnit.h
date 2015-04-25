@@ -26,6 +26,7 @@ public:
 	int GetResistance(lua_State* L);		int SetResistance(lua_State* L);
 	int GetMovement(lua_State* L);			int SetMovement(lua_State* L);
 	int GetPosition(lua_State* L);
+	int GetUnitID(lua_State* L);
 
 	// Combat
 	int CalculateBaseCombatDamage(lua_State* L);

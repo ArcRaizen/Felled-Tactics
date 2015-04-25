@@ -130,6 +130,7 @@ public:
 	Tile* GetTile(int x, int y);
 	Unit* GetUnit(int x, int y); Unit* GetEnemyUnit(int x, int y); Unit* GetAllyUnit(int x, int y);
 	bool  IsOccupied(int x, int y);
+	int   GetOccupantID(int x, int y);
 #pragma endregion
 
 private:

@@ -30,14 +30,17 @@ using namespace std;
 //#define PERSPECTIVE_PROJECTION
 //#define LOCK_FRAMERATE
 #define DRAW_FRAMERATE
-#define ALLOW_ZERO_TILE_MOVEMENT
 
 #ifdef DEBUG
-#include <chrono>
-using namespace std::chrono;
-//high_resolution_clock::time_point t1 = high_resolution_clock::now();
-//high_resolution_clock::time_point t2 = high_resolution_clock::now();
-//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
+	// Time keeping and speed test tools
+	#include <chrono>
+	using namespace std::chrono;
+	//high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	//high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
+
+	#define GOD_MODE_ALLY
+	//#define GOD_MODE_ENEMY
 #endif
 #pragma region
 

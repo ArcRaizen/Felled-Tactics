@@ -22,6 +22,7 @@ public:
 	int GetEnemyUnit(lua_State* L);
 	int GetAllyUnit(lua_State* L);
 	int	IsOccupied(lua_State* L);
+	int GetOccupantID(lua_State* L);
 
 private:
 	Level* realLevel;	// Pointer to real Level wrapped by this class

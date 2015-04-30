@@ -11,9 +11,12 @@
 
 class TextElement : public VisualElement
 {
-public:
+protected:
 	TextElement(int layer, int width, int height, Position p, const char* t, D3DXCOLOR color);
-	~TextElement(void);
+
+public:
+	static SmartPointer<TextElement> Create(int layer, int width, int height, Position p, const char* t, D3DXCOLOR color);
+	virtual ~TextElement(void);
 
 	int		Update(float dt);
 	bool	Draw();
@@ -23,4 +26,10 @@ protected:
 	wchar_t			lpcwText[20];
 	D3DXCOLOR		fontColor;
 };
+
+inline SmartPointer<TextElement> TextElement::Create(int layer, int width, int height, Position p, const char* t, D3DXCOLOR color)
+{
+	return new TextElement(layer, width, height, p, t, color);
+}
+typedef SmartPointer<TextElement> TextElementPtr;
 #endif

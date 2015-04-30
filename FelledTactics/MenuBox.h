@@ -11,12 +11,14 @@
 
 #include <vector>
 
-//class Level;
+//class Level;	// Forward declared in included file "MenuElement.h"
 class MenuBox : public VisualElement
 {
+protected:
+	MenuBox(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
+
 public:
-	MenuBox(Level* l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
-	MenuBox(void);
+	static SmartPointer<MenuBox> Create(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
 	virtual ~MenuBox(void);
 
 	void	CreateElement(void (Level::*func)(), WCHAR* filename, const char* t="");
@@ -39,9 +41,15 @@ private:
 	float	offsetX, offsetY;			// offset from border for entry position
 	float	entryWidth, entryHeight;	// dimensions of each entry based on row and col
 
-	vector<MenuElement*>	elements;
-	D3DXVECTOR3				mousePosition;
-	Level* level;
+	vector<SmartPointer<MenuElement>>	elements;
+	D3DXVECTOR3							mousePosition;
+	SmartPointer<Level>					level;
 };
+
+inline SmartPointer<MenuBox> MenuBox::Create(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh)
+{
+	return new MenuBox(l, filename, layer, width, height, posX, posY, ew, eh);
+}
+typedef SmartPointer<MenuBox> MenuBoxPtr;
 #endif
 

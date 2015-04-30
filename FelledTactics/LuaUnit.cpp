@@ -38,10 +38,7 @@ LuaUnit::LuaUnit(lua_State* L)
 	realUnit = (Unit*)lua_touserdata(L, 1);
 }
 
-LuaUnit::~LuaUnit(void)
-{
-	realUnit = NULL;
-}
+LuaUnit::~LuaUnit(void) {}
 
 #pragma region Stats
 int LuaUnit::GetHealth(lua_State* L)	{ lua_pushnumber(L, realUnit->Health); return 1; }

@@ -33,9 +33,13 @@
 
 class Unit : public VisualElement, public LevelEntity
 {
-public:
+protected:
 	Unit(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
 	Unit(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
+
+public:
+	static SmartPointer<Unit> Create(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally=true);
+	static SmartPointer<Unit> Create(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap);
 	virtual ~Unit(void);
 
 	static int		unitCounter;
@@ -124,6 +128,8 @@ private:
 	void			InitProficiency();
 
 protected:
+	template <typename T> friend class SmartPointer;
+
 	Position	position;
 
 #pragma region Stats and Stuff
@@ -156,22 +162,21 @@ protected:
 
 	// Proficiency Values
 	float	bladedgeProficiency;
-	float	axereaverProficiency;
-	float	pheylanceProficiency;
-	float	rangerProficiency;
+	float	barbarianProficiency;
+	float	vanguardProficiency;
+	float	scoutProficiency;
 	float	reaperProficiency;
-	float	riderProficiency;
-	float	bruiserProficiency;
+	float	mercenaryProficiency;
+	float	sentryProficiency;
+	float	paladinProficiency;
 	float	elementalistProficiency;
-	float	kinectorProficieny;
+	float	kinectorProficiency;
 	float	arcaneweaverProficiency;
 	float	blooddancerProficiency;
-	float	shamanProficiency;
-	float	_proficiency;
-	float	healerProficiency;
-	float	inflicterProficiency;
-	float	enchanterProficiency;
-	float	enforcerProficiency;
+	float	warlockProficiency;
+	float	magicknightProficiency;
+	float	divineProficiency;
+	float	augmentorProficiency;
 
 	// Ability Point regeneration rate (varies by class)
 	float	apRegenRate;
@@ -198,8 +203,8 @@ protected:
 	int					numActionAbilities;
 	int					numBattleAbilities;
 	int					selectedAbility;
-	vector<Ability*>	passiveAbilityList;
-	vector<Ability*>	activeAbilityList;
+	vector<AbilityPtr>	passiveAbilityList;
+	vector<AbilityPtr>	activeAbilityList;
 	std::string			combatCalculationAbilityScript;
 	std::string			combatExecutionAbilityScript;
 
@@ -216,4 +221,14 @@ protected:
 
 	static D3DXVECTOR4 highlightFinishedTurn;
 };
+
+inline SmartPointer<Unit> Unit::Create(WCHAR* filename, int layer, int width, int height, int posX, int posY, bool ally)
+{
+	return new Unit(filename, layer,width, height, posX,posY, ally);
+}
+inline SmartPointer<Unit> Unit::Create(int layer, int width, int height, int posX, int posY, const char* name, json_spirit::mObject unitMap, json_spirit::mObject abilityMap)
+{
+	return new Unit(layer, width, height, posX, posY, name, unitMap, abilityMap);
+}
+typedef SmartPointer<Unit> UnitPtr;
 #endif

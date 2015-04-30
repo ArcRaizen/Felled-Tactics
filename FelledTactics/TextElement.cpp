@@ -9,8 +9,9 @@ TextElement::TextElement(int layer, int width, int height, Position p, const cha
 }
 
 
-TextElement::~TextElement(void)
+TextElement::~TextElement(void) 
 {
+	delete[] lpcwText;
 }
 
 int TextElement::Update(float dt)

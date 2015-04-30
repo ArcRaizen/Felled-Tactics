@@ -25,6 +25,6 @@ public:
 	int GetOccupantID(lua_State* L);
 
 private:
-	Level* realLevel;	// Pointer to real Level wrapped by this class
+	LevelPtr realLevel;	// Pointer to real Level wrapped by this class
 };
 #endif

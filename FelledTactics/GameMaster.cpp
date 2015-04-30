@@ -1,22 +1,13 @@
 #include "stdafx.h"
 #include "GameMaster.h"
 
-GameMaster::GameMaster(lua_State* luaState) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false) 
+GameMaster::GameMaster(lua_State* luaState) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false), pointerCount(0)
 {
 	L = luaState;
 }
-GameMaster::GameMaster(void){}
+GameMaster::GameMaster() : pointerCount(0) {}
 
-GameMaster::~GameMaster(void)
-{
-	for(int i = 0; i < VisualElements.size(); i++)
-	{
-		delete VisualElements[i];
-		VisualElements[i] = NULL;
-	}
-
-	VisualElements.clear();
-}
+GameMaster::~GameMaster() {}
 
 int GameMaster::Update(float dt, HWND hWnd)
 {
@@ -72,7 +63,6 @@ void GameMaster::UpdateMouseEventsOrtho(HWND hWnd)
 		// Remove VisualElements from list once they've been deleted (some Mouse Up/Down events cause a deletion immediately)
 		if(VisualElements[i]->deleted)
 		{
-			VisualElements[i] = NULL;
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;
 		}
@@ -130,7 +120,6 @@ void GameMaster::UpdateMouseEventsPerspective(HWND hWnd)
 		// Remove VisualElements from list once they've been deleted (some Mouse Up/Down events cause a deletion immediately)
 		if(VisualElements[i]->deleted)
 		{
-			VisualElements[i] = NULL;
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;
 		}
@@ -170,7 +159,7 @@ void GameMaster::SortVisualElements()
 	int j, layers = 0;
 	for(int i = 1; i < VisualElements.size(); i++)
 	{
-		VisualElement* temp = VisualElements[i];
+		VisualElementPtr temp = VisualElements[i];
 		j = i;
 		layers |= (1 << temp->Layer);
 
@@ -194,7 +183,7 @@ void GameMaster::SortVisualElements()
 }
 
 // A new VisualElement has been created, add it to the master list
-void GameMaster::AddVisualElement(VisualElement* const &ve)
+void GameMaster::AddVisualElement(VisualElementPtr const &ve)
 {
 	VisualElements.push_back(ve);
 	sortingRequired = true;
@@ -207,7 +196,7 @@ void GameMaster::SortVisualElementsInLayer(int layer)
 	int j;
 	for(int i = 1; i < VisualElements.size(); i++)
 	{
-		VisualElement* temp = VisualElements[i];
+		VisualElementPtr temp = VisualElements[i];
 		j = i;
 
 		if(temp->Layer == layer)
@@ -243,7 +232,6 @@ void GameMaster::Draw()
 		// Remove VisualElements from list once they've been deleted
 		if(VisualElements[i]->deleted)
 		{
-			VisualElements[i] = NULL;
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;
 		}

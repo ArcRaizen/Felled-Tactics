@@ -1,7 +1,8 @@
 #include "StdAfx.h"
 #include "MenuBox.h"
+#include "Level.h"
 
-MenuBox::MenuBox(Level* l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh) :
+MenuBox::MenuBox(LevelPtr l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh) :
 	VisualElement(filename, layer, width, height, posX, posY), numColumns(ew), numRows(eh)
 {
 	level = l;
@@ -11,29 +12,12 @@ MenuBox::MenuBox(Level* l, WCHAR* filename, int layer, int width, int height, in
 	entryHeight = (height - (offsetY * 2)) / numRows;
 }
 
-
-MenuBox::MenuBox(void)
-{
-	mousePosition.x = mousePosition.y = -1;
-}
-
-
-MenuBox::~MenuBox(void)
-{
-	level = NULL;
-	for(int i = 0; i < elements.size(); i++)
-	{
-		delete elements[i];
-		elements[i] = NULL;
-	}
-
-	elements.clear();
-}
+MenuBox::~MenuBox(void) {}
 
 
 void MenuBox::CreateElement(void (Level::*func)(), WCHAR* filename, const char* t/*=""*/)
 {
-	elements.push_back(new MenuElement(filename, layer,											// texture path, VisualElement layer
+	elements.push_back(MenuElement::Create(filename, layer,											// texture path, VisualElement layer
 		entryWidth, entryHeight,																// width, height
 		leftCorner.x + offsetX + (elements.size() % numColumns * entryWidth),					// posX
 		leftCorner.y + Height() - offsetY - (((elements.size() / numColumns) + 1) * entryHeight),	// posY (+1 because posY refers to bottom corner not top)
@@ -42,7 +26,7 @@ void MenuBox::CreateElement(void (Level::*func)(), WCHAR* filename, const char* 
 
 void MenuBox::CreateElement(void (Level::*func)(int), int val, WCHAR* filename, const char* t/*=""*/)
 {
-	elements.push_back(new MenuElement(filename, layer,											// texture path, VisualElement layer
+	elements.push_back(MenuElement::Create(filename, layer,											// texture path, VisualElement layer
 		entryWidth, entryHeight,																// width, height
 		leftCorner.x + offsetX + (elements.size() % numColumns * entryWidth),					// posX
 		leftCorner.y + Height() - offsetY - (((elements.size() / numColumns) + 1) * entryHeight), // posY (+1 because posY refers to bottom corner not top)

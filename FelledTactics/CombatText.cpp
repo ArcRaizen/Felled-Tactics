@@ -2,8 +2,8 @@
 #include "CombatText.h"
 
 float CombatText::tileSize = 0.0f;
-const float	CombatText::ALPHA_CHANGE = 0.5f;
-const float	CombatText::LIFE_TIME = 1.0f;
+const float	CombatText::ALPHA_CHANGE =1.0f;
+const float	CombatText::LIFE_TIME = 2.0f;
 const D3DXCOLOR CombatText::TextColors[5] = {
 	D3DXCOLOR(1,0,0,1),	// Fire
 	D3DXCOLOR(0,1,0,1), // Lightning
@@ -13,13 +13,12 @@ const D3DXCOLOR CombatText::TextColors[5] = {
 };
 
 CombatText::CombatText(int layer, Position p, D3DXVECTOR3 move, const char* t, int damageType) : 
-	TextElement(layer, tileSize, tileSize, p, t, TextColors[damageType]), textMove(move)
+	TextElement(layer, tileSize, tileSize, p, t, TextColors[damageType]), textMove(move), lifeCounter(0)
 {
 
 }
 
-CombatText::~CombatText(void)
-{}
+CombatText::~CombatText(void) {}
 
 int CombatText::Update(float dt)
 {

@@ -10,7 +10,7 @@ D3DXVECTOR4 Tile::highlightEnemyMove = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAttack = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 #pragma endregion
 
-Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, Position gp) :
+Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, SmartPointer<Level> l, Position gp) :
 	VisualElement(filename, layer, width, height, posX, posY), level(l), gridPosition(gp), effectTimer(0), 
 	status(Status::Empty), mark(Mark::Blank), prevMark(Mark::Blank), effect(Effect::None), effectEnabled(false)
 {
@@ -20,10 +20,7 @@ Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY
 }
 
 
-Tile::~Tile(void)
-{
-	level = NULL;
-}
+Tile::~Tile(void) {}
 
 // Update Tile for new turn: update/clear any tile effects and change texture appropriately
 void Tile::NewTurn(lua_State* L)
@@ -63,7 +60,7 @@ void Tile::ActivateMovementEffect(lua_State* L)
 	lua_setglobal(L, "Position");
 
 	// Run the script
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 	int test = luaL_dofile(L, effectMovementScript.c_str());
 	if(test == 1)
 	{
@@ -79,7 +76,7 @@ void Tile::ActivateMovementEffect(lua_State* L)
 
 void Tile::ActivateNewTurnEffect(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)level);
+	lua_pushlightuserdata(L, (void*)level.GetPointer());
 	lua_setglobal(L, "Level");
 
 	// Create table to tell script where the tile is
@@ -91,7 +88,7 @@ void Tile::ActivateNewTurnEffect(lua_State* L)
 	lua_setglobal(L, "Position");
 
 	// Run the script
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 	int test = luaL_dofile(L, effectNewTurnScript.c_str());
 	if(test)
 	{

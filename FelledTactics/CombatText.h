@@ -15,8 +15,11 @@
 
 class CombatText : public TextElement
 {
-public:
+protected:
 	CombatText(int layer, Position p, D3DXVECTOR3 move, const char* t, int damageType);
+
+public:
+	static SmartPointer<CombatText> Create(int layer, Position p, D3DXVECTOR3 move, const char* t, int damageType);
 	~CombatText(void);
 
 	static void			SetTileSize(float tSize);
@@ -34,5 +37,11 @@ private:
 	static const float		LIFE_TIME;
 	static const D3DXCOLOR	TextColors[5];
 };
+
+inline SmartPointer<CombatText> CombatText::Create(int layer, Position p, D3DXVECTOR3 move, const char* t, int damageType)
+{
+	return new CombatText(layer, p, move, t, damageType);
+}
+typedef SmartPointer<CombatText> CombatTextPt;
 #endif
 

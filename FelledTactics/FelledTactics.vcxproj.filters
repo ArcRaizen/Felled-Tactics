@@ -171,6 +171,9 @@
     <ClInclude Include="Augment.h">
       <Filter>Abilities</Filter>
     </ClInclude>
+    <ClInclude Include="SmartPointer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

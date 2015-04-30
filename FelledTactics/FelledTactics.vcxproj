@@ -57,6 +57,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)\boost_1_57_0;$(ProjectDir)\json;$(ProjectDir)\Lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4482;4800;</DisableSpecificWarnings>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -118,6 +119,7 @@
     <ClInclude Include="Position.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Ability.h" />
+    <ClInclude Include="SmartPointer.h" />
     <ClInclude Include="Staff.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

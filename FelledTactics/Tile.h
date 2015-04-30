@@ -15,8 +15,11 @@
 class Level;	// forward declaration
 class Tile : public VisualElement, public LevelEntity
 {
+protected:
+	Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, SmartPointer<Level> l, Position gp);
+
 public:
-	Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, Position gp);
+	static SmartPointer<Tile> Create(WCHAR* filename, int layer, int width, int height, int posX, int posY, SmartPointer<Level> l, Position gp);
 	~Tile(void);
 
 	enum class	Status  { Empty, AllyUnit, EnemyUnit, AllyFelled };						// What is on the tile
@@ -49,12 +52,15 @@ public:
 	void	SetTileEffect(int e, int effectLength);
 	bool	HasEffect();
 
+protected:
+	template <typename T> friend class SmartPointer;
+
 private:
-	Position	gridPosition;	// Position of the tile in the levels Tile grid
-	Status		status;			// Current occupation status of the tile
-	Mark		mark;			// Current mark drawn on the tile
-	Mark		prevMark;		// Used for simple resetting when marking/unmarking tiles
-	Level*		level;			// Pointer to the level in which this Tile resides
+	Position				gridPosition;	// Position of the tile in the levels Tile grid
+	Status					status;			// Current occupation status of the tile
+	Mark					mark;			// Current mark drawn on the tile
+	Mark					prevMark;		// Used for simple resetting when marking/unmarking tiles
+	SmartPointer<Level>		level;			// Pointer to the level in which this Tile resides
 
 	Effect		effect;					// Current effect on the tile
 	int			effectTimer;			// Timer for how many turns the tile's current Effect lasts
@@ -72,5 +78,11 @@ private:
 	static D3DXVECTOR4 highlightEnemyMove;
 	static D3DXVECTOR4 highlightAttack;
 };
+
+inline SmartPointer<Tile> Tile::Create(WCHAR* filename, int layer, int width, int height, int posX, int posY, SmartPointer<Level> l, Position gp)
+{
+	return new Tile(filename, layer, width, height, posX, posY, l, gp);
+}
+typedef SmartPointer<Tile> TilePtr;
 #endif
 

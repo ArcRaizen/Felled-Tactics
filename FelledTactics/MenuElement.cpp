@@ -1,8 +1,8 @@
 #include "StdAfx.h"
 #include "MenuElement.h"
+#include "Level.h"
 
-
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, void (Level::*func)(), const char* t/*=""*/) : 
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtr l, void (Level::*func)(), const char* t/*=""*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	level = l;
@@ -16,7 +16,7 @@ MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int 
 	InitializeBuffer();
 }
 
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, Level* l, void (Level::*func)(int), int val, const char* t/*=""*/) : 
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtr l, void (Level::*func)(int), int val, const char* t/*=""*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	level = l;
@@ -30,16 +30,15 @@ MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int 
 	InitializeBuffer();
 }
 
-MenuElement::MenuElement(void)
-{
-	level = NULL;
-	vertexBuffer->Release();
-	vertexBuffer = 0;
-}
-
 
 MenuElement::~MenuElement(void)
 {
+	delete[] lpcwText;
+	if(vertexBuffer)
+	{
+		vertexBuffer->Release();
+		vertexBuffer = 0;
+	}
 }
 
 void MenuElement::MouseDown(){ mouseDown = true; }

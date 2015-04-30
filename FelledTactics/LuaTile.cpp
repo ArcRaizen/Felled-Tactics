@@ -21,15 +21,10 @@ LuaTile::LuaTile(lua_State* L)
 }
 
 
-LuaTile::~LuaTile(void)
-{
-	realTile = NULL;
-}
+LuaTile::~LuaTile(void) {}
 
 int LuaTile::SetEffect(lua_State* L)
 {
-	int a = lua_tointeger(L, 2);
-	int b = lua_tointeger(L, 3);
-	realTile->SetTileEffect(a, b);
+	realTile->SetTileEffect(lua_tointeger(L, 2), lua_tointeger(L, 3));
 	return 0;
 }

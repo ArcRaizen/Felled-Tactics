@@ -25,14 +25,14 @@ public:
 
 	void	CalculateCombat(lua_State* L);
 	void	DoCombat();
-	void	DoAbility(Unit* u, Position p);
+	void	DoAbility(SmartPointer<Unit> u, Position p);
 	void	Reset(bool onlyDefender = false);
 	void	ResetDefender();
 	void	SetCombatParametersAttacker(int attPhys, int attMag, int attHit, int attAvoid, int attNumHits);
 	void	SetCombatParametersDefender(int defPhys, int defMag, int defHit, int defAvoid, int defNumHits);
 	void	SetCombatTimers(float pre, float mid, float post, float multi);
 	void	SetCombatTimers(const float timers[4]);
-	void	SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int));
+	void	SaveLevelPointer(SmartPointer<Level> l);
 
 	void	DefenderDied();
 	void	AttackerDied();
@@ -42,8 +42,8 @@ public:
 	Position UpdateAbility(float dt, lua_State* L);
 
 #pragma region Properties
-	__declspec(property(get=GetAttacker, put=SetAttacker)) Unit* Attacker;	Unit* GetAttacker();	void SetAttacker(Unit* a);
-	__declspec(property(get=GetDefender, put=SetDefender)) Unit* Defender;	Unit* GetDefender();	void SetDefender(Unit* d);
+	__declspec(property(get=GetAttacker, put=SetAttacker)) SmartPointer<Unit> Attacker;	SmartPointer<Unit> GetAttacker();	void SetAttacker(SmartPointer<Unit> a);
+	__declspec(property(get=GetDefender, put=SetDefender)) SmartPointer<Unit> Defender;	SmartPointer<Unit> GetDefender();	void SetDefender(SmartPointer<Unit> d);
 	__declspec(property(get=GetDamageA)) int DamageA;		int		GetDamageA();
 	__declspec(property(get=GetDaamgeD)) int DamageD;		int		GetDamageD();
 	__declspec(property(get=GetAccuracyA)) float AccuracyA;	float	GetAccuracyA();
@@ -51,14 +51,13 @@ public:
 #pragma endregion
 
 private:
-	Unit*	attacker;		// attacking unit
-	Unit*	defender;		// defending unit
-	bool	doCombat;		// is combat occuring right now? (do update function?)
+	SmartPointer<Unit>	attacker;				// attacking unit
+	SmartPointer<Unit>	defender;				// defending unit
+	bool				doCombat;				// is combat occuring right now? (do update function?)
 
 	// Combat Text displays
-	Level*	level;
-	char	battleText[10];				// buffer to hold text form of damage numbers during combat
-	void	(Level::*CreateCombatText)(Position, Position, const char*, int);
+	SmartPointer<Level>	level;
+	char				battleText[10];			// buffer to hold text form of damage numbers during combat
 
 	// Combat timer values
 	static const float  COMBAT_TEXT_LIFE;		// how long each combat text entry lasts / is displayed

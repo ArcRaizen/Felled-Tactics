@@ -20,9 +20,13 @@
 
 class Ability
 {
-public:
+protected:
 	Ability(const char* name, int rank);
 	Ability(const char* name, json_spirit::mObject abilityMap, int rank);
+
+public:
+	static SmartPointer<Ability> Create(const char* name, int rank);
+	static SmartPointer<Ability> Create(const char* name, json_spirit::mObject abilityMap, int rank);
 	~Ability(void);
 
 	enum class	Type {Action, Battle, Passive};						// Skills activated in place of combat, skills that boost regular combat, or skills that provide a constant passive bonus
@@ -47,6 +51,9 @@ public:
 	vector<Position> GetDynamicAoERange();
 
 private:
+	template <typename T> friend class SmartPointer;
+	unsigned int		pointerCount;	// Running count of copies of a pointer of this class. Used in conjunction with SmartPointer
+
 	char				name[15];
 	int					rank, maxRank;
 	Type				type;
@@ -63,5 +70,9 @@ private:
 													// An ability with a static AoE that doesn't change depending on cast location is at index [Position(0,0)]
 													// Each AoE is a list(std::vector) of Positions relative to the casting location of tiles the ability will affect
 };
+
+inline SmartPointer<Ability> Ability::Create(const char* name, int rank) { return new Ability(name, rank); }
+inline SmartPointer<Ability> Ability::Create(const char* name, json_spirit::mObject abilityMap, int rank) { return new Ability(name, abilityMap, rank); }
+typedef SmartPointer<Ability> AbilityPtr;
 #endif
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

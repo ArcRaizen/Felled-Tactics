@@ -23,10 +23,14 @@
 
 class GameMaster
 {
-public:
+protected:
 	GameMaster(lua_State* luaState);
 	GameMaster(void);
-	~GameMaster(void);
+
+public:
+	static SmartPointer<GameMaster> Create(lua_State* luaState);
+	static SmartPointer<GameMaster> Create();
+	virtual ~GameMaster();
 
 	virtual int		Update(float dt, HWND hWnd);
 	virtual void	Draw();
@@ -39,7 +43,7 @@ protected:
 	void			PauseUserInput(float t);
 	void			PauseUserInputIndefinite();
 	void			RestoreUserInput();
-	void			AddVisualElement(VisualElement* const &ve);
+	void			AddVisualElement(VisualElementPtr const &ve);
 	void			SortVisualElements();
 	void			SortVisualElementsInLayer(int layer);
 	void			AddActiveLayer(int l);
@@ -48,12 +52,19 @@ protected:
 	float		nextActionTime;		// track when the user is allowed to perform an action
 
 private:
-	vector<VisualElement*>	VisualElements;		// List of all VisualElements currently in the game
-	int						activeLayers;		// Only VisualElements on the ActiveLayers can be interacted with
-	bool					sortingRequired;	// Has a VisualElement been added? A sort is needed afterwards
-	bool					deletionRequired;	// Has a VisualElement been marked for deletion?
+	vector<VisualElementPtr> VisualElements;		// List of all VisualElements currently in the game
+	int						 activeLayers;		// Only VisualElements on the ActiveLayers can be interacted with
+	bool					 sortingRequired;	// Has a VisualElement been added? A sort is needed afterwards
+	bool					 deletionRequired;	// Has a VisualElement been marked for deletion?
 
 protected:
 	lua_State* L;
+
+	template <typename T> friend class SmartPointer;
+	unsigned int	pointerCount;				// Running count of copies of a pointer of this class. Used in conjunction with SmartPointer
 };
+
+inline SmartPointer<GameMaster> GameMaster::Create(lua_State* luaState) { return new GameMaster(luaState); }
+inline SmartPointer<GameMaster> GameMaster::Create() { return new GameMaster(); }
+typedef SmartPointer<GameMaster> GameMasterPtr;
 #endif

@@ -42,6 +42,6 @@ public:
 	int	ForceEndMovement(lua_State* L);
 
 private:
-	Unit* realUnit;		// Pointer to real Unit wrapped by this class
+	UnitPtr realUnit;		// Pointer to real Unit wrapped by this class
 };
 #endif

@@ -18,6 +18,6 @@ public:
 	int SetEffect(lua_State* L);
 
 private:
-	Tile* realTile;		// Pointer to real Tile wrapped by this class
+	TilePtr realTile;		// Pointer to real Tile wrapped by this class
 };
 #endif

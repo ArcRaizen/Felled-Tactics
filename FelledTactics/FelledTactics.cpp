@@ -53,7 +53,7 @@ void				DrawFrameRate();
 #pragma endregion
 
 #pragma region Game Variables
-GameMaster*				currentLevel;
+GameMasterPtr			currentLevel;
 int						GameState = 0;
 lua_State*				L;
 #pragma endregion
@@ -156,7 +156,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 
 	// SHUT DOWN GAME HERE
-	//lua_close(L);
+	lua_close(L);
 
 	return (int) msg.wParam;
 }
@@ -173,7 +173,7 @@ void GameInitialize()
 	Luna<LuaCombatManager>::Register(L);
 	Luna<LuaTile>::Register(L);
 
-	currentLevel = new Level(L, 26, 16, 50);
+	currentLevel = Level::Create(L, 26, 16, 50);
 }
 
 void Update(float dt)

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "CombatManager.h"
+#include "Level.h"
 
 const float CombatManager::COMBAT_TEXT_LIFE = 1.0f;
 const float CombatManager::BASE_PRE_COMBAT_WAIT = 0.5f;
@@ -17,9 +18,7 @@ CombatManager::CombatManager(void) : attacker(NULL), defender(NULL), doCombat(fa
 
 }
 
-CombatManager::~CombatManager(void)
-{
-}
+CombatManager::~CombatManager(void) { }
 
 void CombatManager::CalculateCombat(lua_State* L)
 {
@@ -29,9 +28,9 @@ void CombatManager::CalculateCombat(lua_State* L)
 	// Attacker
 	lua_pushlightuserdata(L, (void*)this);
 	lua_setglobal(L, "CombatMan");
-	lua_pushlightuserdata(L, (void*)attacker);
+	lua_pushlightuserdata(L, (void*)attacker.GetPointer());
 	lua_setglobal(L, "Combatant");
-	lua_pushlightuserdata(L, (void*)defender);
+	lua_pushlightuserdata(L, (void*)defender.GetPointer());
 	lua_setglobal(L, "Target");
 	lua_pushinteger(L, range);
 	lua_setglobal(L, "Range");
@@ -39,7 +38,7 @@ void CombatManager::CalculateCombat(lua_State* L)
 	lua_setglobal(L, "isAttacker");
 	int test = attacker->CombatCalcScript == "" ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
 														luaL_dofile(L, attacker->CombatCalcScript.c_str());
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 	if(test)
 	{
 		std::string error = lua_tostring(L, -1);
@@ -50,9 +49,9 @@ void CombatManager::CalculateCombat(lua_State* L)
 	// Defender
 	lua_pushlightuserdata(L, (void*)this);
 	lua_setglobal(L, "CombatMan");
-	lua_pushlightuserdata(L, (void*)defender);
+	lua_pushlightuserdata(L, (void*)defender.GetPointer());
 	lua_setglobal(L, "Combatant");
-	lua_pushlightuserdata(L, (void*)attacker);
+	lua_pushlightuserdata(L, (void*)attacker.GetPointer());
 	lua_setglobal(L, "Target");
 	lua_pushinteger(L, range);
 	lua_setglobal(L, "Range");
@@ -61,7 +60,7 @@ void CombatManager::CalculateCombat(lua_State* L)
 	test = defender->CombatCalcScript == "" ? luaL_dofile(L, BASE_CALC_COMBAT_SCRIPT.c_str()) :
 												luaL_dofile(L, defender->CombatCalcScript.c_str());
 
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 	if(test)
 	{
 		std::string error = lua_tostring(L, -1);
@@ -85,7 +84,7 @@ void CombatManager::DoCombat()
 }
 
 // An ability has been cast
-void CombatManager::DoAbility(Unit* u, Position p)
+void CombatManager::DoAbility(UnitPtr u, Position p)
 {
 	combatTimer = 0.0f;
 	combatPhase = 1;
@@ -97,8 +96,8 @@ void CombatManager::DoAbility(Unit* u, Position p)
 void CombatManager::Reset(bool onlyDefender/* = false*/)
 {
 	if(!onlyDefender)
-		attacker = NULL;
-	defender = NULL;
+		attacker = nullptr;
+	defender = nullptr;
 	physicalDamageA = physicalDamageD = 0;
 	magicalDamageA = magicalDamageD = 0;
 	numAttackerHits = numDefenderHits = 1;
@@ -151,12 +150,7 @@ void CombatManager::SetCombatTimers(float pre, float mid, float post, float mult
 	if(multi >=0)multiHitWait = multi;
 }
 
-void CombatManager::SetCombatTextCallback(Level* l, void (Level::*func)(Position, Position, const char*, int))
-{
-	level = l;
-	CreateCombatText = func;
-}
-
+void CombatManager::SaveLevelPointer(SmartPointer<Level> l) { level = l; }
 void CombatManager::DefenderDied() { defenderDied = true; }
 void CombatManager::AttackerDied() { attackerDied = true; }
 void CombatManager::UnitKilledByAbility(int x, int y) { unitsKilledByAbility.push_back(Position(x,y)); }
@@ -187,7 +181,7 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			// Attacker attacks defender
 			lua_pushlightuserdata(L, (void*)this);
 			lua_setglobal(L, "CombatMan");
-			lua_pushlightuserdata(L, (void*)level);
+			lua_pushlightuserdata(L, (void*)level.GetPointer());
 			lua_setglobal(L, "Level");
 			lua_pushinteger(L, physicalDamageA);
 			lua_setglobal(L, "PhysicalDamage");
@@ -198,7 +192,7 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			test = !attacker->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_ATTACKER_STRIKES_SCRIPT.c_str()) :
 																luaL_dofile(L, attacker->CombatExecuteScript.c_str());
 
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 			if(test)
 			{
 				std::string error = lua_tostring(L, -1);
@@ -242,7 +236,7 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 				// Defender retaliates against Attacker
 				lua_pushlightuserdata(L, (void*)this);
 				lua_setglobal(L, "CombatMan");
-				lua_pushlightuserdata(L, (void*)level);
+				lua_pushlightuserdata(L, (void*)level.GetPointer());
 				lua_setglobal(L, "Level");
 				lua_pushinteger(L, physicalDamageD);
 				lua_setglobal(L, "PhysicalDamage");
@@ -250,9 +244,9 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 				lua_setglobal(L, "MagicaDamage");
 				lua_pushinteger(L, accuracyD);
 				lua_setglobal(L, "Accuracy");
-				test = defender->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str()) :
+				test = !defender->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str()) :
 																		luaL_dofile(L, defender->CombatExecuteScript.c_str());
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 				if(test)
 				{
 					std::string error = lua_tostring(L, -1);
@@ -330,7 +324,7 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 			}
 			combatPhase = 2;
 		case 2:		// Execute ability
-			lua_pushlightuserdata(L, (void*)level);
+			lua_pushlightuserdata(L, (void*)level.GetPointer());
 			lua_setglobal(L, "Level");
 			lua_pushlightuserdata(L, (void*)this);
 			lua_setglobal(L, "CombatMan");
@@ -394,10 +388,10 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 }
 
 #pragma region Properties
-Unit*	CombatManager::GetAttacker() { return attacker; }
-void	CombatManager::SetAttacker(Unit* a) { attacker = a; }
-Unit*	CombatManager::GetDefender() { return defender; }
-void	CombatManager::SetDefender(Unit* d) { defender = d; }
+UnitPtr	CombatManager::GetAttacker() { return attacker; }
+void	CombatManager::SetAttacker(UnitPtr a) { attacker = a; }
+UnitPtr	CombatManager::GetDefender() { return defender; }
+void	CombatManager::SetDefender(UnitPtr d) { defender = d; }
 int		CombatManager::GetDamageA() { return physicalDamageA + magicalDamageA; }
 int		CombatManager::GetDamageD() { return physicalDamageD + magicalDamageD; }
 float	CombatManager::GetAccuracyA() { return accuracyA; }

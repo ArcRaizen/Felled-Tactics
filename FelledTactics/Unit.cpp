@@ -103,21 +103,12 @@ Unit::Unit(int layer, int width, int height, int posX, int posY, const char* nam
 
 Unit::~Unit(void)
 {
+	delete[] name;
 	hpVertexBuffer->Release(); 	hpVertexBuffer = 0;
 	apVertexBuffer->Release(); 	apVertexBuffer = 0;
 	hpBarTexture->Release();    hpBarTexture = 0;
 	apBarTexture->Release();    apBarTexture = 0;
 
-	for(UINT i = 0; i < activeAbilityList.size(); i++)
-	{
-		delete activeAbilityList[i];
-		activeAbilityList[i] = NULL;
-	}
-	for(UINT j = 0; j < passiveAbilityList.size(); j++)
-	{
-		delete passiveAbilityList[j];
-		passiveAbilityList[j] = NULL;
-	}
 	activeAbilityList.clear();
 	passiveAbilityList.clear();
 }
@@ -126,9 +117,9 @@ Unit::~Unit(void)
 // Proper efficiencies are later set separately per class
 void Unit::InitProficiency()
 {
-	bladedgeProficiency = axereaverProficiency = pheylanceProficiency = rangerProficiency = riderProficiency = bruiserProficiency = elementalistProficiency = 
-	kinectorProficieny = arcaneweaverProficiency = blooddancerProficiency = shamanProficiency = _proficiency = healerProficiency = inflicterProficiency = 
-	enchanterProficiency = enforcerProficiency = -1.0f;
+	bladedgeProficiency = barbarianProficiency = vanguardProficiency = scoutProficiency = mercenaryProficiency = sentryProficiency = reaperProficiency = paladinProficiency = 
+	elementalistProficiency = kinectorProficiency = arcaneweaverProficiency = blooddancerProficiency = warlockProficiency = magicknightProficiency = divineProficiency = 
+	augmentorProficiency = -1.0f;
 }
 
 void Unit::CalculateCombatDamage(int& physicalDamage, int& magicalDamage, int range = 0)
@@ -386,6 +377,21 @@ void Unit::NewTurn(lua_State* L)
 	finishedTurn = false;
 	if(!CheckStatus(UNIT_STATUS_FELLED))
 		highlightColor = highlightNone;
+
+	for(int i = 0; i < passiveScripts.size(); i++)
+	{
+		lua_pushlightuserdata(L, (void*)this);
+		lua_setglobal(L, "Unit");
+		int test = luaL_dofile(L, passiveScripts[i].c_str());
+
+#ifdef DEV_DEBUG
+		if(test)
+		{
+			std::string error = lua_tostring(L, -1);
+			test++;
+		}
+#endif
+	}
 }
 
 #pragma region Abilities
@@ -421,7 +427,7 @@ void Unit::LearnAbility(const char* name, int forceRank/*=1*/)
 	}
 
 	// LEARN NEW ABILITY HERE
-	Ability* a = new Ability(name, forceRank);
+	AbilityPtr a = Ability::Create(name, forceRank);
 
 	numAbilities++;
 	switch(a->AbilityType)
@@ -472,7 +478,7 @@ void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int f
 	}
 
 	// LEARN NEW ABILITY HERE
-	Ability* a = new Ability(name, abilityMap, forceRank);
+	AbilityPtr a = Ability::Create(name, abilityMap, forceRank);
 
 	numAbilities++;
 	switch(a->AbilityType)
@@ -513,7 +519,19 @@ const float* Unit::GetSelectedAbilityTimers() const { return activeAbilityList[s
 void Unit::ActivateAbility(lua_State* L, Position target)
 {
 	activeAbilityList[selectedAbility]->Activate(L, target, position);
-	abilityPoints -= activeAbilityList[selectedAbility]->APCost;
+	if(
+#if defined GOD_MODE_ALLY && defined GOD_MODE_ENEMY
+		false)
+#elif defined GOD_MODE_ALLY
+		!CheckStatus(UNIT_STATUS_ALLY))
+#elif defined GOD_MODE_ENEMY
+		!CheckStatus(UNIT_STATUS_ENEMY))
+#else
+		true)
+#endif
+	{
+		abilityPoints -= activeAbilityList[selectedAbility]->APCost;
+	}
 	updateHPAPBuffers = true;
 }
 
@@ -527,7 +545,7 @@ void Unit::RefundAP()
 // Reset Battle Ability Scripts after they have been used
 void Unit::ClearBattleScripts()
 {
-	combatCalculationAbilityScript = "Lua\\Combat\\Base_CalcCombat.lua";
+	combatCalculationAbilityScript = "";
 	combatExecutionAbilityScript = "";
 }
 

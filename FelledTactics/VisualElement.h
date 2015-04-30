@@ -16,9 +16,13 @@
 
 class VisualElement
 {
-public:
+protected:
 	VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY);
 	VisualElement();
+
+public:
+	static SmartPointer<VisualElement> Create(WCHAR* filename, int layer, int width, int height, int posX, int posY);
+	static SmartPointer<VisualElement> Create();
 	virtual ~VisualElement(void);
 
 	virtual enum FrameState {IDLE};
@@ -56,6 +60,10 @@ protected:
 	void	SetPosition(D3DXVECTOR3 p);
 	void	CalcRect();
 	bool	RectCollide(const RECT& r);
+
+	template <typename T> friend class SmartPointer;
+	unsigned int				pointerCount;	// Running count of copies of a pointer of this class. Used in conjunction with SmartPointer
+
 
 	ID3D10ShaderResourceView*	texture;		// Texture for this Visual Element
 	D3DXMATRIX					world;			// World matrix for this object AT ITS CENTER!
@@ -120,4 +128,11 @@ protected:
 		return world._42 - (world._22 / 2);
 	}
 };
+
+inline SmartPointer<VisualElement> VisualElement::Create(WCHAR* filename, int layer, int width, int height, int posX, int posY)
+{
+	return new VisualElement(filename, layer, width, height, posX, posY);
+}
+inline SmartPointer<VisualElement> VisualElement::Create() { return new VisualElement(); }
+typedef SmartPointer<VisualElement> VisualElementPtr;
 #endif

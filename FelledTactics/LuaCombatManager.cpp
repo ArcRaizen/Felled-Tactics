@@ -22,20 +22,17 @@ LuaCombatManager::LuaCombatManager(lua_State* L)
 }
 
 
-LuaCombatManager::~LuaCombatManager(void)
-{
-	manager = NULL;
-}
+LuaCombatManager::~LuaCombatManager(void) {}
 
 int LuaCombatManager::GetAttacker(lua_State* L)
 {
-	lua_pushlightuserdata(L, manager->Attacker);
+	lua_pushlightuserdata(L, manager->Attacker.GetPointer());
 	return 1;
 }
 
 int LuaCombatManager::GetDefender(lua_State* L)
 {
-	lua_pushlightuserdata(L, manager->Defender);
+	lua_pushlightuserdata(L, manager->Defender.GetPointer());
 	return 1;
 }
 

@@ -26,10 +26,7 @@ LuaLevel::LuaLevel(lua_State* L)
 }
 
 
-LuaLevel::~LuaLevel(void)
-{
-	realLevel = NULL;
-}
+LuaLevel::~LuaLevel(void) {}
 
 int LuaLevel::CreateCombatText(lua_State* L)
 {
@@ -41,25 +38,27 @@ int LuaLevel::CreateCombatText(lua_State* L)
 
 int LuaLevel::GetTile(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetTile(lua_tointeger(L, 2), lua_tointeger(L, 3)));
+	lua_pushlightuserdata(L, (void*)realLevel->GetTile(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
 	return 1;
 }
 
 int LuaLevel::GetUnit(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
+	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
 	return 1;
 }
 
 int LuaLevel::GetEnemyUnit(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetEnemyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
+	int x= lua_tointeger(L,2);
+	int y = lua_tointeger(L,3);
+	lua_pushlightuserdata(L, (void*)realLevel->GetEnemyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
 	return 1;
 }
 
 int LuaLevel::GetAllyUnit(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetAllyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
+	lua_pushlightuserdata(L, (void*)realLevel->GetAllyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
 	return 1;
 }
 
@@ -71,8 +70,6 @@ int LuaLevel::IsOccupied(lua_State* L)
 
 int LuaLevel::GetOccupantID(lua_State* L)
 {
-	int x = lua_tointeger(L, 2), y = lua_tointeger(L, 3);
-	int occupantID = realLevel->GetOccupantID(x,y);
-	lua_pushinteger(L, occupantID);
+	lua_pushinteger(L, realLevel->GetOccupantID(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }

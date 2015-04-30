@@ -11,6 +11,10 @@
 #include <D3D10.h>
 #include <D3DX10.h>
 
+#ifndef SMARTPOINTER_H
+#include "SmartPointer.h"
+#endif
+
 extern "C"{
 #include "lua.h"
 #include "lauxlib.h"
@@ -26,21 +30,26 @@ using namespace std;
 #define CLAMP(value, lo, hi) (val < lo ? (lo) : (val > hi ? (hi) : (val)))
 
 #pragma region DEV BUILD
-#define DEBUG
-//#define PERSPECTIVE_PROJECTION
-//#define LOCK_FRAMERATE
-#define DRAW_FRAMERATE
+#ifdef _DEBUG
+	#define DEV_DEBUG
 
-#ifdef DEBUG
-	// Time keeping and speed test tools
-	#include <chrono>
-	using namespace std::chrono;
-	//high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	//high_resolution_clock::time_point t2 = high_resolution_clock::now();
-	//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
 
-	#define GOD_MODE_ALLY
-	//#define GOD_MODE_ENEMY
+	//#define PERSPECTIVE_PROJECTION
+	//#define LOCK_FRAMERATE
+	#define DRAW_FRAMERATE
+
+	#ifdef DEV_DEBUG
+		// ~~ Time keeping and speed test tools ~~
+		#include <chrono>
+		using namespace std::chrono;
+		//high_resolution_clock::time_point t1 = high_resolution_clock::now();
+		//high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
+
+		// ~~ GOD MODE DEFINES FOR TESTING ~~
+		#define GOD_MODE_ALLY
+		//#define GOD_MODE_ENEMY
+	#endif
 #endif
 #pragma region
 

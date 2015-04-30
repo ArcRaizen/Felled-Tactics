@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           #pragma once
+#pragma once
 #ifndef LEVEL_H
 #define LEVEL_H
 
@@ -24,14 +24,15 @@
 #ifndef TRAVELNODE_H
 #include "TravelNode.h"
 #endif
-#ifndef GAMETIMER_H
-#include "GameTimer.h"
-#endif
 
 #include <list>
 #include <queue>
 #include <iostream>
 #include <fstream>
+
+// Forward Declarations
+class Tile;
+//class MenuBox;
 #pragma endregion
 
 // Movement Options
@@ -61,12 +62,13 @@
 #define LOSE_CONDITION_SURRENDER (1<<18)	// Specific point on map was captured by enemy units
 #define LOSE_CONDITION_SURVIVE   (1<<19)	// Specific ally unit was felled
 
-class Tile; // forward declaration
-//class MenuBox;
 class Level : public GameMaster
 {
 public:
 	Level(lua_State* luaState, int width, int height, int tSize);
+
+public:
+	static SmartPointer<Level> Create(lua_State* luaState, int width, int height, int tSize);
 	~Level(void);
 
 #pragma region Enums
@@ -122,17 +124,17 @@ public:
 
 #pragma region Properties
 public:
-	__declspec(property(get=GetMap)) Tile*** Map;											Tile*** GetMap();
-	__declspec(property(get=GetUnits)) Unit*** Units;										Unit*** GetUnits();
-	__declspec(property(put=SetWidth, get=GetWidth)) int Width;		void SetWidth(int w);	int GetWidth();
-	__declspec(property(put=SetHeight, get=GetHeight)) int Height;	void SetHeight(int h);	int GetHeight();
+	__declspec(property(get=GetWidth)) int Width;		int GetWidth();
+	__declspec(property(get=GetHeight)) int Height;		int GetHeight();
 
-	Tile* GetTile(int x, int y);
-	Unit* GetUnit(int x, int y); Unit* GetEnemyUnit(int x, int y); Unit* GetAllyUnit(int x, int y);
-	bool  IsOccupied(int x, int y);
-	int   GetOccupantID(int x, int y);
+	SmartPointer<Tile> GetTile(int x, int y);
+	SmartPointer<Unit> GetUnit(int x, int y); SmartPointer<Unit> GetEnemyUnit(int x, int y); SmartPointer<Unit> GetAllyUnit(int x, int y);
+	bool	IsOccupied(int x, int y);
+	int		GetOccupantID(int x, int y);
 #pragma endregion
 
+public:
+	template <typename T> friend class SmartPointer;
 private:
 	// ~~~~ Level ~~~~
 	int						winConditions;		// List of any/all conditions that must be met to win a level
@@ -141,10 +143,10 @@ private:
 	Phase					currentPhase;		// What current action is to be taken (select a unit to move, select what action to take, etc/)
 	int						turn;				// Current Turn of the level (Player Phase + Enemy Phase = 1 turn)
 
-	Unit*					boss;				// Enemy unit that must be killed to win level
-	Unit*					survivor;			// Ally unit that must survive to not lose level
-	Tile*					targetTile;			// Tile that must be capture by ally units to win level
-	Tile*					defenseTile;		// Tile that must not be captured by enemy units to lose level
+	SmartPointer<Unit>		boss;				// Enemy unit that must be killed to win level
+	SmartPointer<Unit>		survivor;			// Ally unit that must survive to not lose level
+	SmartPointer<Tile>		targetTile;			// Tile that must be capture by ally units to win level
+	SmartPointer<Tile>		defenseTile;		// Tile that must not be captured by enemy units to lose level
 	int						targetEnemyDeaths;	// Number of enemy units that must be killed to win level 
 	int						maximumDeaths;		// Maximum number of ally deaths allowed before losing level
 	int						maximumTurns;		// Maximum number of turns allowed to pass before for this level
@@ -156,14 +158,13 @@ private:
 	int						numEnemies;			// Total number of enemies in this level
 	int						numUnitsMoved;		// Number of ally units who have moved/taken action this turn
 
-
 	// ~~~~ Map ~~~~
-	Tile***					map;			// 2D-Array of all tiles that make up this level
-	Unit***					unitMap;		// 2D-Array of all Units (mirrors map - empty tiles are NULL)
-	vector<Unit*>			unitList;		// List of all units
-	int						mapWidth;		// Width of map (in tiles)
-	int						mapHeight;		// Height of map (in tiles)
-	int						tileSize;		// Dimmension of tiles
+	SmartPointer<Tile>**		map;			// 2D-Array of all tiles that make up this level
+	SmartPointer<Unit>**		unitMap;		// 2D-Array of all Units (mirrors map - empty tiles are NULL)
+	vector<SmartPointer<Unit>>	unitList;		// List of all units
+	int							mapWidth;		// Width of map (in tiles)
+	int							mapHeight;		// Height of map (in tiles)
+	int							tileSize;		// Dimmension of tiles
 
 	// Movement
 	Position				movementBeginning;	// Location of unit selected for movement
@@ -176,13 +177,13 @@ private:
 	vector<Position>		activatedTiles;		// List of tiles whose effects were activated during a single movement phase
 
 	// Actions
-	MenuBox*				actionMenu;				// Menu for selecting action for unit to take
-	MenuBox*				secondaryMenu;			// Menu for selecting skill/item for unit to use
+	SmartPointer<MenuBox>	actionMenu;				// Menu for selecting action for unit to take
+	SmartPointer<MenuBox>	secondaryMenu;			// Menu for selecting skill/item for unit to use
 	Position				currentUnitPosition;	// Location of unit selected to take an action
 	Position				target;					// Target location of a skill to be cast
 
 	// Combat Text
-	vector<TextElement*>	combatText;				// list of text to print to screen to show combat results
+	vector<SmartPointer<CombatText>>	combatText;				// list of text to print to screen to show combat results
 
 #pragma region Utility Functions
 private:
@@ -192,6 +193,9 @@ private:
 	inline bool IsValidUnit(int x, int y) { if(!IsValidPosition(x,y) || unitMap[x][y] == NULL) { return false; } return true; }
 #pragma endregion
 };
+
+inline SmartPointer<Level> Level::Create(lua_State* luaState, int width, int height, int tSize) { return new Level(luaState, width, height, tSize); }
+typedef SmartPointer<Level> LevelPtr;
 #endif
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

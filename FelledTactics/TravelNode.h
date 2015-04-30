@@ -13,10 +13,10 @@ struct TravelNode
 	{ 
 		parent = par;
 		p = _p; 
-		g = _g + (par != NULL ? par->g : 0); 
+		g = _g + (par != nullptr ? par->g : 0); 
 		h = _h; 
 		f = g + h;
-		pathNum = (par != NULL ? par->pathNum + 1 : 0);
+		pathNum = (par != nullptr ? par->pathNum + 1 : 0);
 	}
 };
 #endif

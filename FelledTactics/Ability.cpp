@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Ability.h"
 
-Ability::Ability(const char* name, int r) : rank(r)
+Ability::Ability(const char* name, int r) : rank(r), pointerCount(0)
 {
 	// Pair is a struct that holds a string and a Value
 	// Value is a class that can be: string/int/double/bool/null/Array/Object
@@ -84,7 +84,7 @@ Ability::Ability(const char* name, int r) : rank(r)
 	script = ability["script"].get_str();
 }
 
-Ability::Ability(const char* name, json_spirit::mObject abilityMap, int r) : rank(r)
+Ability::Ability(const char* name, json_spirit::mObject abilityMap, int r) : rank(r), pointerCount(0)
 {
 	// Temporary variables that will be needed
 	int i, x;
@@ -221,7 +221,7 @@ void Ability::Activate(lua_State* L, Position target, Position source)
 	}
 
 	// Run script
-#ifdef DEBUG
+#ifdef DEV_DEBUG
 	int test = luaL_dofile(L, script.c_str());
 	if(test)
 	{

@@ -98,6 +98,7 @@
     <ClInclude Include="CombatManagerUpdateCodes.h" />
     <ClInclude Include="CombatText.h" />
     <ClInclude Include="CombatTextUpdateCodes.h" />
+    <ClInclude Include="ConsoleOuput.h" />
     <ClInclude Include="Consumable.h" />
     <ClInclude Include="Core.h" />
     <ClInclude Include="Direct3D.h" />
@@ -117,8 +118,10 @@
     <ClInclude Include="MenuBox.h" />
     <ClInclude Include="MenuElement.h" />
     <ClInclude Include="Position.h" />
+    <ClInclude Include="ReferenceCounter.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Ability.h" />
+    <ClInclude Include="StrongWeakCount.h" />
     <ClInclude Include="SmartPointer.h" />
     <ClInclude Include="Staff.h" />
     <ClInclude Include="stdafx.h" />
@@ -130,6 +133,7 @@
     <ClInclude Include="UnitStatusCodes.h" />
     <ClInclude Include="UnitUpdateCodes.h" />
     <ClInclude Include="VisualElement.h" />
+    <ClInclude Include="WeakPointer.h" />
     <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>

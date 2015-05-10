@@ -2,7 +2,7 @@
 #include "MenuElement.h"
 #include "Level.h"
 
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtr l, void (Level::*func)(), const char* t/*=""*/) : 
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtrW l, void (Level::*func)(), const char* t/*=""*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	level = l;
@@ -16,7 +16,7 @@ MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int 
 	InitializeBuffer();
 }
 
-MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtr l, void (Level::*func)(int), int val, const char* t/*=""*/) : 
+MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtrW l, void (Level::*func)(int), int val, const char* t/*=""*/) : 
 	VisualElement(filename, layer, width, height, posX, posY)
 {
 	level = l;
@@ -33,7 +33,6 @@ MenuElement::MenuElement(WCHAR* filename, int layer, int width, int height, int 
 
 MenuElement::~MenuElement(void)
 {
-	delete[] lpcwText;
 	if(vertexBuffer)
 	{
 		vertexBuffer->Release();
@@ -48,12 +47,12 @@ void MenuElement::MouseOut(){ mouseEntered = false; }
 
 void MenuElement::Activate()
 {
-	if(level != NULL)
+	if(!level.Expired())
 	{
 		if(parameter != -1)
-			((level)->*(activateFunctionParameter))(parameter);
+			((level.Lock())->*(activateFunctionParameter))(parameter);
 		else
-			((level)->*(activateFunction))();
+			((level.Lock())->*(activateFunction))();
 	}
 }
 

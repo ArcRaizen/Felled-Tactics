@@ -15,10 +15,10 @@
 class MenuBox : public VisualElement
 {
 protected:
-	MenuBox(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
+	MenuBox(WeakPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
 
 public:
-	static SmartPointer<MenuBox> Create(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
+	static SmartPointer<MenuBox> Create(WeakPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh);
 	virtual ~MenuBox(void);
 
 	void	CreateElement(void (Level::*func)(), WCHAR* filename, const char* t="");
@@ -43,13 +43,14 @@ private:
 
 	vector<SmartPointer<MenuElement>>	elements;
 	D3DXVECTOR3							mousePosition;
-	SmartPointer<Level>					level;
+	WeakPointer<Level>					level;
 };
 
-inline SmartPointer<MenuBox> MenuBox::Create(SmartPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh)
+inline SmartPointer<MenuBox> MenuBox::Create(WeakPointer<Level> l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh)
 {
 	return new MenuBox(l, filename, layer, width, height, posX, posY, ew, eh);
 }
 typedef SmartPointer<MenuBox> MenuBoxPtr;
+typedef WeakPointer<MenuBox> MenuBoxPtrW;
 #endif
 

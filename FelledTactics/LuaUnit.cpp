@@ -35,7 +35,8 @@ const Luna<LuaUnit>::FunctionType LuaUnit::methods[] = {
 
 LuaUnit::LuaUnit(lua_State* L)
 {
-	realUnit = (Unit*)lua_touserdata(L, 1);
+	void* test = lua_touserdata(L, 1);
+	realUnit = ((test == nullptr) ? nullptr : *static_cast<UnitPtr*>(test));
 }
 
 LuaUnit::~LuaUnit(void) {}
@@ -83,7 +84,7 @@ int LuaUnit::CalculateBaseCombatDamage(lua_State* L)
 
 int LuaUnit::TakeUnscaledDamage(lua_State* L)
 {
-	if(realUnit == NULL)
+	if(realUnit == nullptr)
 		lua_pushnil(L);
 	else
 		lua_pushnumber(L, realUnit->TakeUnscaledDamage(lua_tointeger(L,2)));
@@ -92,7 +93,7 @@ int LuaUnit::TakeUnscaledDamage(lua_State* L)
 
 int LuaUnit::TakeDamage(lua_State* L)
 {
-	if(realUnit == NULL)
+	if(realUnit == nullptr)
 		lua_pushnil(L);
 	else
 		lua_pushnumber(L, realUnit->TakeDamage(lua_tointeger(L, 2), lua_tointeger(L, 3)));
@@ -101,7 +102,7 @@ int LuaUnit::TakeDamage(lua_State* L)
 
 int LuaUnit::ApplyStatus(lua_State* L)
 {
-	if(realUnit != NULL)
+	if(realUnit != nullptr)
 		realUnit->ApplyStatus((int)lua_tointeger(L, 2));
 	return 0;
 }
@@ -120,7 +121,7 @@ int LuaUnit::SetCombatExecutionAbilityScript(lua_State* L)
 
 int LuaUnit::Heal(lua_State* L)
 {
-	if(realUnit == NULL)
+	if(realUnit == nullptr)
 		lua_pushnil(L);
 	else
 		lua_pushnumber(L, realUnit->Heal(lua_tointeger(L, 2)));
@@ -129,14 +130,14 @@ int LuaUnit::Heal(lua_State* L)
 
 int LuaUnit::ForceMovement(lua_State* L)
 {
-	if(realUnit != NULL)
+	if(realUnit != nullptr)
 		realUnit->ForceMovement(Position(lua_tointeger(L, 2), lua_tointeger(L, 3)), lua_tonumber(L, 4));
 	return 0;
 }
 
 int LuaUnit::ForceEndMovement(lua_State* L)
 {
-	if(realUnit != NULL)
+	if(realUnit != nullptr)
 		realUnit->ForceEndMovement();
 	return 0;
 }

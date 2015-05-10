@@ -2,16 +2,18 @@
 #ifndef SMARTPOINTER_H
 #define SMARTPOINTER_H
 
-#ifdef _DEBUG
-	#define CONSOLEOUTPUT(s)					\
-	{											\
-		std::wostringstream os_;				\
-		os_ << s;								\
-		OutputDebugStringW(os_.str().c_str());	\
-	}
+#include "StrongWeakCount.h"
+#include <algorithm>
+template <typename T> class WeakPointer;
 
-	//#define LOG_SMARTPOINTER_OUTPUT
+
+//#define LOG_SMARTPOINTER_OUTPUT
+#ifdef LOG_SMARTPOITER_OUTPUT
+	#ifndef CONSOLEOUTPUT_H
+	#include "ConsoleOuput.h"
+	#endif
 #endif
+
 
 #pragma region Operator->* Overload
 // Code Source: http://www.aristeia.com/Papers/DDJ_Oct_1999.pdf
@@ -48,72 +50,50 @@ template <typename T> class SmartPointer
 {
 public:
 	// Default Constructor to allow the pointer to be NULL
-	SmartPointer()								
-	{ 
-		t = nullptr; 
-	}
+	SmartPointer() : t(nullptr), sc() {	}
 
 	// Constructor when creating a non-nullptr.
 	// Essentially casting a T* into a SmartPtr<T>
 	// Initialize the pointer and increase count if 't' is being copied
-	SmartPointer(T* u) : t(u)					
+	SmartPointer(T* u) : t(u), sc(u)		
 	{ 
-		if(u != nullptr) 
-			++t->pointerCount; 
-
 #ifdef LOG_SMARTPOINTER_OUTPUT
-		if(t == nullptr){}
-		else
-		CONSOLEOUTPUT("Constructor: " << typeid(t).name() << " " << t->pointerCount << "\n");
+		if(t != nullptr)
+			CONSOLEOUTPUT("Constructor: " << typeid(t).name() << " " << sc.UseCount() << "\n");
 #endif
 	}
 
 	// Constructor when casting a non-nullptr up an inheritance line
-	// Essentially creating a SmartPtr<T> from a SmartPtr<Y> where Y inherits from T
-	template<typename Y>
-	SmartPointer(const SmartPointer<Y> &y)
+	// Essentially creating a SmartPointer<T> from a SmartPointer<Y>/WeakPointer<Y> where Y inherits from T
+	template <typename Y> SmartPointer(const WeakPointer<Y>& y) : sc(y.wc) { t = y.t; }
+	template <typename Y> SmartPointer(const SmartPointer<Y>& y) : sc(y.sc) { t = y.t; }
+/*	template <typename Y> SmartPointer(const SmartPointer<Y>& y)
 	{
 		(void)static_cast<T*>(static_cast<Y*>(0));
 		t = static_cast<T*>(y.GetPointer());
 		assert(t != nullptr);
-		++t->pointerCount;
+		sc = y.sc;
+	}*/
+
+	// Copy Constructor
+	// Initialize the pointer and increase count
+	SmartPointer(const SmartPointer& u) : t(u.t), sc(u.sc)	
+	{ 
+#ifdef LOG_SMARTPOINTER_OUTPUT
+		if(t != nullptr)
+			CONSOLEOUTPUT("Constructor: " << typeid(t).name() << " " << sc.UseCount() << "\n");
+#endif
 	}
 
 	// Destructor
 	// Decrement count and delete pointer when no copies remain
 	~SmartPointer()
 	{ 
-		if(t != nullptr && --t->pointerCount == 0)
-		{
+		// Since StrongCount is a non-pointer object, it is destroyed automatically
+		// and it will delete 't' if no SmartPointers/StrongReferences remain
 #ifdef LOG_SMARTPOINTER_OUTPUT
-			if(t == nullptr){}
-			else
-			CONSOLEOUTPUT("Destructor: " << typeid(t).name() << " " << "DESTROYED!!!!" << "\n");
-#endif
-
-			delete t; 
-		}
-#ifdef LOG_SMARTPOINTER_OUTPUT
-		else
-		{
-			if(t == nullptr){}
-			else
-			CONSOLEOUTPUT("Destructor: " << typeid(t).name() << " " << t->pointerCount << "\n");
-		}
-#endif
-	}
-
-	// Copy Constructor
-	// Initialize the pointer and increase count
-	SmartPointer(const SmartPointer<T>& u) : t(u.t)	
-	{ 
-		if(t != nullptr)			// assert this because if 't' is null
-			++t->pointerCount;		// then 'u.t' is also null and we can't copy that
-
-#ifdef LOG_SMARTPOINTER_OUTPUT
-		if(t == nullptr){}
-		else
-		CONSOLEOUTPUT("Copy Constructor: " << typeid(t).name() << " " << t->pointerCount << "\n");
+		if(t != nullptr)
+			CONSOLEOUTPUT("Constructor: " << typeid(t).name() << " " << sc.UseCount() << "\n");
 #endif
 	}
 
@@ -121,24 +101,15 @@ public:
 	// Set pointer equal to another pointer, delete original data if it was the last copy of itself
 	SmartPointer<T>& operator=(const SmartPointer<T>& u)
 	{
-		// Increase count if 'u.t' already exists (isn't null)
-		if(u.t != nullptr)
-			++u.t->pointerCount;
-
-		// If pointer isn't null and is the last/only copy, it is now being overwritten
-		// Delete pointer before we overwrite it
-		if(t != nullptr && --t->pointerCount == 0)
-			delete t;
-
-		// Set/Overwrite pointer equal to one passed in
-		t = u.t;
-
+		// Create temporary local SmartPointer from 'u:' SmartPointer<T>(u)
+		// Swap the contents of this SmartPointer with *this
+		// Temporary local SmartPointer is deleted when its scope is left (original *this is deleted)
+		// *this now holds the contents of 'u'
+		SmartPointer<T>(u).Swap(*this);
 #ifdef LOG_SMARTPOINTER_OUTPUT
-		if(t == nullptr){}
-		else
-		CONSOLEOUTPUT("Assignment Operator: " << typeid(t).name() << " " << t->pointerCount << "\n");
+		if(t != nullptr)
+			CONSOLEOUTPUT("Constructor: " << typeid(t).name() << " " << sc.UseCount() << "\n");
 #endif
-
 		return *this;
 	}
 
@@ -203,7 +174,29 @@ public:
 
 #pragma endregion
 
+	// Number of SmartPointers/StrongReferences
+	int UseCount() const { return (rc == nullptr ? 0 : rc->UseCount()); }
+
+	// Is this the only SmartPointer managing 't'?
+	bool Unique() const { return sc.Unique(); }
+
+	// Reset this SmartPointer so it's not managing anything
+	// 't' and 'sc' will be deleted appropriately 
+	void Reset() { SmartPointer<T>().Swap(*this); }
+
+	// Swap managed pointer and ReferenceCounter with another SmartPointer
+	// Can be used to delete current 't' and 'sc' by swapping *this with a local SmartPointer
+		// e.g. SmartPointer<T>().Swap(*this)
+	void Swap(SmartPointer<T>& other) 
+	{ 
+		std::swap(t, other.t); 
+		sc.Swap(other.sc); 
+	}
+
 private:
-	T* t;		// Pointer we are controlling
+	T* t;				// Pointer we are managing
+	StrongCount sc;		// Reference counter to track 't'
+	template <typename Y> friend class SmartPointer;
+	template <typename Y> friend class WeakPointer;
 };
 #endif

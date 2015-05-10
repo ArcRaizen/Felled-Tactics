@@ -103,7 +103,6 @@ Unit::Unit(int layer, int width, int height, int posX, int posY, const char* nam
 
 Unit::~Unit(void)
 {
-	delete[] name;
 	hpVertexBuffer->Release(); 	hpVertexBuffer = 0;
 	apVertexBuffer->Release(); 	apVertexBuffer = 0;
 	hpBarTexture->Release();    hpBarTexture = 0;
@@ -185,8 +184,12 @@ int Unit::TakeUnscaledDamage(int damage)
 		updateHPAPBuffers = true;
 
 		// Unit has been killed
-		if(health <= 0)				
-			return -1 * curHealth;		// return actual damage taken
+		if(health <= 0)
+		{
+			health = 0;
+			ApplyStatus(UNIT_STATUS_KILLED_IN_COMBAT);
+			return -curHealth;		// return actual damage taken
+		}
 
 		// Unit survived
 		return damage;				// return damage taken
@@ -224,7 +227,11 @@ int Unit::TakeDamage(int physDamage, int magDamage)
 
 		// Unit has been killed
 		if(health <= 0)
+		{
+			health = 0;
+			ApplyStatus(UNIT_STATUS_KILLED_IN_COMBAT);
 			return -curHealth;			// return actual damage taken
+		}
 
 		// Unit survived
 		return phys + mag;
@@ -258,6 +265,7 @@ void Unit::Revive(int health)
 
 float Unit::Die()
 {
+	RemoveStatus(UNIT_STATUS_KILLED_IN_COMBAT);
 	ApplyStatus(UNIT_STATUS_DYING);
 	felled = true;
 
@@ -494,7 +502,6 @@ void Unit::LearnAbility(const char* name, json_spirit::mObject abilityMap, int f
 			activeAbilityList.push_back(a);
 			break;
 	}
-	a = NULL;
 }
 
 // Check if the selected ability is a Battle ability (not action or passive)

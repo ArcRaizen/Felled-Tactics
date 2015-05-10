@@ -43,6 +43,9 @@
     <Filter Include="Header Files\Codes">
       <UniqueIdentifier>{aff5e5d0-fde8-4215-97f4-502bbb5e01b4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\SmartPointer">
+      <UniqueIdentifier>{fb283b33-da9e-46d0-8513-64ca81428eb1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -172,6 +175,18 @@
       <Filter>Abilities</Filter>
     </ClInclude>
     <ClInclude Include="SmartPointer.h">
+      <Filter>Header Files\SmartPointer</Filter>
+    </ClInclude>
+    <ClInclude Include="ReferenceCounter.h">
+      <Filter>Header Files\SmartPointer</Filter>
+    </ClInclude>
+    <ClInclude Include="WeakPointer.h">
+      <Filter>Header Files\SmartPointer</Filter>
+    </ClInclude>
+    <ClInclude Include="StrongWeakCount.h">
+      <Filter>Header Files\SmartPointer</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleOuput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

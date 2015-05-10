@@ -1,13 +1,15 @@
 #include "stdafx.h"
 #include "GameMaster.h"
 
-GameMaster::GameMaster(lua_State* luaState) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false), pointerCount(0)
+GameMaster::GameMaster(lua_State* luaState) : nextActionTime(0), activeLayers(0), sortingRequired(false), deletionRequired(false)
 {
 	L = luaState;
 }
-GameMaster::GameMaster() : pointerCount(0) {}
+GameMaster::GameMaster(){}
 
 GameMaster::~GameMaster() {}
+
+void GameMaster::Initialize() {}
 
 int GameMaster::Update(float dt, HWND hWnd)
 {
@@ -61,7 +63,7 @@ void GameMaster::UpdateMouseEventsOrtho(HWND hWnd)
 			VisualElements[i]->MouseUp();
 
 		// Remove VisualElements from list once they've been deleted (some Mouse Up/Down events cause a deletion immediately)
-		if(VisualElements[i]->deleted)
+		if(VisualElements[i].Unique())
 		{
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;
@@ -118,7 +120,7 @@ void GameMaster::UpdateMouseEventsPerspective(HWND hWnd)
 			VisualElements[i]->MouseUp();
 
 		// Remove VisualElements from list once they've been deleted (some Mouse Up/Down events cause a deletion immediately)
-		if(VisualElements[i]->deleted)
+		if(VisualElements[i].Unique())
 		{
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;
@@ -230,7 +232,7 @@ void GameMaster::Draw()
 	for(int i = 0; i < VisualElements.size(); i++)
 	{
 		// Remove VisualElements from list once they've been deleted
-		if(VisualElements[i]->deleted)
+		if(VisualElements[i].Unique())
 		{
 			VisualElements.erase(VisualElements.begin() + i--);
 			continue;

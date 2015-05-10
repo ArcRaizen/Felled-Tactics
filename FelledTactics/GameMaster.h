@@ -32,6 +32,7 @@ public:
 	static SmartPointer<GameMaster> Create();
 	virtual ~GameMaster();
 
+	virtual void	Initialize();
 	virtual int		Update(float dt, HWND hWnd);
 	virtual void	Draw();
 
@@ -59,12 +60,10 @@ private:
 
 protected:
 	lua_State* L;
-
-	template <typename T> friend class SmartPointer;
-	unsigned int	pointerCount;				// Running count of copies of a pointer of this class. Used in conjunction with SmartPointer
 };
 
 inline SmartPointer<GameMaster> GameMaster::Create(lua_State* luaState) { return new GameMaster(luaState); }
 inline SmartPointer<GameMaster> GameMaster::Create() { return new GameMaster(); }
 typedef SmartPointer<GameMaster> GameMasterPtr;
+typedef WeakPointer<GameMaster> GameMasterPtrW;
 #endif

@@ -174,6 +174,7 @@ void GameInitialize()
 	Luna<LuaTile>::Register(L);
 
 	currentLevel = Level::Create(L, 26, 16, 50);
+	currentLevel->Initialize();
 }
 
 void Update(float dt)

@@ -17,7 +17,8 @@ const Luna<LuaTile>::FunctionType LuaTile::methods[] = {
 
 LuaTile::LuaTile(lua_State* L)
 {
-	realTile = (Tile*)lua_touserdata(L, 1);
+	void* test = lua_touserdata(L, 1);
+	realTile = ((test == nullptr) ? nullptr : *static_cast<TilePtr*>(test));
 }
 
 

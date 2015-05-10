@@ -128,8 +128,6 @@ private:
 	void			InitProficiency();
 
 protected:
-	template <typename T> friend class SmartPointer;
-
 	Position	position;
 
 #pragma region Stats and Stuff
@@ -231,4 +229,5 @@ inline SmartPointer<Unit> Unit::Create(int layer, int width, int height, int pos
 	return new Unit(layer, width, height, posX, posY, name, unitMap, abilityMap);
 }
 typedef SmartPointer<Unit> UnitPtr;
+typedef WeakPointer<Unit> UnitPtrW;
 #endif

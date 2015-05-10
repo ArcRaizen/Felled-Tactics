@@ -32,4 +32,5 @@ inline SmartPointer<TextElement> TextElement::Create(int layer, int width, int h
 	return new TextElement(layer, width, height, p, t, color);
 }
 typedef SmartPointer<TextElement> TextElementPtr;
+typedef WeakPointer<TextElement> TextElementPtrW;
 #endif

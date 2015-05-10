@@ -2,7 +2,7 @@
 #include "MenuBox.h"
 #include "Level.h"
 
-MenuBox::MenuBox(LevelPtr l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh) :
+MenuBox::MenuBox(LevelPtrW l, WCHAR* filename, int layer, int width, int height, int posX, int posY, int ew, int eh) :
 	VisualElement(filename, layer, width, height, posX, posY), numColumns(ew), numRows(eh)
 {
 	level = l;

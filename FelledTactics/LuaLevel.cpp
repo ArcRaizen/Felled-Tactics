@@ -22,7 +22,8 @@ const Luna<LuaLevel>::FunctionType LuaLevel::methods[] = {
 
 LuaLevel::LuaLevel(lua_State* L)
 {
-	realLevel = (Level*)lua_touserdata(L, 1);
+	void* test = lua_touserdata(L, 1);
+	realLevel = ((test == nullptr) ? nullptr : *static_cast<LevelPtr*>(test));
 }
 
 
@@ -38,27 +39,25 @@ int LuaLevel::CreateCombatText(lua_State* L)
 
 int LuaLevel::GetTile(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetTile(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
+	lua_pushlightuserdata(L, (void*)realLevel->GetTile(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }
 
 int LuaLevel::GetUnit(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
+	lua_pushlightuserdata(L, (void*)realLevel->GetUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }
 
 int LuaLevel::GetEnemyUnit(lua_State* L)
 {
-	int x= lua_tointeger(L,2);
-	int y = lua_tointeger(L,3);
-	lua_pushlightuserdata(L, (void*)realLevel->GetEnemyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
+	lua_pushlightuserdata(L, (void*)realLevel->GetEnemyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }
 
 int LuaLevel::GetAllyUnit(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)realLevel->GetAllyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)).GetPointer());
+	lua_pushlightuserdata(L, (void*)realLevel->GetAllyUnit(lua_tointeger(L, 2), lua_tointeger(L, 3)));
 	return 1;
 }
 

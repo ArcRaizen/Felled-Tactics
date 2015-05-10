@@ -40,7 +40,6 @@ public:
 	void			SetTexture(std::wstring filename);
 	virtual void	DisableDraw();
 	virtual void	EnableDraw();
-	void			Delete();
 
 	__declspec(property(put=SetLayer, get=GetLayer)) int Layer;				void SetLayer(int l);			int GetLayer();
 	__declspec(property(get=GetMouseDown)) bool IsMouseDown;												bool GetMouseDown();
@@ -51,8 +50,6 @@ public:
 																											Position GetWorldPosition();
 																											RECT GetRect();
 
-	bool		deleted;	// Mark element for deletion
-
 protected:
 	void	Translate(D3DXVECTOR3 t);
 	void	Rotate(float z);
@@ -60,10 +57,6 @@ protected:
 	void	SetPosition(D3DXVECTOR3 p);
 	void	CalcRect();
 	bool	RectCollide(const RECT& r);
-
-	template <typename T> friend class SmartPointer;
-	unsigned int				pointerCount;	// Running count of copies of a pointer of this class. Used in conjunction with SmartPointer
-
 
 	ID3D10ShaderResourceView*	texture;		// Texture for this Visual Element
 	D3DXMATRIX					world;			// World matrix for this object AT ITS CENTER!
@@ -135,4 +128,5 @@ inline SmartPointer<VisualElement> VisualElement::Create(WCHAR* filename, int la
 }
 inline SmartPointer<VisualElement> VisualElement::Create() { return new VisualElement(); }
 typedef SmartPointer<VisualElement> VisualElementPtr;
+typedef WeakPointer<VisualElement> VisualElementPtrW;
 #endif

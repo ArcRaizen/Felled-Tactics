@@ -32,18 +32,17 @@ public:
 	void	SetCombatParametersDefender(int defPhys, int defMag, int defHit, int defAvoid, int defNumHits);
 	void	SetCombatTimers(float pre, float mid, float post, float multi);
 	void	SetCombatTimers(const float timers[4]);
-	void	SaveLevelPointer(SmartPointer<Level> l);
+	void	SetDeathCombatTimer(float deathTimer);
+	void	SaveLevelPointer(WeakPointer<Level> l);
 
-	void	DefenderDied();
-	void	AttackerDied();
 	void	UnitKilledByAbility(int x, int y);
 
 	int		 UpdateCombat(float dt, lua_State* L);
 	Position UpdateAbility(float dt, lua_State* L);
 
 #pragma region Properties
-	__declspec(property(get=GetAttacker, put=SetAttacker)) SmartPointer<Unit> Attacker;	SmartPointer<Unit> GetAttacker();	void SetAttacker(SmartPointer<Unit> a);
-	__declspec(property(get=GetDefender, put=SetDefender)) SmartPointer<Unit> Defender;	SmartPointer<Unit> GetDefender();	void SetDefender(SmartPointer<Unit> d);
+	__declspec(property(put=SetAttacker)) SmartPointer<Unit> Attacker;	void SetAttacker(SmartPointer<Unit> a);
+	__declspec(property(put=SetDefender)) SmartPointer<Unit> Defender;	void SetDefender(SmartPointer<Unit> d);
 	__declspec(property(get=GetDamageA)) int DamageA;		int		GetDamageA();
 	__declspec(property(get=GetDaamgeD)) int DamageD;		int		GetDamageD();
 	__declspec(property(get=GetAccuracyA)) float AccuracyA;	float	GetAccuracyA();
@@ -56,7 +55,7 @@ private:
 	bool				doCombat;				// is combat occuring right now? (do update function?)
 
 	// Combat Text displays
-	SmartPointer<Level>	level;
+	WeakPointer<Level>	level;
 	char				battleText[10];			// buffer to hold text form of damage numbers during combat
 
 	// Combat timer values
@@ -69,11 +68,11 @@ private:
 	float	midCombatWait;
 	float	postCombatWait;
 	float	multiHitWait;
+	float	deathCombatWait;
 
 	// Default Combat scripts
 	static const std::string BASE_CALC_COMBAT_SCRIPT;
-	static const std::string BASE_COMBAT_ATTACKER_STRIKES_SCRIPT;
-	static const std::string BASE_COMBAT_DEFENDER_STRIKES_SCRIPT;
+	static const std::string BASE_COMBAT_SCRIPT;
 
 	// Optional script for Augmentator Abilities
 	std::string combatAugmentationScript;

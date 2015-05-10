@@ -42,6 +42,7 @@ inline SmartPointer<CombatText> CombatText::Create(int layer, Position p, D3DXVE
 {
 	return new CombatText(layer, p, move, t, damageType);
 }
-typedef SmartPointer<CombatText> CombatTextPt;
+typedef SmartPointer<CombatText> CombatTextPtr;
+typedef WeakPointer<CombatText> CombtTextPtrW;
 #endif
 

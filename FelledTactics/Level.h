@@ -84,6 +84,7 @@ private:
 
 #pragma region Level Functions
 public:
+	void	Initialize();
 	void	GenerateLevel();
 private:
 	void	StartNewTurn();
@@ -127,15 +128,15 @@ public:
 	__declspec(property(get=GetWidth)) int Width;		int GetWidth();
 	__declspec(property(get=GetHeight)) int Height;		int GetHeight();
 
-	SmartPointer<Tile> GetTile(int x, int y);
-	SmartPointer<Unit> GetUnit(int x, int y); SmartPointer<Unit> GetEnemyUnit(int x, int y); SmartPointer<Unit> GetAllyUnit(int x, int y);
+	void*	GetTile(int x, int y);
+	void*	GetUnit(int x, int y); void* GetEnemyUnit(int x, int y); void* GetAllyUnit(int x, int y);
 	bool	IsOccupied(int x, int y);
 	int		GetOccupantID(int x, int y);
 #pragma endregion
 
-public:
-	template <typename T> friend class SmartPointer;
 private:
+	WeakPointer<Level>		levelWeakPointer;
+
 	// ~~~~ Level ~~~~
 	int						winConditions;		// List of any/all conditions that must be met to win a level
 	int						loseConditions;		// List of any/all conditions that will result in losing a level
@@ -189,13 +190,19 @@ private:
 private:
 	inline bool	IsValidPosition(Position p) { if(p.x < 0 || p.y < 0) { return false; } if(p.x >= mapWidth || p.y >= mapHeight) { return false; } return true; }
 	inline bool IsValidPosition(int x, int y) { if (x < 0 || y < 0) { return false; } if(x >= mapWidth || y >= mapHeight) { return false; } return true; }
-	inline bool IsValidUnit(Position p) { if(!IsValidPosition(p) || unitMap[p.x][p.y] == NULL) { return false; } return true; }
-	inline bool IsValidUnit(int x, int y) { if(!IsValidPosition(x,y) || unitMap[x][y] == NULL) { return false; } return true; }
+	inline bool IsValidUnit(Position p) { if(!IsValidPosition(p) || unitMap[p.x][p.y] == nullptr) { return false; } return true; }
+	inline bool IsValidUnit(int x, int y) { if(!IsValidPosition(x,y) || unitMap[x][y] == nullptr) { return false; } return true; }
 #pragma endregion
 };
 
-inline SmartPointer<Level> Level::Create(lua_State* luaState, int width, int height, int tSize) { return new Level(luaState, width, height, tSize); }
+inline SmartPointer<Level> Level::Create(lua_State* luaState, int width, int height, int tSize) 
+{ 
+	SmartPointer<Level> spl(new Level(luaState, width, height, tSize)); 
+	spl->levelWeakPointer = spl;
+	return spl;
+}
 typedef SmartPointer<Level> LevelPtr;
+typedef WeakPointer<Level> LevelPtrW;
 #endif
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

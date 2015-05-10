@@ -9,11 +9,12 @@ const float CombatManager::BASE_POST_COMBAT_WAIT = 2.0f;
 const float CombatManager::BASE_MULTI_HIT_WAIT = 1.0f;
 
 const std::string CombatManager::BASE_CALC_COMBAT_SCRIPT = "Lua\\Combat Scripts\\Base_CalcCombat.lua";
-const std::string CombatManager::BASE_COMBAT_ATTACKER_STRIKES_SCRIPT = "Lua\\Combat Scripts\\BaseCombat_AttackerStrikes.lua";
-const std::string CombatManager::BASE_COMBAT_DEFENDER_STRIKES_SCRIPT = "Lua\\Combat Scripts\\BaseCombat_DefenderStrikes.lua";
+const std::string CombatManager::BASE_COMBAT_SCRIPT = "Lua\\Combat Scripts\\BaseCombat.lua";
 
-CombatManager::CombatManager(void) : attacker(NULL), defender(NULL), doCombat(false), range(0), combatTimer(0.0f), preCombatWait(BASE_PRE_COMBAT_WAIT), 
-									midCombatWait(BASE_MID_COMBAT_WAIT), postCombatWait(BASE_POST_COMBAT_WAIT), multiHitWait(BASE_MULTI_HIT_WAIT)
+
+CombatManager::CombatManager(void) : doCombat(false), range(0), combatTimer(0.0f), preCombatWait(BASE_PRE_COMBAT_WAIT), 
+									midCombatWait(BASE_MID_COMBAT_WAIT), postCombatWait(BASE_POST_COMBAT_WAIT), multiHitWait(BASE_MULTI_HIT_WAIT),
+									deathCombatWait(0.0f)
 {
 
 }
@@ -28,9 +29,9 @@ void CombatManager::CalculateCombat(lua_State* L)
 	// Attacker
 	lua_pushlightuserdata(L, (void*)this);
 	lua_setglobal(L, "CombatMan");
-	lua_pushlightuserdata(L, (void*)attacker.GetPointer());
+	lua_pushlightuserdata(L, (void*)&attacker);
 	lua_setglobal(L, "Combatant");
-	lua_pushlightuserdata(L, (void*)defender.GetPointer());
+	lua_pushlightuserdata(L, (void*)&defender);
 	lua_setglobal(L, "Target");
 	lua_pushinteger(L, range);
 	lua_setglobal(L, "Range");
@@ -49,9 +50,9 @@ void CombatManager::CalculateCombat(lua_State* L)
 	// Defender
 	lua_pushlightuserdata(L, (void*)this);
 	lua_setglobal(L, "CombatMan");
-	lua_pushlightuserdata(L, (void*)defender.GetPointer());
+	lua_pushlightuserdata(L, (void*)&defender);
 	lua_setglobal(L, "Combatant");
-	lua_pushlightuserdata(L, (void*)attacker.GetPointer());
+	lua_pushlightuserdata(L, (void*)&attacker);
 	lua_setglobal(L, "Target");
 	lua_pushinteger(L, range);
 	lua_setglobal(L, "Range");
@@ -75,7 +76,7 @@ void CombatManager::CalculateCombat(lua_State* L)
 // Do combat between 2 units. Return is who died: 0 = Neither, 1 = Attacker, 2 = Defender
 void CombatManager::DoCombat()
 {
-	if(attacker == NULL || defender == NULL)
+	if(attacker == nullptr || defender == nullptr)
 		return;
 
 	combatTimer = 0.0f;
@@ -96,8 +97,8 @@ void CombatManager::DoAbility(UnitPtr u, Position p)
 void CombatManager::Reset(bool onlyDefender/* = false*/)
 {
 	if(!onlyDefender)
-		attacker = nullptr;
-	defender = nullptr;
+		attacker.Reset();
+	defender.Reset();
 	physicalDamageA = physicalDamageD = 0;
 	magicalDamageA = magicalDamageD = 0;
 	numAttackerHits = numDefenderHits = 1;
@@ -105,6 +106,12 @@ void CombatManager::Reset(bool onlyDefender/* = false*/)
 	hitA = hitD = 0.0f;
 	avoidA = avoidD = 0.0f;
 	accuracyA = accuracyD = 0;
+
+	// Reset combat timers
+	preCombatWait = BASE_PRE_COMBAT_WAIT;
+	midCombatWait = BASE_MID_COMBAT_WAIT;
+	postCombatWait = BASE_POST_COMBAT_WAIT;
+	multiHitWait = BASE_MULTI_HIT_WAIT;
 
 	doCombat = false;
 }
@@ -149,10 +156,9 @@ void CombatManager::SetCombatTimers(float pre, float mid, float post, float mult
 	if(post >=0) postCombatWait = post;
 	if(multi >=0)multiHitWait = multi;
 }
+void CombatManager::SetDeathCombatTimer(float deathTimer) { if(deathTimer > deathCombatWait) deathCombatWait = deathTimer; }
 
-void CombatManager::SaveLevelPointer(SmartPointer<Level> l) { level = l; }
-void CombatManager::DefenderDied() { defenderDied = true; }
-void CombatManager::AttackerDied() { attackerDied = true; }
+void CombatManager::SaveLevelPointer(LevelPtrW l) { level = l; }
 void CombatManager::UnitKilledByAbility(int x, int y) { unitsKilledByAbility.push_back(Position(x,y)); }
 
 // Complete a phase of combat between 2 units and return result
@@ -181,15 +187,19 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			// Attacker attacks defender
 			lua_pushlightuserdata(L, (void*)this);
 			lua_setglobal(L, "CombatMan");
-			lua_pushlightuserdata(L, (void*)level.GetPointer());
+			lua_pushlightuserdata(L, (void*)&level);
 			lua_setglobal(L, "Level");
+			lua_pushlightuserdata(L, (void*)&attacker);
+			lua_setglobal(L, "Attacker");
+			lua_pushlightuserdata(L, (void*)&defender);
+			lua_setglobal(L, "Defender");
 			lua_pushinteger(L, physicalDamageA);
 			lua_setglobal(L, "PhysicalDamage");
 			lua_pushinteger(L, magicalDamageA);
 			lua_setglobal(L, "MagicaDamage");
 			lua_pushinteger(L, accuracyA);
 			lua_setglobal(L, "Accuracy");
-			test = !attacker->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_ATTACKER_STRIKES_SCRIPT.c_str()) :
+			test = !attacker->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_SCRIPT.c_str()) :
 																luaL_dofile(L, attacker->CombatExecuteScript.c_str());
 
 #ifdef DEV_DEBUG
@@ -221,11 +231,12 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			}
 
 			// End combat if defender died
-			if(defenderDied)
+			if(defender->CheckStatus(UNIT_STATUS_KILLED_IN_COMBAT))
 			{
 				defender->ClearBattleScripts();
-				combatPhase = 7;
+				combatPhase = 8;
 				combatTimer = 0.0f;
+				Reset();
 				return COMBAT_MANAGER_UPDATE_DEFENDER_DEAD;
 			}
 
@@ -236,15 +247,19 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 				// Defender retaliates against Attacker
 				lua_pushlightuserdata(L, (void*)this);
 				lua_setglobal(L, "CombatMan");
-				lua_pushlightuserdata(L, (void*)level.GetPointer());
+				lua_pushlightuserdata(L, (void*)&level);
 				lua_setglobal(L, "Level");
+				lua_pushlightuserdata(L, (void*)&defender);
+				lua_setglobal(L, "Attacker");
+				lua_pushlightuserdata(L, (void*)&attacker);
+				lua_setglobal(L, "Defender");
 				lua_pushinteger(L, physicalDamageD);
 				lua_setglobal(L, "PhysicalDamage");
 				lua_pushinteger(L, magicalDamageD);
 				lua_setglobal(L, "MagicaDamage");
 				lua_pushinteger(L, accuracyD);
 				lua_setglobal(L, "Accuracy");
-				test = !defender->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_DEFENDER_STRIKES_SCRIPT.c_str()) :
+				test = !defender->CombatExecuteScript.compare("") ? luaL_dofile(L, BASE_COMBAT_SCRIPT.c_str()) :
 																		luaL_dofile(L, defender->CombatExecuteScript.c_str());
 #ifdef DEV_DEBUG
 				if(test)
@@ -265,10 +280,14 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			}
 
 			combatPhase = 7;	// End combat phase now by default
-			if(attackerDied)	// Attacker died - end combat phase and return his death
+
+			// Attacker died - end combat phase and return his death
+			if(attacker->CheckStatus(UNIT_STATUS_KILLED_IN_COMBAT))
 			{
 				attacker->ClearBattleScripts();
 				combatTimer = 0.0f;
+				Reset();
+				combatPhase = 8;
 				return COMBAT_MANAGER_UPDATE_ATTACKER_DEAD;
 			}
 			else if(false)		// Attacker has post-combat skill, proceed to phase to execute it
@@ -291,19 +310,23 @@ int CombatManager::UpdateCombat(float dt, lua_State* L)
 			combatPhase = 0;
 
 			// Reset combat ability scripts
-			if(!attackerDied)
+			if(attacker->CheckStatus(UNIT_STATUS_KILLED_IN_COMBAT))
 				attacker->ClearBattleScripts();
-			if(!defenderDied)
+			if(defender->CheckStatus(UNIT_STATUS_KILLED_IN_COMBAT))
 				defender->ClearBattleScripts();
 			combatAugmentationScript = "";
 
-			// Reset combat timers
-			preCombatWait = BASE_PRE_COMBAT_WAIT;
-			midCombatWait = BASE_MID_COMBAT_WAIT;
-			postCombatWait = BASE_POST_COMBAT_WAIT;
-			multiHitWait = BASE_MULTI_HIT_WAIT;
+			Reset();
+		case 8:		// Combat end
+			if(combatTimer < deathCombatWait)
+			{
+				combatTimer += dt;
+				return COMBAT_MANAGER_UPDATE_NULL;
+			}
 
-			// Combat end
+			combatTimer = 0.0f;
+			deathCombatWait = 0.0f;
+			combatPhase = 0;
 			return COMBAT_MANAGER_UPDATE_COMBAT_END;
 		default: return COMBAT_MANAGER_UPDATE_NULL;
 	}
@@ -324,7 +347,7 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 			}
 			combatPhase = 2;
 		case 2:		// Execute ability
-			lua_pushlightuserdata(L, (void*)level.GetPointer());
+			lua_pushlightuserdata(L, (void*)&level);
 			lua_setglobal(L, "Level");
 			lua_pushlightuserdata(L, (void*)this);
 			lua_setglobal(L, "CombatMan");
@@ -353,7 +376,10 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 				combatPhase = 4;
 			else	// No more dead units, end combat
 			{
-				combatPhase = 5;
+				if(deathCombatWait > 0)
+					combatPhase = 6;
+				else
+					combatPhase = 5;
 				break;
 			}
 		case 4:		// Return position of next unit killed by Ability
@@ -373,11 +399,19 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 				return Position(-1, -1);
 			}
 
-			// Reset combat timers
-			preCombatWait = BASE_PRE_COMBAT_WAIT;
-			midCombatWait = BASE_MID_COMBAT_WAIT;
-			postCombatWait = BASE_POST_COMBAT_WAIT;
-			multiHitWait = BASE_MULTI_HIT_WAIT;
+			Reset();
+
+			// End
+			return Position(-2, -2);
+		case 6:
+			if(combatTimer < deathCombatWait)
+			{
+				combatTimer += dt;
+				return Position(-1, -1);
+			}
+
+			Reset();
+			deathCombatWait = 0.0f;
 
 			// End
 			return Position(-2, -2);
@@ -388,9 +422,7 @@ Position CombatManager::UpdateAbility(float dt, lua_State* L)
 }
 
 #pragma region Properties
-UnitPtr	CombatManager::GetAttacker() { return attacker; }
 void	CombatManager::SetAttacker(UnitPtr a) { attacker = a; }
-UnitPtr	CombatManager::GetDefender() { return defender; }
 void	CombatManager::SetDefender(UnitPtr d) { defender = d; }
 int		CombatManager::GetDamageA() { return physicalDamageA + magicalDamageA; }
 int		CombatManager::GetDamageD() { return physicalDamageD + magicalDamageD; }

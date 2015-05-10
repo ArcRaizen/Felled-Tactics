@@ -6,7 +6,7 @@ std::wstring VisualElement::PNG = L".png";
 
 // PosX and PosY are pixel-coordinates in the game with (0,0) being the bottom-left corner
 VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, int posX, int posY) : mouseEntered(false), mouseDown(false), texture(0),
-	drawEnabled(true), deleted(false), pointerCount(0)
+	drawEnabled(true)
 {
 	// Initialize values
 	highlightColor.x = highlightColor.y = highlightColor.z = highlightColor.w = 1.0f;
@@ -36,7 +36,7 @@ VisualElement::VisualElement(WCHAR* filename, int layer, int width, int height, 
 	CalcRect();
 }
 
-VisualElement::VisualElement() : pointerCount(0) {}
+VisualElement::VisualElement() {}
 
 VisualElement::~VisualElement(void)
 {
@@ -202,11 +202,6 @@ void VisualElement::EnableDraw()
 {
 	drawEnabled = true;
 	highlightColor.w = alpha;
-}
-
-void VisualElement::Delete()
-{
-	deleted = true;
 }
 
 #pragma region Properties

@@ -11,15 +11,19 @@
 #include <D3D10.h>
 #include <D3DX10.h>
 
-#ifndef SMARTPOINTER_H
-#include "SmartPointer.h"
-#endif
-
 extern "C"{
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
 }
+
+#ifndef SMARTPOINTER_H
+#include "SmartPointer.h"
+#endif
+#ifndef WEAKPOINTER_H
+#include "WeakPointer.h"
+#endif
+
 //#include "Luna.h"
 //#include "json_spirit.h"
 using namespace std;

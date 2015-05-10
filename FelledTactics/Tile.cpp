@@ -10,7 +10,7 @@ D3DXVECTOR4 Tile::highlightEnemyMove = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 D3DXVECTOR4 Tile::highlightAttack = D3DXVECTOR4(1.0f, 0.0f, 0.0f, 1.0f);
 #pragma endregion
 
-Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, SmartPointer<Level> l, Position gp) :
+Tile::Tile(WCHAR* filename, int layer, int width, int height, int posX, int posY, LevelPtrW l, Position gp) :
 	VisualElement(filename, layer, width, height, posX, posY), level(l), gridPosition(gp), effectTimer(0), 
 	status(Status::Empty), mark(Mark::Blank), prevMark(Mark::Blank), effect(Effect::None), effectEnabled(false)
 {
@@ -76,7 +76,7 @@ void Tile::ActivateMovementEffect(lua_State* L)
 
 void Tile::ActivateNewTurnEffect(lua_State* L)
 {
-	lua_pushlightuserdata(L, (void*)level.GetPointer());
+	lua_pushlightuserdata(L, (void*)&level);
 	lua_setglobal(L, "Level");
 
 	// Create table to tell script where the tile is
@@ -173,19 +173,19 @@ void Tile::MouseUp()
 	if(mouseDown)
 	{
 		mouseDown = false;
-		level->SetSelectedTile(gridPosition);
+		level.Lock()->SetSelectedTile(gridPosition);
 	}
 }
 void Tile::MouseOver() 
 { 
 	mouseEntered = true;
-	level->SetHoveredTile(gridPosition);
+	level.Lock()->SetHoveredTile(gridPosition);
 }
 void Tile::MouseOut() 
 { 
 	mouseEntered = false; 
 	mouseDown = false;
-	level->ClearHoveredTile(gridPosition);
+	level.Lock()->ClearHoveredTile(gridPosition);
 }
 #pragma endregion
 
